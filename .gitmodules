@@ -1,0 +1,9 @@
+[submodule "third_party/rapidjson"]
+	path = third_party/rapidjson
+	url = git@github.com:miloyip/rapidjson.git
+[submodule "navitia-proto"]
+	path = navitia-proto
+	url = git@github.com:CanalTP/navitia-proto.git
+[submodule "utils"]
+	path = utils
+	url = git@github.com:CanalTP/utils.git
