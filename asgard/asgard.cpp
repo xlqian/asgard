@@ -11,6 +11,9 @@
 #include <boost/lexical_cast.hpp>
 #include "midgard/logging.h"
 #include <boost/thread.hpp>
+#include <boost/format.hpp>
+#include <flat_hash_map.hpp>
+
 
 
 
@@ -54,8 +57,24 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
     valhalla::thor::TimeDistanceMatrix matrix;
     valhalla::sif::CostFactory<valhalla::sif::DynamicCost> factory;
     factory.Register("auto", valhalla::sif::CreateAutoCost);
+    factory.Register("pedestrian", valhalla::sif::CreatePedestrianCost);
+    factory.Register("bicycle", valhalla::sif::CreateBicycleCost);
+
+    boost::property_tree::ptree auto_conf;
+    std::stringstream ss;
+    ss <<"{\"max_distance\": 5000000.0, \"max_locations\": 20000}" << std::endl;
+    boost::property_tree::read_json(ss, auto_conf);
     valhalla::sif::cost_ptr_t mode_costing[static_cast<int>(valhalla::sif::TravelMode::kMaxTravelMode)];
-    mode_costing[static_cast<int>(valhalla::sif::TravelMode::kDrive)] = factory.Create("auto", boost::property_tree::ptree());
+    mode_costing[static_cast<int>(valhalla::sif::TravelMode::kDrive)] = factory.Create("auto", auto_conf);
+    mode_costing[static_cast<int>(valhalla::sif::TravelMode::kPedestrian)] = factory.Create("pedestrian", boost::property_tree::ptree());
+    mode_costing[static_cast<int>(valhalla::sif::TravelMode::kBicycle)] = factory.Create("bicycle", boost::property_tree::ptree());
+
+    std::map<std::string, valhalla::sif::TravelMode> mode_map;
+    mode_map["walking"] = valhalla::sif::TravelMode::kPedestrian;
+    mode_map["bike"] = valhalla::sif::TravelMode::kBicycle;
+    mode_map["car"] = valhalla::sif::TravelMode::kDrive;
+
+    ska::flat_hash_map<std::string, valhalla::baldr::PathLocation> projection_cache;
 
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect("inproc://workers");
@@ -83,30 +102,47 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
             LOG_WARN("wrong request: aborting");
             continue;
         }
+        std::cout << pb_req.sn_routing_matrix().origins_size() << "   " << pb_req.sn_routing_matrix().destinations_size() << std::endl;
         std::vector<valhalla::baldr::Location> sources;
         sources.reserve(pb_req.sn_routing_matrix().origins_size());
         std::vector<valhalla::baldr::Location> targets;
         targets.reserve(pb_req.sn_routing_matrix().destinations_size());
+        std::vector<valhalla::baldr::PathLocation> path_location_sources;
+        std::vector<valhalla::baldr::PathLocation> path_location_targets;
         for(const auto& e: pb_req.sn_routing_matrix().origins()){
-            sources.push_back(build_location(e.place()));
+            auto it = projection_cache.find(e.place());
+            if(it == projection_cache.end()){
+                auto loc = build_location(e.place());
+                loc.name_ = e.place();
+                sources.push_back(loc);
+            }else{
+                path_location_sources.push_back(it->second);
+            }
         }
         for(const auto& e: pb_req.sn_routing_matrix().destinations()){
-            targets.push_back(build_location(e.place()));
+            auto it = projection_cache.find(e.place());
+            if(it == projection_cache.end()){
+                auto loc = build_location(e.place());
+                loc.name_ = e.place();
+                targets.push_back(loc);
+            }else{
+                path_location_targets.push_back(it->second);
+            }
         }
 
         std::vector<valhalla::baldr::Location> locations(sources);
         locations.insert(end(locations), begin(targets), end(targets));
+        LOG_INFO((boost::format("cache ratio %s/%s") % (path_location_sources.size() + path_location_targets.size()) % (path_location_sources.size() + path_location_targets.size() + locations.size())).str());
         LOG_INFO("projecting");
         auto path_locations = valhalla::loki::Search(locations, graph);
         LOG_INFO("projected");
 
 
-        std::vector<valhalla::baldr::PathLocation> path_location_sources;
-        std::vector<valhalla::baldr::PathLocation> path_location_targets;
         for(const auto& e: sources){
             auto it = path_locations.find(e);
             if(it != end(path_locations)){
                 path_location_sources.push_back(it->second);
+                projection_cache.emplace(e.name_, it->second);
             }else{
                 std::cout << "no projection found" << std::endl;
             }
@@ -116,13 +152,15 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
             auto it = path_locations.find(e);
             if(it != end(path_locations)){
                 path_location_targets.push_back(it->second);
+                projection_cache.emplace(e.name_, it->second);
             }else{
                 std::cout << "no projection found" << std::endl;
             }
         }
 
+
         LOG_INFO("matrix");
-        auto res = matrix.SourceToTarget(path_location_sources, path_location_targets, graph, mode_costing, valhalla::sif::TravelMode::kDrive);
+        auto res = matrix.SourceToTarget(path_location_sources, path_location_targets, graph, mode_costing, mode_map[pb_req.sn_routing_matrix().mode()]);
         LOG_INFO("matrixed!!!");
 
         //todo we need to look with sources and target since path_location only containts coord correctly projected
@@ -148,6 +186,13 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
 
         respond(socket, address, response);
         LOG_INFO("respond sent");
+        if(graph.OverCommitted()){
+            graph.Clear();
+        }
+
+        LOG_INFO("cleared!!!");
+
+
 
     }
 
@@ -168,7 +213,7 @@ int main(){
     valhalla::baldr::GraphReader graph(ptree);
 
 
-    for(int thread_nbr = 0; thread_nbr < 6; ++thread_nbr) {
+    for(int thread_nbr = 0; thread_nbr < 2; ++thread_nbr) {
         threads.create_thread(std::bind(&worker, std::ref(context), std::ref(graph)));
     }
 
