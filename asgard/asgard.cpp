@@ -60,12 +60,8 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
     factory.Register("pedestrian", valhalla::sif::CreatePedestrianCost);
     factory.Register("bicycle", valhalla::sif::CreateBicycleCost);
 
-    boost::property_tree::ptree auto_conf;
-    std::stringstream ss;
-    ss <<"{\"max_distance\": 5000000.0, \"max_locations\": 20000}" << std::endl;
-    boost::property_tree::read_json(ss, auto_conf);
     valhalla::sif::cost_ptr_t mode_costing[static_cast<int>(valhalla::sif::TravelMode::kMaxTravelMode)];
-    mode_costing[static_cast<int>(valhalla::sif::TravelMode::kDrive)] = factory.Create("auto", auto_conf);
+    mode_costing[static_cast<int>(valhalla::sif::TravelMode::kDrive)] = factory.Create("auto", boost::property_tree::ptree());
     mode_costing[static_cast<int>(valhalla::sif::TravelMode::kPedestrian)] = factory.Create("pedestrian", boost::property_tree::ptree());
     mode_costing[static_cast<int>(valhalla::sif::TravelMode::kBicycle)] = factory.Create("bicycle", boost::property_tree::ptree());
 
@@ -73,6 +69,11 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
     mode_map["walking"] = valhalla::sif::TravelMode::kPedestrian;
     mode_map["bike"] = valhalla::sif::TravelMode::kBicycle;
     mode_map["car"] = valhalla::sif::TravelMode::kDrive;
+
+    std::map<std::string, float> mode_distance_map;
+    mode_distance_map["walking"] = 20000;
+    mode_distance_map["bike"] = 50000;
+    mode_distance_map["car"] = 100000;
 
     ska::flat_hash_map<std::string, valhalla::baldr::PathLocation> projection_cache;
 
@@ -134,7 +135,8 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
         locations.insert(end(locations), begin(targets), end(targets));
         LOG_INFO((boost::format("cache ratio %s/%s") % (path_location_sources.size() + path_location_targets.size()) % (path_location_sources.size() + path_location_targets.size() + locations.size())).str());
         LOG_INFO("projecting");
-        auto path_locations = valhalla::loki::Search(locations, graph);
+        auto costing = mode_costing[static_cast<int>(mode_map[pb_req.sn_routing_matrix().mode()])];
+        auto path_locations = valhalla::loki::Search(locations, graph, costing->GetEdgeFilter(), costing->GetNodeFilter());
         LOG_INFO("projected");
 
 
@@ -160,10 +162,11 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
 
 
         LOG_INFO("matrix");
-        auto res = matrix.SourceToTarget(path_location_sources, path_location_targets, graph, mode_costing, mode_map[pb_req.sn_routing_matrix().mode()]);
+        std::cout << "navitia mode: " << pb_req.sn_routing_matrix().mode() << " valhalla mode: " << static_cast<int>(mode_map[pb_req.sn_routing_matrix().mode()]) << std::endl;
+        auto res = matrix.SourceToTarget(path_location_sources, path_location_targets, graph, mode_costing, mode_map[pb_req.sn_routing_matrix().mode()], mode_distance_map[pb_req.sn_routing_matrix().mode()]);
         LOG_INFO("matrixed!!!");
 
-        //todo we need to look with sources and target since path_location only containts coord correctly projected
+        //todo we need to look with sources and targets since path_location only containts coord correctly projected
         auto it = begin(res);
         pbnavitia::Response response;
         for(const auto& source: path_location_sources){
@@ -213,7 +216,7 @@ int main(){
     valhalla::baldr::GraphReader graph(ptree);
 
 
-    for(int thread_nbr = 0; thread_nbr < 2; ++thread_nbr) {
+    for(int thread_nbr = 0; thread_nbr < 3; ++thread_nbr) {
         threads.create_thread(std::bind(&worker, std::ref(context), std::ref(graph)));
     }
 
