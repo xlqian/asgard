@@ -15,8 +15,6 @@
 #include <flat_hash_map.hpp>
 
 
-
-
 class wrong_coordinate: public std::runtime_error{using runtime_error::runtime_error;};
 
 valhalla::baldr::Location build_location(const std::string& place){
@@ -25,7 +23,7 @@ valhalla::baldr::Location build_location(const std::string& place){
         if(pos2 != std::string::npos) {
             double lon = boost::lexical_cast<double>(place.substr(6, pos2 - 6));
             double lat =  boost::lexical_cast<double>(place.substr(pos2+1));
-            return valhalla::baldr::Location({lon, lat});
+            return valhalla::baldr::Location({lon, lat}, valhalla::baldr::Location::StopType::BREAK);
         }
     }catch(const boost::bad_lexical_cast&){
         throw wrong_coordinate("conversion failed");
@@ -71,9 +69,9 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
     mode_map["car"] = valhalla::sif::TravelMode::kDrive;
 
     std::map<std::string, float> mode_distance_map;
-    mode_distance_map["walking"] = 20000;
-    mode_distance_map["bike"] = 50000;
-    mode_distance_map["car"] = 100000;
+    mode_distance_map["walking"] = 60 * 60 * valhalla::thor::kTimeDistCostThresholdPedestrianDivisor;
+    mode_distance_map["bike"] = 60 * 60 * valhalla::thor::kTimeDistCostThresholdBicycleDivisor;
+    mode_distance_map["car"] = 30 * 60 * valhalla::thor::kTimeDistCostThresholdAutoDivisor;
 
     ska::flat_hash_map<std::string, valhalla::baldr::PathLocation> projection_cache;
 
@@ -106,10 +104,13 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
         std::cout << pb_req.sn_routing_matrix().origins_size() << "   " << pb_req.sn_routing_matrix().destinations_size() << std::endl;
         std::vector<valhalla::baldr::Location> sources;
         sources.reserve(pb_req.sn_routing_matrix().origins_size());
+
         std::vector<valhalla::baldr::Location> targets;
         targets.reserve(pb_req.sn_routing_matrix().destinations_size());
+
         std::vector<valhalla::baldr::PathLocation> path_location_sources;
         std::vector<valhalla::baldr::PathLocation> path_location_targets;
+
         for(const auto& e: pb_req.sn_routing_matrix().origins()){
             auto it = projection_cache.find(e.place());
             if(it == projection_cache.end()){
@@ -137,7 +138,7 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
         LOG_INFO("projecting");
         auto costing = mode_costing[static_cast<int>(mode_map[pb_req.sn_routing_matrix().mode()])];
         auto path_locations = valhalla::loki::Search(locations, graph, costing->GetEdgeFilter(), costing->GetNodeFilter());
-        LOG_INFO("projected");
+        LOG_INFO((boost::format("projected %d location on %d pathLocation") % locations.size() % path_locations.size()).str());
 
 
         for(const auto& e: sources){
@@ -146,7 +147,7 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
                 path_location_sources.push_back(it->second);
                 projection_cache.emplace(e.name_, it->second);
             }else{
-                std::cout << "no projection found" << std::endl;
+                LOG_ERROR("no projection found");
             }
         }
 
@@ -156,7 +157,7 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
                 path_location_targets.push_back(it->second);
                 projection_cache.emplace(e.name_, it->second);
             }else{
-                std::cout << "no projection found" << std::endl;
+                LOG_ERROR("no projection found");
             }
         }
 
@@ -169,22 +170,30 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
         //todo we need to look with sources and targets since path_location only containts coord correctly projected
         auto it = begin(res);
         pbnavitia::Response response;
+        int nb_reached = 0;
+        //in fact jormun don't want a real matrix, only a vector of solution :(
+        auto* row = response.mutable_sn_routing_matrix()->add_rows();
         for(const auto& source: path_location_sources){
-            auto* row = response.mutable_sn_routing_matrix()->add_rows();
             for(const auto& target: path_location_targets){
                 auto* k = row->add_routing_response();
                 k->set_duration(it->time);
                 if(it->time == valhalla::thor::kMaxCost){
-                    k->set_routing_status(pbnavitia::RoutingStatus::unreached);
+                    k->set_routing_status(pbnavitia::RoutingStatus::unknown);
                 }else{
                     k->set_routing_status(pbnavitia::RoutingStatus::reached);
+                    ++nb_reached;
                 }
                 ++it;
             }
         }
-        /*for(auto r: res){
+
+        std::cout << "nb result: " << res.size() << std::endl;
+        std::cout << "nb reached: " << nb_reached << std::endl;
+        /*
+        for(auto r: res){
             std::cout << "time: " << r.time << " distance: " << r.dist << std::endl;
-        }*/
+        }
+        */
         //std::cout << "response: " << response.DebugString() << std::endl;
 
         respond(socket, address, response);

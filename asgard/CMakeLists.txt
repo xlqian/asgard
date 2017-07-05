@@ -27,6 +27,6 @@ set_source_files_properties(${PROTO_HDRS} ${PROTO_SRCS} PROPERTIES GENERATED TRU
 
 
 add_executable(asgard asgard.cpp ${CMAKE_SOURCE_DIR}/utils/zmq.cpp ${PROTO_SRCS})
-target_link_libraries(asgard boost_system boost_thread ${BOOST_DEV_LIBS} valhalla zmq protobuf tcmalloc) #TODO do not hardcode lib name
+target_link_libraries(asgard boost_system boost_thread ${BOOST_DEV_LIBS} valhalla zmq protobuf) #TODO do not hardcode lib name
 
 add_executable(flat_test test.cpp)
