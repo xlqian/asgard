@@ -12,7 +12,6 @@
 #include "midgard/logging.h"
 #include <boost/thread.hpp>
 #include <boost/format.hpp>
-#include <flat_hash_map.hpp>
 
 
 class wrong_coordinate: public std::runtime_error{using runtime_error::runtime_error;};
@@ -73,7 +72,7 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
     mode_distance_map["bike"] = 60 * 60 * valhalla::thor::kTimeDistCostThresholdBicycleDivisor;
     mode_distance_map["car"] = 30 * 60 * valhalla::thor::kTimeDistCostThresholdAutoDivisor;
 
-    ska::flat_hash_map<std::string, valhalla::baldr::PathLocation> projection_cache;
+    std::unordered_map<std::string, valhalla::baldr::PathLocation> projection_cache;
 
     zmq::socket_t socket (context, ZMQ_REQ);
     socket.connect("inproc://workers");
