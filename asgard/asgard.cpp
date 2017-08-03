@@ -209,17 +209,30 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
 
 }
 
+const std::string get_config(const std::string& key, const std::string& default_value=""){
+    char* v = std::getenv(key.c_str());
+    if(v != nullptr){
+        return std::string(v);
+    }
+    return default_value;
+}
+
 int main(){
+
+    const std::string socket_path = get_config("ASGARD_SOCKET_PATH", "tcp://*:6000");
+    const std::string tile_extract = get_config("ASGARD_TILE_EXTRACT", "/data/valhalla/tiles.tar");
+    const std::string tile_dir = get_config("ASGARD_TILE_DIR", "/data/valhalla/tiles");
+
 
     boost::thread_group threads;
     zmq::context_t context(1);
     LoadBalancer lb(context);
-    lb.bind("tcp://*:6000", "inproc://workers");
+    lb.bind(socket_path, "inproc://workers");
 
     boost::property_tree::ptree ptree;
     ptree.put("max_cache_size", 1000000000);
-    ptree.put("tile_dir", "/home/kinou/workspace/run/valhalla/valhalla");
-    ptree.put("tile_extract", "/home/kinou/workspace/run/valhalla/valhalla/tiles.tar");
+    ptree.put("tile_dir", tile_dir);
+    ptree.put("tile_extract", tile_extract);
 
     valhalla::baldr::GraphReader graph(ptree);
 
