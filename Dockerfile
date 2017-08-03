@@ -44,8 +44,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
   && git clone --depth=1 --recursive https://github.com/valhalla/valhalla.git libvalhalla \
   && cd libvalhalla \
   && ./autogen.sh && ./configure --enable-services=no --enable-static && make -j4 install && make clean && ldconfig \
-  && cd - && rm -rf libvalhalla
-RUN git clone --depth=1 https://github.com/canaltp/asgard asgard && cd asgard \
+  && cd - && rm -rf libvalhalla \
+  && git clone --depth=1 https://github.com/canaltp/asgard asgard && cd asgard \
   && sed -i 's,git\@github.com:\([^/]*\)/\(.*\).git,https://github.com/\1/\2,' .gitmodules && git submodule update --init \
   && mkdir build && cd build \
   && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j4 && cp asgard/asgard /usr/bin/asgard \
