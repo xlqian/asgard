@@ -1,4 +1,4 @@
-FROM navitia/prime-server
+FROM debian:8
 
 VOLUME /data/valhalla
 RUN apt-get update && apt-get install -y --no-install-recommends git \
@@ -41,6 +41,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       libboost-iostreams1.55.0 \
       cmake \
       libzmq-dev \
+      ca-certificates \
   && git clone --depth=1 --recursive https://github.com/valhalla/valhalla.git libvalhalla \
   && cd libvalhalla \
   && ./autogen.sh && ./configure --enable-services=no --enable-static && make -j4 install && make clean && ldconfig \
