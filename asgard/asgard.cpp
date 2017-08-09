@@ -12,6 +12,7 @@
 #include "midgard/logging.h"
 #include <boost/thread.hpp>
 #include <boost/format.hpp>
+#include <boost/range/join.hpp>
 
 #include "projector.h"
 
@@ -116,11 +117,10 @@ void worker(Context& context){
             targets.push_back(e.place());
         }
 
-        std::vector<std::string> locations(sources);
-        locations.insert(end(locations), begin(targets), end(targets));
+        auto range = boost::range::join(sources, targets);
         LOG_INFO("projecting");
         auto costing = mode_costing[static_cast<int>(mode_map[pb_req.sn_routing_matrix().mode()])];
-        auto path_locations = projector(locations, graph, costing);
+        auto path_locations = projector(begin(range), end(range), graph, costing);
 
 
         for(const auto& e: sources){
