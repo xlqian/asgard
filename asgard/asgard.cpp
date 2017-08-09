@@ -13,22 +13,18 @@
 #include <boost/thread.hpp>
 #include <boost/format.hpp>
 
+#include "projector.h"
 
-class wrong_coordinate: public std::runtime_error{using runtime_error::runtime_error;};
+struct Context{
+    zmq::context_t& zmq_context;
+    valhalla::baldr::GraphReader& graph;
+    int max_cache_size;
 
-valhalla::baldr::Location build_location(const std::string& place){
-    size_t pos2 = place.find(":", 6);
-    try{
-        if(pos2 != std::string::npos) {
-            double lon = boost::lexical_cast<double>(place.substr(6, pos2 - 6));
-            double lat =  boost::lexical_cast<double>(place.substr(pos2+1));
-            return valhalla::baldr::Location({lon, lat}, valhalla::baldr::Location::StopType::BREAK);
-        }
-    }catch(const boost::bad_lexical_cast&){
-        throw wrong_coordinate("conversion failed");
-    }
-    throw wrong_coordinate("not a coordinate");
-}
+    Context(zmq::context_t& zmq_context, valhalla::baldr::GraphReader& graph, int max_cache_size) :
+            zmq_context(zmq_context), graph(graph), max_cache_size(max_cache_size)
+    {}
+
+};
 
 
 static void respond(zmq::socket_t& socket,
@@ -49,7 +45,10 @@ static void respond(zmq::socket_t& socket,
     socket.send(reply);
 }
 
-void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
+
+void worker(Context& context){
+    zmq::context_t& zmq_context =  context.zmq_context;
+    valhalla::baldr::GraphReader& graph = context.graph;
 
     valhalla::thor::TimeDistanceMatrix matrix;
     valhalla::sif::CostFactory<valhalla::sif::DynamicCost> factory;
@@ -72,9 +71,9 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
     mode_distance_map["bike"] = 60 * 60 * valhalla::thor::kTimeDistCostThresholdBicycleDivisor;
     mode_distance_map["car"] = 30 * 60 * valhalla::thor::kTimeDistCostThresholdAutoDivisor;
 
-    std::unordered_map<std::string, valhalla::baldr::PathLocation> projection_cache;
+    asgard::Projector projector(context.max_cache_size);
 
-    zmq::socket_t socket (context, ZMQ_REQ);
+    zmq::socket_t socket (zmq_context, ZMQ_REQ);
     socket.connect("inproc://workers");
     z_send(socket, "READY");
 
@@ -101,50 +100,33 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
             continue;
         }
         std::cout << pb_req.sn_routing_matrix().origins_size() << "   " << pb_req.sn_routing_matrix().destinations_size() << std::endl;
-        std::vector<valhalla::baldr::Location> sources;
+        std::vector<std::string> sources;
         sources.reserve(pb_req.sn_routing_matrix().origins_size());
 
-        std::vector<valhalla::baldr::Location> targets;
+        std::vector<std::string> targets;
         targets.reserve(pb_req.sn_routing_matrix().destinations_size());
 
         std::vector<valhalla::baldr::PathLocation> path_location_sources;
         std::vector<valhalla::baldr::PathLocation> path_location_targets;
 
         for(const auto& e: pb_req.sn_routing_matrix().origins()){
-            auto it = projection_cache.find(e.place());
-            if(it == projection_cache.end()){
-                auto loc = build_location(e.place());
-                loc.name_ = e.place();
-                sources.push_back(loc);
-            }else{
-                path_location_sources.push_back(it->second);
-            }
+            sources.push_back(e.place());
         }
         for(const auto& e: pb_req.sn_routing_matrix().destinations()){
-            auto it = projection_cache.find(e.place());
-            if(it == projection_cache.end()){
-                auto loc = build_location(e.place());
-                loc.name_ = e.place();
-                targets.push_back(loc);
-            }else{
-                path_location_targets.push_back(it->second);
-            }
+            targets.push_back(e.place());
         }
 
-        std::vector<valhalla::baldr::Location> locations(sources);
+        std::vector<std::string> locations(sources);
         locations.insert(end(locations), begin(targets), end(targets));
-        LOG_INFO((boost::format("cache ratio %s/%s") % (path_location_sources.size() + path_location_targets.size()) % (path_location_sources.size() + path_location_targets.size() + locations.size())).str());
         LOG_INFO("projecting");
         auto costing = mode_costing[static_cast<int>(mode_map[pb_req.sn_routing_matrix().mode()])];
-        auto path_locations = valhalla::loki::Search(locations, graph, costing->GetEdgeFilter(), costing->GetNodeFilter());
-        LOG_INFO((boost::format("projected %d location on %d pathLocation") % locations.size() % path_locations.size()).str());
+        auto path_locations = projector(locations, graph, costing);
 
 
         for(const auto& e: sources){
             auto it = path_locations.find(e);
             if(it != end(path_locations)){
                 path_location_sources.push_back(it->second);
-                projection_cache.emplace(e.name_, it->second);
             }else{
                 LOG_ERROR("no projection found");
             }
@@ -154,7 +136,6 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
             auto it = path_locations.find(e);
             if(it != end(path_locations)){
                 path_location_targets.push_back(it->second);
-                projection_cache.emplace(e.name_, it->second);
             }else{
                 LOG_ERROR("no projection found");
             }
@@ -202,27 +183,25 @@ void worker(zmq::context_t& context, valhalla::baldr::GraphReader& graph){
         }
 
         LOG_INFO("cleared!!!");
-
-
-
     }
-
 }
 
-const std::string get_config(const std::string& key, const std::string& default_value=""){
+
+template<typename T>
+const T get_config(const std::string& key, const T& default_value=T()){
     char* v = std::getenv(key.c_str());
     if(v != nullptr){
-        return std::string(v);
+        return boost::lexical_cast<T>(v);
     }
     return default_value;
 }
 
 int main(){
 
-    const std::string socket_path = get_config("ASGARD_SOCKET_PATH", "tcp://*:6000");
-    const std::string tile_extract = get_config("ASGARD_TILE_EXTRACT", "/data/valhalla/tiles.tar");
-    const std::string tile_dir = get_config("ASGARD_TILE_DIR", "/data/valhalla/tiles");
-
+    const std::string socket_path = get_config<std::string>("ASGARD_SOCKET_PATH", "tcp://*:6000");
+    const std::string tile_extract = get_config<std::string>("ASGARD_TILE_EXTRACT", "/data/valhalla/tiles.tar");
+    const std::string tile_dir = get_config<std::string>("ASGARD_TILE_DIR", "/data/valhalla/tiles");
+    const int cache_size = get_config<int>("ASGARD_CACHE_SIZE", 100000);
 
     boost::thread_group threads;
     zmq::context_t context(1);
@@ -238,7 +217,7 @@ int main(){
 
 
     for(int thread_nbr = 0; thread_nbr < 3; ++thread_nbr) {
-        threads.create_thread(std::bind(&worker, std::ref(context), std::ref(graph)));
+        threads.create_thread(std::bind(&worker, Context(context, graph, cache_size)));
     }
 
     // Connect worker threads to client threads via a queue
