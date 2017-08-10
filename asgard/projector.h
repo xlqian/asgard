@@ -10,27 +10,19 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
+#include "utils/coord_parser.h"
 
 namespace asgard{
 
-
-class wrong_coordinate: public std::runtime_error{using runtime_error::runtime_error;};
+using wrong_coordinate = wrong_coordinate;
 
 namespace {
     valhalla::baldr::Location build_location(const std::string& place){
-        size_t pos2 = place.find(":", 6);
-        try{
-            if(pos2 != std::string::npos) {
-                double lon = boost::lexical_cast<double>(place.substr(6, pos2 - 6));
-                double lat =  boost::lexical_cast<double>(place.substr(pos2+1));
-                auto l = valhalla::baldr::Location({lon, lat}, valhalla::baldr::Location::StopType::BREAK);
-                l.name_ = place;
-                return l;
-            }
-        }catch(const boost::bad_lexical_cast&){
-            throw wrong_coordinate("conversion failed");
-        }
-        throw wrong_coordinate("not a coordinate");
+        auto coord = parse_coordinate(place);
+        auto l = valhalla::baldr::Location({coord.first, coord.second},
+                                           valhalla::baldr::Location::StopType::BREAK);
+        l.name_ = place;
+        return l;
     }
 }
 
