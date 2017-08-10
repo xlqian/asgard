@@ -1,0 +1,14 @@
+sudo: required
+
+services:
+    - docker
+
+language: cpp
+
+before_install:
+  - sudo add-apt-repository -y ppa:valhalla-core/valhalla
+  - sudo apt-get update -q
+  - sudo apt-get install -y valhalla-bin cmake libboost-all-dev libzmq-dev
+
+script:
+    - cmake . && make
