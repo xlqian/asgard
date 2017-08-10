@@ -23,7 +23,7 @@ SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer")
 
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-FIND_PACKAGE(Boost 1.55.0 COMPONENTS system thread program_options REQUIRED)
+FIND_PACKAGE(Boost 1.54.0 COMPONENTS system thread program_options REQUIRED)
 
 #boost 1.53/1.54 bugs with local datetime...
 #see http://stackoverflow.com/questions/15234527/boost-1-53-local-date-time-compiler-error-with-std-c0x
