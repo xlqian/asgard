@@ -57,10 +57,11 @@ public:
     }
 
     template <typename T>
-    std::unordered_map<std::string,
-                      valhalla::baldr::PathLocation> operator()(const T places_begin, const T places_end,
-                                                                valhalla::baldr::GraphReader& graph,
-                                                                valhalla::sif::cost_ptr_t costing) const{
+    std::unordered_map<std::string, valhalla::baldr::PathLocation>
+    operator()(const T places_begin,
+               const T places_end,
+               valhalla::baldr::GraphReader& graph,
+               valhalla::sif::cost_ptr_t costing) const{
     std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
     std::vector<valhalla::baldr::Location> missed;
     auto& list = cache.template get<0>();
