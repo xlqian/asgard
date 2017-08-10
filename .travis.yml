@@ -11,4 +11,4 @@ before_install:
   - sudo apt-get install -y valhalla-bin cmake libboost-all-dev libzmq-dev
 
 script:
-    - cmake . && make
+    - cmake -DCMAKE_BUILD_TYPE=Release . && make
