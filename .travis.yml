@@ -5,10 +5,13 @@ services:
 
 language: cpp
 
-before_install:
-  - sudo add-apt-repository -y ppa:valhalla-core/valhalla
-  - sudo apt-get update -q
-  - sudo apt-get install -y valhalla-bin cmake libboost-all-dev libzmq-dev
+git:
+    submodules: false
 
+before_install:
+    - docker run --rm --name asgard -d -v $(pwd):/src navitia/asgard-dev:latest sh -c 'while true; do sleep 10; done'
+    - sed -i 's,git\@github.com:\([^/]*\)/\(.*\).git,https://github.com/\1/\2,' .gitmodules
+    - git submodule update --init
 script:
-    - cmake . && make
+    - docker exec asgard sh -c 'mkdir build && cd build && cmake /src && make'
+    - docker kill asgard
