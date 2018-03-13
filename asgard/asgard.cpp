@@ -1,20 +1,38 @@
+// Copyright 2017-2018, CanalTP and/or its affiliates. All rights reserved.
+//
+// LICENCE: This program is free software; you can redistribute it
+// and/or modify it under the terms of the GNU Affero General Public
+// License as published by the Free Software Foundation, either
+// version 3 of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+// Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public
+// License along with this program. If not, see
+// <http://www.gnu.org/licenses/>.
+
+#include "projector.h"
+
+#include "utils/zmq.h"
+#include "asgard/request.pb.h"
+#include "asgard/response.pb.h"
+
 #include <valhalla/loki/search.h>
 #include <valhalla/baldr/graphreader.h>
 #include <valhalla/baldr/location.h>
 #include <valhalla/thor/timedistancematrix.h>
-#include <boost/property_tree/ptree.hpp>
 #include <valhalla/sif/costfactory.h>
 #include <valhalla/sif/costconstants.h>
-#include "utils/zmq.h"
-#include "asgard/request.pb.h"
-#include "asgard/response.pb.h"
+#include <valhalla/midgard/logging.h>
+
+#include <boost/property_tree/ptree.hpp>
 #include <boost/lexical_cast.hpp>
-#include "midgard/logging.h"
 #include <boost/thread.hpp>
 #include <boost/format.hpp>
 #include <boost/range/join.hpp>
-
-#include "projector.h"
 
 struct Context{
     zmq::context_t& zmq_context;
