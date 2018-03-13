@@ -1,4 +1,4 @@
-FROM debian:8
+FROM debian:9
 
 RUN apt-get update && apt-get install -y --no-install-recommends git \
       autoconf \
@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       libspatialite-dev \
       libsqlite3-dev \
       spatialite-bin \
+      liblz4-dev \
       wget \
       unzip \
       lua5.2 \
@@ -26,20 +27,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       vim-common \
       jq \
       gucharmap \
-      libprotobuf9 \
-      libgeos-3.4.2 \
+      libprotobuf10 \
+      libgeos-3.5.1 \
       liblua5.2 \
       libsqlite3-0 \
       libboost-all-dev \
-      libboost-date-time1.55.0 \
-      libboost-filesystem1.55.0 \
-      libboost-program-options1.55.0 \
-      libboost-regex1.55.0 \
-      libboost-system1.55.0 \
-      libboost-thread1.55.0 \
-      libboost-iostreams1.55.0 \
+      libboost-date-time1.62.0 \
+      libboost-filesystem1.62.0 \
+      libboost-program-options1.62.0 \
+      libboost-regex1.62.0 \
+      libboost-system1.62.0 \
+      libboost-thread1.62.0 \
+      libboost-iostreams1.62.0 \
       cmake \
-      libzmq-dev \
+      libzmq3-dev \
       ca-certificates \
   && git clone --depth=1 --recursive https://github.com/valhalla/valhalla.git libvalhalla \
   && cd libvalhalla \
