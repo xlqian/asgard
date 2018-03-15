@@ -34,13 +34,15 @@
 #include <boost/format.hpp>
 #include <boost/range/join.hpp>
 
+namespace pt = boost::property_tree;
+
 struct Context{
     zmq::context_t& zmq_context;
-    valhalla::baldr::GraphReader& graph;
+    pt::ptree ptree;
     int max_cache_size;
 
-    Context(zmq::context_t& zmq_context, valhalla::baldr::GraphReader& graph, int max_cache_size) :
-            zmq_context(zmq_context), graph(graph), max_cache_size(max_cache_size)
+    Context(zmq::context_t& zmq_context, pt::ptree ptree, int max_cache_size) :
+        zmq_context(zmq_context), ptree(ptree), max_cache_size(max_cache_size)
     {}
 
 };
@@ -64,31 +66,51 @@ static void respond(zmq::socket_t& socket,
     socket.send(reply);
 }
 
+static const std::map<std::string, valhalla::sif::TravelMode> mode_map = {
+    {"walking", valhalla::sif::TravelMode::kPedestrian},
+    {"bike", valhalla::sif::TravelMode::kBicycle},
+    {"car", valhalla::sif::TravelMode::kDrive},
+};
+static const size_t mode_costing_size = static_cast<size_t>(valhalla::sif::TravelMode::kMaxTravelMode);
+using ModeCosting = valhalla::sif::cost_ptr_t[mode_costing_size];
+
+static size_t mode_index(const std::string& mode) {
+    return static_cast<size_t>(mode_map.at(mode));
+}
+
+static pt::ptree make_costing_option(const std::string& mode, float speed) {
+    pt::ptree ptree;
+    speed *= 3.6;
+    if (mode == "walking") {
+        ptree.put("walking_speed", speed);
+    } else if (mode == "bike") {
+        ptree.put("cycling_speed", speed);
+        ptree.put("bicycle_type", "Hybrid");
+    }
+    return ptree;
+}
 
 void worker(Context& context){
     zmq::context_t& zmq_context =  context.zmq_context;
-    valhalla::baldr::GraphReader& graph = context.graph;
+
+    valhalla::baldr::GraphReader graph(context.ptree.get_child("mjolnir"));
 
     valhalla::thor::TimeDistanceMatrix matrix;
     valhalla::sif::CostFactory<valhalla::sif::DynamicCost> factory;
-    factory.Register("auto", valhalla::sif::CreateAutoCost);
-    factory.Register("pedestrian", valhalla::sif::CreatePedestrianCost);
-    factory.Register("bicycle", valhalla::sif::CreateBicycleCost);
+    factory.Register("car", valhalla::sif::CreateAutoCost);
+    factory.Register("walking", valhalla::sif::CreatePedestrianCost);
+    factory.Register("bike", valhalla::sif::CreateBicycleCost);
 
-    valhalla::sif::cost_ptr_t mode_costing[static_cast<int>(valhalla::sif::TravelMode::kMaxTravelMode)];
-    mode_costing[static_cast<int>(valhalla::sif::TravelMode::kDrive)] = factory.Create("auto", boost::property_tree::ptree());
-    mode_costing[static_cast<int>(valhalla::sif::TravelMode::kPedestrian)] = factory.Create("pedestrian", boost::property_tree::ptree());
-    mode_costing[static_cast<int>(valhalla::sif::TravelMode::kBicycle)] = factory.Create("bicycle", boost::property_tree::ptree());
+    ModeCosting mode_costing = {};
+    mode_costing[mode_index("car")] = factory.Create("car", pt::ptree());
+    mode_costing[mode_index("walking")] = factory.Create("walking", pt::ptree());
+    mode_costing[mode_index("bike")] = factory.Create("bike", pt::ptree());
 
-    std::map<std::string, valhalla::sif::TravelMode> mode_map;
-    mode_map["walking"] = valhalla::sif::TravelMode::kPedestrian;
-    mode_map["bike"] = valhalla::sif::TravelMode::kBicycle;
-    mode_map["car"] = valhalla::sif::TravelMode::kDrive;
-
-    std::map<std::string, float> mode_distance_map;
-    mode_distance_map["walking"] = 60 * 60 * valhalla::thor::kTimeDistCostThresholdPedestrianDivisor;
-    mode_distance_map["bike"] = 60 * 60 * valhalla::thor::kTimeDistCostThresholdBicycleDivisor;
-    mode_distance_map["car"] = 30 * 60 * valhalla::thor::kTimeDistCostThresholdAutoDivisor;
+    const std::map<std::string, float> mode_distance_map = {
+        {"walking", context.ptree.get<float>("service_limits.pedestrian.max_matrix_distance")},
+        {"bike", context.ptree.get<float>("service_limits.bicycle.max_matrix_distance")},
+        {"car", context.ptree.get<float>("service_limits.auto.max_matrix_distance")},
+    };
 
     asgard::Projector projector(context.max_cache_size);
 
@@ -106,10 +128,9 @@ void worker(Context& context){
 
         zmq::message_t request;
         socket.recv(&request);
-        LOG_INFO("request received");
         pbnavitia::Request pb_req;
         pb_req.ParseFromArray(request.data(), request.size());
-        //std::cout << "request received: " << pb_req.DebugString() << std::endl;
+        LOG_INFO("Request received...");
 
         if(pb_req.requested_api() != pbnavitia::street_network_routing_matrix && pb_req.requested_api() != pbnavitia::direct_path){
             //empty response, jormun should be not too sad about it
@@ -118,7 +139,10 @@ void worker(Context& context){
             LOG_WARN("wrong request: aborting");
             continue;
         }
-        std::cout << pb_req.sn_routing_matrix().origins_size() << "   " << pb_req.sn_routing_matrix().destinations_size() << std::endl;
+        LOG_INFO("Processing matrix request " +
+                 std::to_string(pb_req.sn_routing_matrix().origins_size()) + "x" +
+                 std::to_string(pb_req.sn_routing_matrix().destinations_size()));
+        const std::string mode = pb_req.sn_routing_matrix().mode();
         std::vector<std::string> sources;
         sources.reserve(pb_req.sn_routing_matrix().origins_size());
 
@@ -135,107 +159,87 @@ void worker(Context& context){
             targets.push_back(e.place());
         }
 
+        mode_costing[mode_index(mode)] = factory.Create(mode, make_costing_option(mode, pb_req.sn_routing_matrix().speed()));
+        auto costing = mode_costing[mode_index(mode)];
+
+        LOG_INFO("Projecting " + std::to_string(sources.size() + targets.size()) + " locations...");
         auto range = boost::range::join(sources, targets);
-        LOG_INFO("projecting");
-        auto costing = mode_costing[static_cast<int>(mode_map[pb_req.sn_routing_matrix().mode()])];
         auto path_locations = projector(begin(range), end(range), graph, costing);
+        LOG_INFO("Projecting locations done.");
 
-
-        for(const auto& e: sources){
-            auto it = path_locations.find(e);
-            if(it != end(path_locations)){
-                path_location_sources.push_back(it->second);
-            }else{
-                LOG_ERROR("no projection found");
-            }
+        for (const auto& e: sources) {
+            path_location_sources.push_back(path_locations.at(e));
         }
 
-        for(const auto& e: targets){
-            auto it = path_locations.find(e);
-            if(it != end(path_locations)){
-                path_location_targets.push_back(it->second);
-            }else{
-                LOG_ERROR("no projection found");
-            }
+        for (const auto& e: targets) {
+            path_location_targets.push_back(path_locations.at(e));
         }
 
+        LOG_INFO("Computing matrix...");
+        auto res = matrix.SourceToTarget(path_location_sources,
+                                         path_location_targets,
+                                         graph,
+                                         mode_costing,
+                                         mode_map.at(mode),
+                                         mode_distance_map.at(mode));
+        LOG_INFO("Computing matrix done.");
 
-        LOG_INFO("matrix");
-        std::cout << "navitia mode: " << pb_req.sn_routing_matrix().mode() << " valhalla mode: " << static_cast<int>(mode_map[pb_req.sn_routing_matrix().mode()]) << std::endl;
-        auto res = matrix.SourceToTarget(path_location_sources, path_location_targets, graph, mode_costing, mode_map[pb_req.sn_routing_matrix().mode()], mode_distance_map[pb_req.sn_routing_matrix().mode()]);
-        LOG_INFO("matrixed!!!");
-
-        //todo we need to look with sources and targets since path_location only containts coord correctly projected
-        auto it = begin(res);
         pbnavitia::Response response;
-        int nb_reached = 0;
+        int nb_unknown = 0;
+        int nb_unreached = 0;
         //in fact jormun don't want a real matrix, only a vector of solution :(
         auto* row = response.mutable_sn_routing_matrix()->add_rows();
-        for(const auto& source: path_location_sources){
-            for(const auto& target: path_location_targets){
-                auto* k = row->add_routing_response();
-                k->set_duration(it->time);
-                if(it->time == valhalla::thor::kMaxCost){
-                    k->set_routing_status(pbnavitia::RoutingStatus::unknown);
-                }else{
-                    k->set_routing_status(pbnavitia::RoutingStatus::reached);
-                    ++nb_reached;
-                }
-                ++it;
+        assert(res.size() == source.size() * target.size());
+        for (const auto& elt: res) {
+            auto* k = row->add_routing_response();
+            k->set_duration(elt.time);
+            if (elt.time == valhalla::thor::kMaxCost) {
+                k->set_routing_status(pbnavitia::RoutingStatus::unknown);
+                ++nb_unknown;
+            } else if (elt.time > uint32_t(pb_req.sn_routing_matrix().max_duration())) {
+                k->set_routing_status(pbnavitia::RoutingStatus::unreached);
+                ++nb_unreached;
+            } else {
+                k->set_routing_status(pbnavitia::RoutingStatus::reached);
             }
         }
 
-        std::cout << "nb result: " << res.size() << std::endl;
-        std::cout << "nb reached: " << nb_reached << std::endl;
-        /*
-        for(auto r: res){
-            std::cout << "time: " << r.time << " distance: " << r.dist << std::endl;
-        }
-        */
-        //std::cout << "response: " << response.DebugString() << std::endl;
-
         respond(socket, address, response);
-        LOG_INFO("respond sent");
-        if(graph.OverCommitted()){
-            graph.Clear();
-        }
+        LOG_INFO("Request done with " +
+                 std::to_string(nb_unknown) + " unknown and " +
+                 std::to_string(nb_unreached) + " unreached");
 
-        LOG_INFO("cleared!!!");
+        if (graph.OverCommitted()) { graph.Clear(); }
+        LOG_INFO("Everything is clear.");
     }
 }
 
 
 template<typename T>
-const T get_config(const std::string& key, const T& default_value=T()){
+const T get_config(const std::string& key, T value=T()){
     char* v = std::getenv(key.c_str());
-    if(v != nullptr){
-        return boost::lexical_cast<T>(v);
+    if (v != nullptr) {
+        value = boost::lexical_cast<T>(v);
     }
-    return default_value;
+    LOG_INFO("Config: " + key + "=" + boost::lexical_cast<std::string>(value));
+    return value;
 }
 
 int main(){
-
-    const std::string socket_path = get_config<std::string>("ASGARD_SOCKET_PATH", "tcp://*:6000");
-    const std::string tile_extract = get_config<std::string>("ASGARD_TILE_EXTRACT", "/data/valhalla/tiles.tar");
-    const std::string tile_dir = get_config<std::string>("ASGARD_TILE_DIR", "/data/valhalla/tiles");
-    const int cache_size = get_config<int>("ASGARD_CACHE_SIZE", 100000);
+    const auto socket_path = get_config<std::string>("ASGARD_SOCKET_PATH", "tcp://*:6000");
+    const auto cache_size = get_config<size_t>("ASGARD_CACHE_SIZE", 100000);
+    const auto valhalla_conf = get_config<std::string>("ASGARD_VALHALLA_CONF", "/data/valhalla/valhalla.conf");
 
     boost::thread_group threads;
     zmq::context_t context(1);
     LoadBalancer lb(context);
     lb.bind(socket_path, "inproc://workers");
 
-    boost::property_tree::ptree ptree;
-    ptree.put("max_cache_size", 1000000000);
-    ptree.put("tile_dir", tile_dir);
-    ptree.put("tile_extract", tile_extract);
-
-    valhalla::baldr::GraphReader graph(ptree);
-
+    pt::ptree ptree;
+    pt::read_json(valhalla_conf, ptree);
 
     for(int thread_nbr = 0; thread_nbr < 3; ++thread_nbr) {
-        threads.create_thread(std::bind(&worker, Context(context, graph, cache_size)));
+        threads.create_thread(std::bind(&worker, Context(context, ptree, cache_size)));
     }
 
     // Connect worker threads to client threads via a queue
