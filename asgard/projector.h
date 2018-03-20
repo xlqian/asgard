@@ -50,11 +50,7 @@ private:
 
 public:
 
-    Projector(size_t cache_size = 1000){
-        if (cache_size < 1) {
-            throw std::invalid_argument("max (size of cache) must be strictly positive");
-        }
-    }
+    Projector(size_t cache_size = 1000): cache_size(cache_size) {}
 
     template <typename T>
     std::unordered_map<std::string, valhalla::baldr::PathLocation>
@@ -62,35 +58,38 @@ public:
                const T places_end,
                valhalla::baldr::GraphReader& graph,
                valhalla::sif::cost_ptr_t costing) const{
-    std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
-    std::vector<valhalla::baldr::Location> missed;
-    auto& list = cache.template get<0>();
-    auto& map = cache.template get<1>();
-    for(auto it = places_begin; it != places_end; ++it){
-        ++nb_calls;
-        const auto search = map.find(*it);
-        if (search != map.end()) {
-            // put the cached value at the begining of the cache
-            list.relocate(list.begin(), cache.template project<0>(search));
-            results.emplace(*it, search->second);
-        } else {
-            ++nb_cache_miss;
-            missed.push_back(build_location(*it));
+        std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
+        std::vector<valhalla::baldr::Location> missed;
+        auto& list = cache.template get<0>();
+        auto& map = cache.template get<1>();
+        for(auto it = places_begin; it != places_end; ++it){
+            ++nb_calls;
+            const auto search = map.find(*it);
+            if (search != map.end()) {
+                // put the cached value at the begining of the cache
+                list.relocate(list.begin(), cache.template project<0>(search));
+                results.emplace(*it, search->second);
+            } else {
+                ++nb_cache_miss;
+                missed.push_back(build_location(*it));
+            }
         }
-    }
-    if(!missed.empty()){
-        auto path_locations = valhalla::loki::Search(missed, graph, costing->GetEdgeFilter(), costing->GetNodeFilter());
-        for(const auto& l: path_locations){
-            list.push_front(std::make_pair(l.first.name_, l.second));
-            results.emplace(l.first.name_, l.second);
+        if(!missed.empty()){
+            auto path_locations = valhalla::loki::Search(missed,
+                                                         graph,
+                                                         costing->GetEdgeFilter(),
+                                                         costing->GetNodeFilter());
+            for (const auto& l: path_locations) {
+                list.push_front(std::make_pair(l.first.name_, l.second));
+                results.emplace(l.first.name_, l.second);
+            }
+            while (list.size() > cache_size) { list.pop_back(); }
         }
-        while (list.size() > cache_size) { list.pop_back(); }
+        return results;
     }
-    return results;
-}
-
 
     size_t get_nb_cache_miss() const { return nb_cache_miss; }
     size_t get_nb_calls() const { return nb_calls; }
 };
+
 }
