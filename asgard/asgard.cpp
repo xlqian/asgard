@@ -149,9 +149,6 @@ void worker(Context& context){
         std::vector<std::string> targets;
         targets.reserve(pb_req.sn_routing_matrix().destinations_size());
 
-        std::vector<valhalla::baldr::PathLocation> path_location_sources;
-        std::vector<valhalla::baldr::PathLocation> path_location_targets;
-
         for(const auto& e: pb_req.sn_routing_matrix().origins()){
             sources.push_back(e.place());
         }
@@ -167,12 +164,13 @@ void worker(Context& context){
         auto path_locations = projector(begin(range), end(range), graph, costing);
         LOG_INFO("Projecting locations done.");
 
+        google::protobuf::RepeatedPtrField<valhalla::odin::Location> path_location_sources;
+        google::protobuf::RepeatedPtrField<valhalla::odin::Location> path_location_targets;
         for (const auto& e: sources) {
-            path_location_sources.push_back(path_locations.at(e));
+            valhalla::baldr::PathLocation::toPBF(path_locations.at(e), path_location_sources.Add(), graph);
         }
-
         for (const auto& e: targets) {
-            path_location_targets.push_back(path_locations.at(e));
+            valhalla::baldr::PathLocation::toPBF(path_locations.at(e), path_location_targets.Add(), graph);
         }
 
         LOG_INFO("Computing matrix...");
