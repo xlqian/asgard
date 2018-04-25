@@ -90,6 +90,17 @@ static pt::ptree make_costing_option(const std::string& mode, float speed) {
     return ptree;
 }
 
+static float get_distance(const std::string& mode, float duration) {
+    using namespace valhalla::thor;
+    if (mode == "walking") {
+        return duration * kTimeDistCostThresholdPedestrianDivisor;
+    } else if (mode == "bike") {
+        return duration * kTimeDistCostThresholdBicycleDivisor;
+    } else {
+        return duration * kTimeDistCostThresholdAutoDivisor;
+    }
+}
+
 void worker(Context& context){
     zmq::context_t& zmq_context =  context.zmq_context;
 
@@ -105,12 +116,6 @@ void worker(Context& context){
     mode_costing[mode_index("car")] = factory.Create("car", pt::ptree());
     mode_costing[mode_index("walking")] = factory.Create("walking", pt::ptree());
     mode_costing[mode_index("bike")] = factory.Create("bike", pt::ptree());
-
-    const std::map<std::string, float> mode_distance_map = {
-        {"walking", context.ptree.get<float>("service_limits.pedestrian.max_matrix_distance")},
-        {"bike", context.ptree.get<float>("service_limits.bicycle.max_matrix_distance")},
-        {"car", context.ptree.get<float>("service_limits.auto.max_matrix_distance")},
-    };
 
     asgard::Projector projector(context.max_cache_size);
 
@@ -161,7 +166,7 @@ void worker(Context& context){
 
         LOG_INFO("Projecting " + std::to_string(sources.size() + targets.size()) + " locations...");
         auto range = boost::range::join(sources, targets);
-        auto path_locations = projector(begin(range), end(range), graph, costing);
+        auto path_locations = projector(begin(range), end(range), graph, mode, costing);
         LOG_INFO("Projecting locations done.");
 
         google::protobuf::RepeatedPtrField<valhalla::odin::Location> path_location_sources;
@@ -179,7 +184,7 @@ void worker(Context& context){
                                          graph,
                                          mode_costing,
                                          mode_map.at(mode),
-                                         mode_distance_map.at(mode));
+                                         get_distance(mode, pb_req.sn_routing_matrix().max_duration()));
         LOG_INFO("Computing matrix done.");
 
         pbnavitia::Response response;
@@ -226,6 +231,7 @@ const T get_config(const std::string& key, T value=T()){
 int main(){
     const auto socket_path = get_config<std::string>("ASGARD_SOCKET_PATH", "tcp://*:6000");
     const auto cache_size = get_config<size_t>("ASGARD_CACHE_SIZE", 100000);
+    const auto nb_threads = get_config<size_t>("ASGARD_NB_THREADS", 3);
     const auto valhalla_conf = get_config<std::string>("ASGARD_VALHALLA_CONF", "/data/valhalla/valhalla.conf");
 
     boost::thread_group threads;
@@ -236,18 +242,16 @@ int main(){
     pt::ptree ptree;
     pt::read_json(valhalla_conf, ptree);
 
-    for(int thread_nbr = 0; thread_nbr < 3; ++thread_nbr) {
+    for (size_t i = 0; i < nb_threads; ++i) {
         threads.create_thread(std::bind(&worker, Context(context, ptree, cache_size)));
     }
 
     // Connect worker threads to client threads via a queue
-    do{
-        try{
+    while (true) {
+        try {
             lb.run();
-        }catch(const zmq::error_t&){}//lors d'un SIGHUP on restore la queue
-    }while(true);
+        } catch (const zmq::error_t&) {}//lors d'un SIGHUP on restore la queue
+    }
 
-
-
-
+    return 0;
 }

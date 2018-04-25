@@ -28,7 +28,7 @@ namespace {
 
 class Projector {
 private:
-    typedef std::string key_type;
+    typedef std::pair<std::string, std::string> key_type;
     typedef valhalla::baldr::PathLocation mapped_type;
     typedef std::pair<const key_type, mapped_type> value_type;
     typedef boost::multi_index_container<
@@ -57,6 +57,7 @@ public:
     operator()(const T places_begin,
                const T places_end,
                valhalla::baldr::GraphReader& graph,
+               const std::string& mode,
                valhalla::sif::cost_ptr_t costing) const{
         std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
         std::vector<valhalla::baldr::Location> missed;
@@ -64,7 +65,7 @@ public:
         auto& map = cache.template get<1>();
         for(auto it = places_begin; it != places_end; ++it){
             ++nb_calls;
-            const auto search = map.find(*it);
+            const auto search = map.find(std::make_pair(*it, mode));
             if (search != map.end()) {
                 // put the cached value at the begining of the cache
                 list.relocate(list.begin(), cache.template project<0>(search));
@@ -80,7 +81,7 @@ public:
                                                          costing->GetEdgeFilter(),
                                                          costing->GetNodeFilter());
             for (const auto& l: path_locations) {
-                list.push_front(std::make_pair(l.first.name_, l.second));
+                list.push_front(std::make_pair(std::make_pair(l.first.name_, mode), l.second));
                 results.emplace(l.first.name_, l.second);
             }
             while (list.size() > cache_size) { list.pop_back(); }
