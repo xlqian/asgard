@@ -44,13 +44,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       libzmq3-dev \
       ca-certificates \
   && git clone --depth=1 --recursive https://github.com/valhalla/valhalla.git libvalhalla \
-  && cd libvalhalla \
-  && ./autogen.sh && ./configure --enable-services=no --enable-static && make -j4 install && make clean && ldconfig \
+  && mkdir -p libvalhalla/build \
+  && cd libvalhalla/build \
+  && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=Off -DENABLE_NODE_BINDINGS=Off -DENABLE_PYTHON_BINDINGS=Off -DBUILD_SHARED_LIBS=Off -DBoost_USE_STATIC_LIBS=ON -DProtobuf_USE_STATIC_LIBS=ON -DLZ4_USE_STATIC_LIBS=ON \
+  && make -j$(nproc) install && ldconfig \
   && cd - && rm -rf libvalhalla \
   && git clone --depth=1 https://github.com/canaltp/asgard asgard && cd asgard \
   && sed -i 's,git\@github.com:\([^/]*\)/\(.*\).git,https://github.com/\1/\2,' .gitmodules && git submodule update --init \
   && mkdir build && cd build \
-  && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j4 && cp asgard/asgard /usr/bin/asgard \
+  && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j$(nproc) && cp asgard/asgard /usr/bin/asgard \
   && cd - && rm -rf asgard \
   && apt-get -y purge \
       git \
