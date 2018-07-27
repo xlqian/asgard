@@ -46,7 +46,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
   && mkdir -p libvalhalla/build \
   && cd libvalhalla/build \
   && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=Off -DENABLE_NODE_BINDINGS=Off -DENABLE_PYTHON_BINDINGS=Off -DBUILD_SHARED_LIBS=Off -DBoost_USE_STATIC_LIBS=ON -DProtobuf_USE_STATIC_LIBS=ON -DLZ4_USE_STATIC_LIBS=ON \
-  && make -j8 install && ldconfig \
+  && make -j$(nproc) install && ldconfig \
   && apt-get -y purge \
       autoconf \
       automake \
