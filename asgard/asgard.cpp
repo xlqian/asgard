@@ -29,12 +29,14 @@
 #include <valhalla/midgard/logging.h>
 
 #include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/thread.hpp>
 #include <boost/format.hpp>
 #include <boost/range/join.hpp>
 
 namespace pt = boost::property_tree;
+using namespace valhalla;
 
 struct Context{
     zmq::context_t& zmq_context;
@@ -66,32 +68,38 @@ static void respond(zmq::socket_t& socket,
     socket.send(reply);
 }
 
-static const std::map<std::string, valhalla::sif::TravelMode> mode_map = {
-    {"walking", valhalla::sif::TravelMode::kPedestrian},
-    {"bike", valhalla::sif::TravelMode::kBicycle},
-    {"car", valhalla::sif::TravelMode::kDrive},
+odin::DirectionsOptions make_default_directions_options() {
+    odin::DirectionsOptions default_directions_options;
+    for (int i = 0; i < 12; ++i) {
+        default_directions_options.add_costing_options();
+    }
+    return default_directions_options;
+}
+static const odin::DirectionsOptions default_directions_options = make_default_directions_options();
+
+static const std::map<std::string, sif::TravelMode> mode_map = {
+    {"walking", sif::TravelMode::kPedestrian},
+    {"bike", sif::TravelMode::kBicycle},
+    {"car", sif::TravelMode::kDrive},
 };
-static const size_t mode_costing_size = static_cast<size_t>(valhalla::sif::TravelMode::kMaxTravelMode);
-using ModeCosting = valhalla::sif::cost_ptr_t[mode_costing_size];
+static const size_t mode_costing_size = static_cast<size_t>(sif::TravelMode::kMaxTravelMode);
+using ModeCosting = sif::cost_ptr_t[mode_costing_size];
 
 static size_t mode_index(const std::string& mode) {
     return static_cast<size_t>(mode_map.at(mode));
 }
 
-static pt::ptree make_costing_option(const std::string& mode, float speed) {
-    pt::ptree ptree;
+static odin::DirectionsOptions
+make_costing_option(const std::string& mode, float speed) {
+    odin::DirectionsOptions options = default_directions_options;
     speed *= 3.6;
-    if (mode == "walking") {
-        ptree.put("walking_speed", speed);
-    } else if (mode == "bike") {
-        ptree.put("cycling_speed", speed);
-        ptree.put("bicycle_type", "Hybrid");
-    }
-    return ptree;
+    options.mutable_costing_options(odin::Costing::pedestrian)->set_walking_speed(speed);
+    options.mutable_costing_options(odin::Costing::bicycle)->set_walking_speed(speed);
+    return options;
 }
 
 static float get_distance(const std::string& mode, float duration) {
-    using namespace valhalla::thor;
+    using namespace thor;
     if (mode == "walking") {
         return duration * kTimeDistCostThresholdPedestrianDivisor;
     } else if (mode == "bike") {
@@ -101,21 +109,33 @@ static float get_distance(const std::string& mode, float duration) {
     }
 }
 
+static odin::Costing to_costing(const std::string& mode) {
+    if (mode == "walking") {
+        return odin::Costing::pedestrian;
+    } else if (mode == "bike") {
+        return odin::Costing::bicycle;
+    } else if (mode == "car") {
+        return odin::Costing::auto_;
+    } else {
+        throw std::invalid_argument("Bad to_costing parameter");
+    }
+}
+
 void worker(Context& context){
     zmq::context_t& zmq_context =  context.zmq_context;
 
-    valhalla::baldr::GraphReader graph(context.ptree.get_child("mjolnir"));
+    baldr::GraphReader graph(context.ptree.get_child("mjolnir"));
 
-    valhalla::thor::TimeDistanceMatrix matrix;
-    valhalla::sif::CostFactory<valhalla::sif::DynamicCost> factory;
-    factory.Register("car", valhalla::sif::CreateAutoCost);
-    factory.Register("walking", valhalla::sif::CreatePedestrianCost);
-    factory.Register("bike", valhalla::sif::CreateBicycleCost);
+    thor::TimeDistanceMatrix matrix;
+    sif::CostFactory<sif::DynamicCost> factory;
+    factory.Register(odin::Costing::auto_, sif::CreateAutoCost);
+    factory.Register(odin::Costing::pedestrian, sif::CreatePedestrianCost);
+    factory.Register(odin::Costing::bicycle, sif::CreateBicycleCost);
 
     ModeCosting mode_costing = {};
-    mode_costing[mode_index("car")] = factory.Create("car", pt::ptree());
-    mode_costing[mode_index("walking")] = factory.Create("walking", pt::ptree());
-    mode_costing[mode_index("bike")] = factory.Create("bike", pt::ptree());
+    mode_costing[mode_index("car")] = factory.Create(odin::Costing::auto_, default_directions_options);
+    mode_costing[mode_index("walking")] = factory.Create(odin::Costing::pedestrian, default_directions_options);
+    mode_costing[mode_index("bike")] = factory.Create(odin::Costing::bicycle, default_directions_options);
 
     asgard::Projector projector(context.max_cache_size);
 
@@ -161,7 +181,7 @@ void worker(Context& context){
             targets.push_back(e.place());
         }
 
-        mode_costing[mode_index(mode)] = factory.Create(mode, make_costing_option(mode, pb_req.sn_routing_matrix().speed()));
+        mode_costing[mode_index(mode)] = factory.Create(to_costing(mode), make_costing_option(mode, pb_req.sn_routing_matrix().speed()));
         auto costing = mode_costing[mode_index(mode)];
 
         LOG_INFO("Projecting " + std::to_string(sources.size() + targets.size()) + " locations...");
@@ -169,13 +189,13 @@ void worker(Context& context){
         auto path_locations = projector(begin(range), end(range), graph, mode, costing);
         LOG_INFO("Projecting locations done.");
 
-        google::protobuf::RepeatedPtrField<valhalla::odin::Location> path_location_sources;
-        google::protobuf::RepeatedPtrField<valhalla::odin::Location> path_location_targets;
+        google::protobuf::RepeatedPtrField<odin::Location> path_location_sources;
+        google::protobuf::RepeatedPtrField<odin::Location> path_location_targets;
         for (const auto& e: sources) {
-            valhalla::baldr::PathLocation::toPBF(path_locations.at(e), path_location_sources.Add(), graph);
+            baldr::PathLocation::toPBF(path_locations.at(e), path_location_sources.Add(), graph);
         }
         for (const auto& e: targets) {
-            valhalla::baldr::PathLocation::toPBF(path_locations.at(e), path_location_targets.Add(), graph);
+            baldr::PathLocation::toPBF(path_locations.at(e), path_location_targets.Add(), graph);
         }
 
         LOG_INFO("Computing matrix...");
@@ -192,11 +212,11 @@ void worker(Context& context){
         int nb_unreached = 0;
         //in fact jormun don't want a real matrix, only a vector of solution :(
         auto* row = response.mutable_sn_routing_matrix()->add_rows();
-        assert(res.size() == source.size() * target.size());
+        assert(res.size() == sources.size() * targets.size());
         for (const auto& elt: res) {
             auto* k = row->add_routing_response();
             k->set_duration(elt.time);
-            if (elt.time == valhalla::thor::kMaxCost) {
+            if (elt.time == thor::kMaxCost) {
                 k->set_routing_status(pbnavitia::RoutingStatus::unknown);
                 ++nb_unknown;
             } else if (elt.time > uint32_t(pb_req.sn_routing_matrix().max_duration())) {
