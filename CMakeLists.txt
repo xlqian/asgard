@@ -32,6 +32,7 @@ add_definitions(-DBOOST_NO_CXX11_EXPLICIT_CONVERSION_OPERATORS)
 
 #add current compilation dir to include path to handle config.h
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third_party/rapidjson/include")
+include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third_party/date/include")
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third_party/")
 include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("${CMAKE_BINARY_DIR}")

@@ -7,3 +7,6 @@
 [submodule "utils"]
 	path = utils
 	url = git@github.com:CanalTP/utils.git
+[submodule "third_party/date"]
+	path = third_party/date
+	url = https://github.com/HowardHinnant/date.git
