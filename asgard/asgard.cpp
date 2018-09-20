@@ -14,7 +14,8 @@
 // License along with this program. If not, see
 // <http://www.gnu.org/licenses/>.
 
-#include "projector.h"
+#include "context.h"
+#include "handler.h"
 
 #include "utils/zmq.h"
 #include "asgard/request.pb.h"
@@ -38,21 +39,11 @@
 namespace pt = boost::property_tree;
 using namespace valhalla;
 
-struct Context{
-    zmq::context_t& zmq_context;
-    pt::ptree ptree;
-    int max_cache_size;
-
-    Context(zmq::context_t& zmq_context, pt::ptree ptree, int max_cache_size) :
-        zmq_context(zmq_context), ptree(ptree), max_cache_size(max_cache_size)
-    {}
-
-};
-
 
 static void respond(zmq::socket_t& socket,
-             const std::string& address,
-             const pbnavitia::Response& response){
+                    const std::string& address,
+                    const pbnavitia::Response& response)
+{
     zmq::message_t reply(response.ByteSize());
     try{
         response.SerializeToArray(reply.data(), response.ByteSize());
@@ -68,76 +59,9 @@ static void respond(zmq::socket_t& socket,
     socket.send(reply);
 }
 
-odin::DirectionsOptions make_default_directions_options() {
-    odin::DirectionsOptions default_directions_options;
-    for (int i = 0; i < 12; ++i) {
-        default_directions_options.add_costing_options();
-    }
-    return default_directions_options;
-}
-static const odin::DirectionsOptions default_directions_options = make_default_directions_options();
-
-static const std::map<std::string, sif::TravelMode> mode_map = {
-    {"walking", sif::TravelMode::kPedestrian},
-    {"bike", sif::TravelMode::kBicycle},
-    {"car", sif::TravelMode::kDrive},
-};
-static const size_t mode_costing_size = static_cast<size_t>(sif::TravelMode::kMaxTravelMode);
-using ModeCosting = sif::cost_ptr_t[mode_costing_size];
-
-static size_t mode_index(const std::string& mode) {
-    return static_cast<size_t>(mode_map.at(mode));
-}
-
-static odin::DirectionsOptions
-make_costing_option(const std::string& mode, float speed) {
-    odin::DirectionsOptions options = default_directions_options;
-    speed *= 3.6;
-    options.mutable_costing_options(odin::Costing::pedestrian)->set_walking_speed(speed);
-    options.mutable_costing_options(odin::Costing::bicycle)->set_walking_speed(speed);
-    return options;
-}
-
-static float get_distance(const std::string& mode, float duration) {
-    using namespace thor;
-    if (mode == "walking") {
-        return duration * kTimeDistCostThresholdPedestrianDivisor;
-    } else if (mode == "bike") {
-        return duration * kTimeDistCostThresholdBicycleDivisor;
-    } else {
-        return duration * kTimeDistCostThresholdAutoDivisor;
-    }
-}
-
-static odin::Costing to_costing(const std::string& mode) {
-    if (mode == "walking") {
-        return odin::Costing::pedestrian;
-    } else if (mode == "bike") {
-        return odin::Costing::bicycle;
-    } else if (mode == "car") {
-        return odin::Costing::auto_;
-    } else {
-        throw std::invalid_argument("Bad to_costing parameter");
-    }
-}
-
-void worker(Context& context){
+static void worker(const asgard::Context& context){
     zmq::context_t& zmq_context =  context.zmq_context;
-
-    baldr::GraphReader graph(context.ptree.get_child("mjolnir"));
-
-    thor::TimeDistanceMatrix matrix;
-    sif::CostFactory<sif::DynamicCost> factory;
-    factory.Register(odin::Costing::auto_, sif::CreateAutoCost);
-    factory.Register(odin::Costing::pedestrian, sif::CreatePedestrianCost);
-    factory.Register(odin::Costing::bicycle, sif::CreateBicycleCost);
-
-    ModeCosting mode_costing = {};
-    mode_costing[mode_index("car")] = factory.Create(odin::Costing::auto_, default_directions_options);
-    mode_costing[mode_index("walking")] = factory.Create(odin::Costing::pedestrian, default_directions_options);
-    mode_costing[mode_index("bike")] = factory.Create(odin::Costing::bicycle, default_directions_options);
-
-    asgard::Projector projector(context.max_cache_size);
+    asgard::Handler handler(context);
 
     zmq::socket_t socket (zmq_context, ZMQ_REQ);
     socket.connect("inproc://workers");
@@ -157,83 +81,9 @@ void worker(Context& context){
         pb_req.ParseFromArray(request.data(), request.size());
         LOG_INFO("Request received...");
 
-        if(pb_req.requested_api() != pbnavitia::street_network_routing_matrix && pb_req.requested_api() != pbnavitia::direct_path){
-            //empty response, jormun should be not too sad about it
-            pbnavitia::Response response;
-            respond(socket, address, response);
-            LOG_WARN("wrong request: aborting");
-            continue;
-        }
-        LOG_INFO("Processing matrix request " +
-                 std::to_string(pb_req.sn_routing_matrix().origins_size()) + "x" +
-                 std::to_string(pb_req.sn_routing_matrix().destinations_size()));
-        const std::string mode = pb_req.sn_routing_matrix().mode();
-        std::vector<std::string> sources;
-        sources.reserve(pb_req.sn_routing_matrix().origins_size());
-
-        std::vector<std::string> targets;
-        targets.reserve(pb_req.sn_routing_matrix().destinations_size());
-
-        for(const auto& e: pb_req.sn_routing_matrix().origins()){
-            sources.push_back(e.place());
-        }
-        for(const auto& e: pb_req.sn_routing_matrix().destinations()){
-            targets.push_back(e.place());
-        }
-
-        mode_costing[mode_index(mode)] = factory.Create(to_costing(mode), make_costing_option(mode, pb_req.sn_routing_matrix().speed()));
-        auto costing = mode_costing[mode_index(mode)];
-
-        LOG_INFO("Projecting " + std::to_string(sources.size() + targets.size()) + " locations...");
-        auto range = boost::range::join(sources, targets);
-        auto path_locations = projector(begin(range), end(range), graph, mode, costing);
-        LOG_INFO("Projecting locations done.");
-
-        google::protobuf::RepeatedPtrField<odin::Location> path_location_sources;
-        google::protobuf::RepeatedPtrField<odin::Location> path_location_targets;
-        for (const auto& e: sources) {
-            baldr::PathLocation::toPBF(path_locations.at(e), path_location_sources.Add(), graph);
-        }
-        for (const auto& e: targets) {
-            baldr::PathLocation::toPBF(path_locations.at(e), path_location_targets.Add(), graph);
-        }
-
-        LOG_INFO("Computing matrix...");
-        auto res = matrix.SourceToTarget(path_location_sources,
-                                         path_location_targets,
-                                         graph,
-                                         mode_costing,
-                                         mode_map.at(mode),
-                                         get_distance(mode, pb_req.sn_routing_matrix().max_duration()));
-        LOG_INFO("Computing matrix done.");
-
-        pbnavitia::Response response;
-        int nb_unknown = 0;
-        int nb_unreached = 0;
-        //in fact jormun don't want a real matrix, only a vector of solution :(
-        auto* row = response.mutable_sn_routing_matrix()->add_rows();
-        assert(res.size() == sources.size() * targets.size());
-        for (const auto& elt: res) {
-            auto* k = row->add_routing_response();
-            k->set_duration(elt.time);
-            if (elt.time == thor::kMaxCost) {
-                k->set_routing_status(pbnavitia::RoutingStatus::unknown);
-                ++nb_unknown;
-            } else if (elt.time > uint32_t(pb_req.sn_routing_matrix().max_duration())) {
-                k->set_routing_status(pbnavitia::RoutingStatus::unreached);
-                ++nb_unreached;
-            } else {
-                k->set_routing_status(pbnavitia::RoutingStatus::reached);
-            }
-        }
+        const auto response = handler.handle(pb_req);
 
         respond(socket, address, response);
-        LOG_INFO("Request done with " +
-                 std::to_string(nb_unknown) + " unknown and " +
-                 std::to_string(nb_unreached) + " unreached");
-
-        if (graph.OverCommitted()) { graph.Clear(); }
-        LOG_INFO("Everything is clear.");
     }
 }
 
@@ -263,7 +113,7 @@ int main(){
     pt::read_json(valhalla_conf, ptree);
 
     for (size_t i = 0; i < nb_threads; ++i) {
-        threads.create_thread(std::bind(&worker, Context(context, ptree, cache_size)));
+        threads.create_thread(std::bind(&worker, asgard::Context(context, ptree, cache_size)));
     }
 
     // Connect worker threads to client threads via a queue

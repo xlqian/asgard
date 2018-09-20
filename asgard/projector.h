@@ -14,11 +14,9 @@
 
 namespace asgard{
 
-using wrong_coordinate = wrong_coordinate;
-
 namespace {
     valhalla::baldr::Location build_location(const std::string& place){
-        auto coord = parse_coordinate(place);
+        auto coord = navitia::parse_coordinate(place);
         auto l = valhalla::baldr::Location({coord.first, coord.second},
                                            valhalla::baldr::Location::StopType::BREAK);
         l.name_ = place;
