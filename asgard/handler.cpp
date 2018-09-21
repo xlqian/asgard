@@ -91,11 +91,16 @@ Handler::Handler(const Context& context):
 }
 
 pbnavitia::Response Handler::handle(const pbnavitia::Request& request) {
-    if(request.requested_api() != pbnavitia::street_network_routing_matrix && request.requested_api() != pbnavitia::direct_path){
-        //empty response, jormun should be not too sad about it
+    switch (request.requested_api()) {
+    case pbnavitia::street_network_routing_matrix: return handle_matrix(request);
+    case pbnavitia::direct_path: return handle_direct_path(request);
+    default:
         LOG_WARN("wrong request: aborting");
         return pbnavitia::Response();
     }
+}
+
+pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     LOG_INFO("Processing matrix request " +
              std::to_string(request.sn_routing_matrix().origins_size()) + "x" +
              std::to_string(request.sn_routing_matrix().destinations_size()));
@@ -167,6 +172,12 @@ pbnavitia::Response Handler::handle(const pbnavitia::Request& request) {
     LOG_INFO("Everything is clear.");
 
     return response;
+}
+
+pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& request) {
+    // TODO
+    LOG_INFO("Processing direct_path request");
+    return {};
 }
 
 }

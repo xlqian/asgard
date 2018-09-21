@@ -35,6 +35,9 @@ struct Handler {
     Handler(const Context&);
     pbnavitia::Response handle(const pbnavitia::Request&);
 private:
+    pbnavitia::Response handle_matrix(const pbnavitia::Request&);
+    pbnavitia::Response handle_direct_path(const pbnavitia::Request&);
+
     valhalla::baldr::GraphReader graph;
     valhalla::thor::TimeDistanceMatrix matrix;
     valhalla::sif::CostFactory<valhalla::sif::DynamicCost> factory;
