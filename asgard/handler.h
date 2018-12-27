@@ -25,6 +25,7 @@
 #include <valhalla/sif/costfactory.h>
 #include <valhalla/sif/costconstants.h>
 #include <valhalla/thor/timedistancematrix.h>
+#include <valhalla/thor/bidirectional_astar.h>
 
 namespace asgard {
 
@@ -37,9 +38,11 @@ struct Handler {
 private:
     pbnavitia::Response handle_matrix(const pbnavitia::Request&);
     pbnavitia::Response handle_direct_path(const pbnavitia::Request&);
+    pbnavitia::Response build_journey_response(const pbnavitia::Request&, const std::vector<valhalla::thor::PathInfo>&);
 
     valhalla::baldr::GraphReader graph;
     valhalla::thor::TimeDistanceMatrix matrix;
+    valhalla::thor::BidirectionalAStar bda;
     valhalla::sif::CostFactory<valhalla::sif::DynamicCost> factory;
     ModeCosting mode_costing;
     asgard::Projector projector;

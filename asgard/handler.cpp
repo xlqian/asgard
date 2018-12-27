@@ -19,6 +19,8 @@
 
 #include <boost/range/join.hpp>
 
+#include <ctime>
+
 using namespace valhalla;
 
 namespace asgard {
@@ -71,6 +73,44 @@ static odin::Costing to_costing(const std::string& mode) {
         return odin::Costing::auto_;
     } else {
         throw std::invalid_argument("Bad to_costing parameter");
+    }
+}
+
+static double get_speed_request(const pbnavitia::Request& request, const std::string& mode)
+{
+    auto const& request_params = request.direct_path().streetnetwork_params();
+
+    if (mode == "walking") {
+        return request_params.walking_speed();
+    } else if (mode == "bike") {
+        return request_params.bike_speed();
+    } else if (mode == "car") {
+        return request_params.car_speed();
+    } else {
+        throw std::invalid_argument("Bad get_speed_request parameter");
+    }
+}
+
+// Should use the map above instead ?
+static pbnavitia::StreetNetworkMode convert_valhalla_to_navitia_mode(const sif::TravelMode& mode)
+{    
+    switch (mode)
+    {
+        case sif::TravelMode::kDrive:
+            return pbnavitia::Car;
+            break;
+
+        case sif::TravelMode::kPedestrian:
+            return pbnavitia::Walking;
+            break;
+
+        case sif::TravelMode::kBicycle:
+            return pbnavitia::Bike;
+            break;
+    
+        default:
+            throw std::invalid_argument("Bad convert_valhalla_to_navitia_mode parameter");
+            break;
     }
 }
 
@@ -175,9 +215,94 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
 }
 
 pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& request) {
-    // TODO
-    LOG_INFO("Processing direct_path request");
-    return {};
+    LOG_INFO("Processing direct_path request");   
+
+    const auto mode = request.direct_path().streetnetwork_params().origin_mode();
+    LOG_INFO("mode = " + mode);
+    auto speed_request = get_speed_request(request, mode);
+    LOG_INFO("speed_request = " + std::to_string(speed_request));
+    mode_costing[mode_index(mode)] = factory.Create(to_costing(mode), make_costing_option(mode, speed_request));
+    auto costing = mode_costing[mode_index(mode)];
+
+    std::vector<std::string> locations { request.direct_path().origin().place(),
+                                         request.direct_path().destination().place()
+                                       };
+    
+    LOG_INFO("Projecting locations...");
+    auto path_locations = projector(begin(locations), end(locations), graph, mode, costing);
+    LOG_INFO("Projecting locations done.");
+
+    odin::Location origin;
+    odin::Location dest;
+    baldr::PathLocation::toPBF(path_locations.at(locations.front()), &origin, graph);
+    baldr::PathLocation::toPBF(path_locations.at(locations.back()), &dest, graph);
+
+    LOG_INFO("Computing best path...");
+    auto path_info_list = bda.GetBestPath(origin,
+                                          dest,
+                                          graph,
+                                          mode_costing,
+                                          mode_map.at(mode));
+    LOG_INFO("Computing best path done.");
+
+    auto response = build_journey_response(request, path_info_list);
+
+    if (graph.OverCommitted()) { graph.Clear(); }
+    LOG_INFO("Everything is clear.");
+
+    return response;
+}
+
+pbnavitia::Response Handler::build_journey_response(const pbnavitia::Request& request, 
+                                                    const std::vector<valhalla::thor::PathInfo>& path_info_list) {
+    pbnavitia::Response response;
+
+    if (path_info_list.empty()) {
+        response.set_response_type(pbnavitia::NO_SOLUTION);
+        LOG_ERROR("No solution found !");
+        return response;
+    }
+
+    LOG_INFO("Building solution...");
+    // General
+    response.set_response_type(pbnavitia::ITINERARY_FOUND);
+
+    // Journey
+    auto* journey = response.mutable_journeys()->Add();
+    for (auto const& path : path_info_list) {
+        LOG_INFO(std::to_string(path.elapsed_time));
+    }
+    journey->set_duration(path_info_list.back().elapsed_time);
+    journey->set_nb_transfers(0);
+    journey->set_nb_sections(1);
+
+    auto epoch = time_t(0);
+    auto const departure_posix_time = epoch + time_t(request.direct_path().datetime());
+    auto const arrival_posix_time = departure_posix_time + time_t(journey->duration());
+
+    auto const dep = departure_posix_time - epoch;
+    auto const arr = arrival_posix_time - epoch;
+    
+    journey->set_requested_date_time(dep);
+    journey->set_departure_date_time(dep);
+    journey->set_arrival_date_time(arr);
+
+    // Section
+    auto* s = journey->add_sections();
+    s->set_type(pbnavitia::STREET_NETWORK);
+    s->set_id("section" + journey->sections().size() - 1);
+    s->set_duration(journey->duration());
+    // We take the mode of the first path. Could be the last too...
+    // They could also be different in the list...
+    s->mutable_street_network()->set_mode(convert_valhalla_to_navitia_mode(path_info_list.front().mode));
+
+    s->set_begin_date_time(dep);
+    s->set_end_date_time(arr);
+   
+
+    LOG_INFO("Solution built...");
+
+    return response;
 }
 
 }
