@@ -49,7 +49,7 @@ make_costing_option(const std::string& mode, float speed) {
     odin::DirectionsOptions options = default_directions_options;
     speed *= 3.6;
     options.mutable_costing_options(odin::Costing::pedestrian)->set_walking_speed(speed);
-    options.mutable_costing_options(odin::Costing::bicycle)->set_walking_speed(speed);
+    options.mutable_costing_options(odin::Costing::bicycle)->set_cycling_speed(speed);
     return options;
 }
 
@@ -290,7 +290,7 @@ pbnavitia::Response Handler::build_journey_response(const pbnavitia::Request& re
     // Section
     auto* s = journey->add_sections();
     s->set_type(pbnavitia::STREET_NETWORK);
-    s->set_id("section" + journey->sections().size() - 1);
+    s->set_id("section" + std::to_string(journey->sections().size() - 1));
     s->set_duration(journey->duration());
     // We take the mode of the first path. Could be the last too...
     // They could also be different in the list...
