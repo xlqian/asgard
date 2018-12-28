@@ -4,10 +4,15 @@
 
 #include <valhalla/midgard/logging.h>
 
+#include <numeric>
+
+using namespace valhalla;
+
 namespace asgard {
 
 pbnavitia::Response DirectPathResponseBuilder::build_journey_response(const pbnavitia::Request& request, 
-                                                                      const std::vector<valhalla::thor::PathInfo>& path_info_list) {
+                                                                      const std::vector<thor::PathInfo>& path_info_list,
+                                                                      const odin::TripPath& trip_path) {
     pbnavitia::Response response;
 
     if (path_info_list.empty()) {
@@ -22,9 +27,6 @@ pbnavitia::Response DirectPathResponseBuilder::build_journey_response(const pbna
 
     // Journey
     auto* journey = response.mutable_journeys()->Add();
-    for (auto const& path : path_info_list) {
-        LOG_INFO(std::to_string(path.elapsed_time));
-    }
     journey->set_duration(path_info_list.back().elapsed_time);
     journey->set_nb_transfers(0);
     journey->set_nb_sections(1);
@@ -48,9 +50,16 @@ pbnavitia::Response DirectPathResponseBuilder::build_journey_response(const pbna
     // We take the mode of the first path. Could be the last too...
     // They could also be different in the list...
     s->mutable_street_network()->set_mode(asgard::util::convert_valhalla_to_navitia_mode(path_info_list.front().mode));
-
     s->set_begin_date_time(dep);
     s->set_end_date_time(arr);
+
+    auto total_length = std::accumulate(
+                    trip_path.node().begin(),
+                    trip_path.node().end(),
+                    0.f,
+                    [&](float sum, const odin::TripPath_Node& node) { return sum + node.edge().length() * 1000.f; }
+                );
+    s->set_length(total_length);
 
     compute_metadata(*journey);
 

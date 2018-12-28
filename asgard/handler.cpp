@@ -19,6 +19,8 @@
 #include "direct_path_response_builder.h"
 
 #include <boost/range/join.hpp>
+#include <valhalla/thor/attributes_controller.h>
+#include <valhalla/thor/trippathbuilder.h>
 
 #include <ctime>
 
@@ -229,8 +231,14 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
                                           mode_map.at(mode));
     LOG_INFO("Computing best path done.");
 
+    // To compute the length
+    // Can disable all options except the length here
+    thor::AttributesController controller;
+    auto trip_path = thor::TripPathBuilder::Build(controller, graph, mode_costing, path_info_list, origin,
+                                                    dest, {origin, dest});
+
     DirectPathResponseBuilder rb;
-    auto response = rb.build_journey_response(request, path_info_list);
+    auto response = rb.build_journey_response(request, path_info_list, trip_path);
 
     if (graph.OverCommitted()) { graph.Clear(); }
     LOG_INFO("Everything is clear.");
