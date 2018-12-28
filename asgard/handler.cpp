@@ -51,15 +51,15 @@ static odin::DirectionsOptions
 make_costing_option(const std::string& mode, float speed) {
     odin::DirectionsOptions options = default_directions_options;
     speed *= 3.6;
-    // Walking speed seems to low with default request value.
-    options.mutable_costing_options(odin::Costing::pedestrian)->set_walking_speed(speed);
-    // Default value of walkway_factor is 0.9 and sidewalk_factor is 0.95f according pedestriancost.cc.
-    // There are a lot of other values there which has to be initialized some days...
-    // We should use ParsePedestrianCostOptions ParseBicycleCostOptions and ParseAutoCostOptions
-    // Or even create_costing_options in factory.cc
-    options.mutable_costing_options(odin::Costing::pedestrian)->set_walkway_factor(0.9f);
-    options.mutable_costing_options(odin::Costing::pedestrian)->set_sidewalk_factor(0.95f);
-    options.mutable_costing_options(odin::Costing::bicycle)->set_cycling_speed(speed);
+    rapidjson::Document doc;
+    sif::ParseAutoCostOptions(doc, "", options.mutable_costing_options(odin::Costing::auto_));
+    sif::ParseBicycleCostOptions(doc, "", options.mutable_costing_options(odin::Costing::bicycle));
+    sif::ParsePedestrianCostOptions(doc, "", options.mutable_costing_options(odin::Costing::pedestrian));
+
+    // Now using default value of valhalla.
+    // Should parse the request.
+    //options.mutable_costing_options(odin::Costing::pedestrian)->set_walking_speed(speed);
+    //options.mutable_costing_options(odin::Costing::bicycle)->set_cycling_speed(speed);
     return options;
 }
 
