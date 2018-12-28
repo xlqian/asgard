@@ -26,7 +26,9 @@ set_source_files_properties(${PROTO_HDRS} ${PROTO_SRCS} PROPERTIES GENERATED TRU
 
 add_executable(asgard
   asgard.cpp
+  direct_path_response_builder.cpp
   handler.cpp
+  util.cpp
   ${CMAKE_SOURCE_DIR}/utils/zmq.cpp
   ${CMAKE_SOURCE_DIR}/utils/coord_parser.cpp
   ${PROTO_SRCS})

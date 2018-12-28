@@ -38,7 +38,6 @@ struct Handler {
 private:
     pbnavitia::Response handle_matrix(const pbnavitia::Request&);
     pbnavitia::Response handle_direct_path(const pbnavitia::Request&);
-    pbnavitia::Response build_journey_response(const pbnavitia::Request&, const std::vector<valhalla::thor::PathInfo>&);
 
     valhalla::baldr::GraphReader graph;
     valhalla::thor::TimeDistanceMatrix matrix;
