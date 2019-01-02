@@ -23,7 +23,6 @@
 
 #include <valhalla/baldr/graphreader.h>
 #include <valhalla/sif/costfactory.h>
-#include <valhalla/sif/costconstants.h>
 #include <valhalla/thor/timedistancematrix.h>
 #include <valhalla/thor/bidirectional_astar.h>
 

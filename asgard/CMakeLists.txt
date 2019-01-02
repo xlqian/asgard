@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 2.8)
+
 
 SET(PROTO_FILES
     ${CMAKE_SOURCE_DIR}/navitia-proto/type.proto
@@ -24,12 +26,18 @@ add_custom_command(OUTPUT ${PROTO_HDRS} ${PROTO_SRCS}
 
 set_source_files_properties(${PROTO_HDRS} ${PROTO_SRCS} PROPERTIES GENERATED TRUE)
 
-add_executable(asgard
-  asgard.cpp
+
+add_library(libasgard
   direct_path_response_builder.cpp
   handler.cpp
   util.cpp
   ${CMAKE_SOURCE_DIR}/utils/zmq.cpp
   ${CMAKE_SOURCE_DIR}/utils/coord_parser.cpp
   ${PROTO_SRCS})
-target_link_libraries(asgard boost_system boost_regex boost_thread ${BOOST_DEV_LIBS} valhalla z curl zmq protobuf) #TODO do not hardcode lib name
+
+add_executable(asgard asgard.cpp)
+target_link_libraries(asgard libasgard boost_system boost_regex boost_thread ${BOOST_DEV_LIBS} valhalla z curl zmq protobuf) #TODO do not hardcode lib name
+
+enable_testing()
+
+add_subdirectory(tests)
