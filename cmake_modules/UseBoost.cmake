@@ -5,13 +5,9 @@ endif()
 
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost 1.55.0 COMPONENTS unit_test_framework thread regex
+find_package(Boost 1.62.0 COMPONENTS unit_test_framework thread regex
     serialization date_time filesystem system regex chrono iostreams
     program_options REQUIRED)
-
-#boost 1.53/1.54 bugs with local datetime...
-#see http://stackoverflow.com/questions/15234527/boost-1-53-local-date-time-compiler-error-with-std-c0x
-add_definitions(-DBOOST_NO_CXX11_EXPLICIT_CONVERSION_OPERATORS)
 
 link_directories(${Boost_LIBRARY_DIRS})
 include_directories("${Boost_INCLUDE_DIRS}")
