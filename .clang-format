@@ -1,0 +1,57 @@
+---
+# default
+BasedOnStyle: LLVM
+IndentWidth: 4
+---
+Language: Cpp
+ColumnLimit: 0
+DerivePointerAlignment: false
+PointerAlignment: Left
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpaceAfterTemplateKeyword: false
+AlwaysBreakTemplateDeclarations: true
+BreakConstructorInitializers: BeforeColon
+SpacesInAngles: false
+SpaceBeforeParens: ControlStatements
+SpaceBeforeAssignmentOperators: true
+AlwaysBreakAfterReturnType: None
+BreakBeforeBraces: Custom
+BraceWrapping:
+    BeforeElse: false
+    SplitEmptyFunction: false
+CompactNamespaces: true
+
+#alignement
+AllowShortBlocksOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+BinPackArguments: true
+BinPackParameters: true
+
+#include
+SortUsingDeclarations: true
+IncludeBlocks : Regroup
+
+IncludeCategories: 
+#asgard
+  - Regex:           '^"asgard/.*"'
+    Priority:        3
+#valhalla
+  - Regex:           '^<valhalla/.*>'
+    Priority:        4
+#boost
+  - Regex:           '^<boost/.*>'
+    Priority:        5
+#stl
+  - Regex:           '^<[^.]+>'
+    Priority:        6
+#external header 
+  - Regex:           '^<.*>'
+    Priority:        2
+#local header
+  - Regex:           '^".*"'
+    Priority:        1
+---
+ 
