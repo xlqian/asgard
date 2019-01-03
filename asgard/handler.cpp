@@ -16,8 +16,15 @@
 
 #include "handler.h"
 #include "context.h"
+#include "direct_path_response_builder.h"
+#include "asgard/request.pb.h"
 
 #include <boost/range/join.hpp>
+#include <valhalla/thor/attributes_controller.h>
+#include <valhalla/thor/trippathbuilder.h>
+
+#include <ctime>
+#include <numeric>
 
 using namespace valhalla;
 
@@ -46,8 +53,15 @@ static odin::DirectionsOptions
 make_costing_option(const std::string& mode, float speed) {
     odin::DirectionsOptions options = default_directions_options;
     speed *= 3.6;
-    options.mutable_costing_options(odin::Costing::pedestrian)->set_walking_speed(speed);
-    options.mutable_costing_options(odin::Costing::bicycle)->set_walking_speed(speed);
+    rapidjson::Document doc;
+    sif::ParseAutoCostOptions(doc, "", options.mutable_costing_options(odin::Costing::auto_));
+    sif::ParseBicycleCostOptions(doc, "", options.mutable_costing_options(odin::Costing::bicycle));
+    sif::ParsePedestrianCostOptions(doc, "", options.mutable_costing_options(odin::Costing::pedestrian));
+
+    // Now using default value of valhalla.
+    // Should parse the request.
+    //options.mutable_costing_options(odin::Costing::pedestrian)->set_walking_speed(speed);
+    //options.mutable_costing_options(odin::Costing::bicycle)->set_cycling_speed(speed);
     return options;
 }
 
@@ -73,6 +87,22 @@ static odin::Costing to_costing(const std::string& mode) {
         throw std::invalid_argument("Bad to_costing parameter");
     }
 }
+
+static double get_speed_request(const pbnavitia::Request& request, const std::string& mode)
+{
+    auto const& request_params = request.direct_path().streetnetwork_params();
+
+    if (mode == "walking") {
+        return request_params.walking_speed();
+    } else if (mode == "bike") {
+        return request_params.bike_speed();
+    } else if (mode == "car") {
+        return request_params.car_speed();
+    } else {
+        throw std::invalid_argument("Bad get_speed_request parameter");
+    }
+}
+
 
 Handler::Handler(const Context& context):
     graph(context.ptree.get_child("mjolnir")),
@@ -175,9 +205,53 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
 }
 
 pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& request) {
-    // TODO
-    LOG_INFO("Processing direct_path request");
-    return {};
+    LOG_INFO("Processing direct_path request");   
+
+    const auto mode = request.direct_path().streetnetwork_params().origin_mode();
+    auto speed_request = get_speed_request(request, mode);
+    mode_costing[mode_index(mode)] = factory.Create(to_costing(mode), make_costing_option(mode, speed_request));
+    auto costing = mode_costing[mode_index(mode)];
+
+    std::vector<std::string> locations { request.direct_path().origin().place(),
+                                         request.direct_path().destination().place()
+                                       };
+    
+    LOG_INFO("Projecting locations...");
+    auto path_locations = projector(begin(locations), end(locations), graph, mode, costing);
+    LOG_INFO("Projecting locations done.");
+
+    odin::Location origin;
+    odin::Location dest;
+    baldr::PathLocation::toPBF(path_locations.at(locations.front()), &origin, graph);
+    baldr::PathLocation::toPBF(path_locations.at(locations.back()), &dest, graph);
+
+    LOG_INFO("Computing best path...");
+    auto path_info_list = bda.GetBestPath(origin,
+                                          dest,
+                                          graph,
+                                          mode_costing,
+                                          mode_map.at(mode));
+    LOG_INFO("Computing best path done.");
+
+    // To compute the length
+    // Can disable all options except the length here
+    thor::AttributesController controller;
+    auto trip_path = thor::TripPathBuilder::Build(controller, graph, mode_costing, path_info_list, origin,
+                                                    dest, {origin, dest});
+
+    auto total_length = std::accumulate(
+        trip_path.node().begin(),
+        trip_path.node().end(),
+        0.f,
+        [&](float sum, const odin::TripPath_Node &node) { return sum + node.edge().length() * 1000.f; });
+
+    auto response = direct_path_response_builder::build_journey_response(request, path_info_list, total_length);
+
+    if (graph.OverCommitted()) { graph.Clear(); }
+    LOG_INFO("Everything is clear.");
+
+    return response;
 }
+
 
 }

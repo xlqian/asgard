@@ -1,16 +1,11 @@
 #pragma once
 
-#include <valhalla/loki/search.h>
-#include <valhalla/baldr/graphreader.h>
-#include <valhalla/baldr/location.h>
-//#include <valhalla/sif/costfactory.h>
-//#include <valhalla/sif/costconstants.h>
+#include "utils/coord_parser.h"
 
-#include <boost/multi_index_container.hpp>
-#include <boost/multi_index/ordered_index.hpp>
+#include <valhalla/loki/search.h>
+
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
-#include "utils/coord_parser.h"
 
 namespace asgard{
 
