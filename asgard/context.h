@@ -16,8 +16,11 @@
 
 #pragma once
 
-#include "utils/zmq.h"
 #include <boost/property_tree/ptree.hpp>
+
+namespace zmq {
+    class context_t;
+}
 
 namespace asgard {
 

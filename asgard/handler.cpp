@@ -17,6 +17,7 @@
 #include "handler.h"
 #include "context.h"
 #include "direct_path_response_builder.h"
+#include "asgard/request.pb.h"
 
 #include <boost/range/join.hpp>
 #include <valhalla/thor/attributes_controller.h>

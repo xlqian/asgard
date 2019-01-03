@@ -16,9 +16,7 @@
 
 #pragma once
 
-#include "asgard/context.h"
 #include "asgard/projector.h"
-#include "asgard/request.pb.h"
 #include "asgard/response.pb.h"
 
 #include <valhalla/baldr/graphreader.h>
@@ -26,7 +24,13 @@
 #include <valhalla/thor/timedistancematrix.h>
 #include <valhalla/thor/bidirectional_astar.h>
 
+namespace pbnavitia {
+    class Request;
+}
+
 namespace asgard {
+
+class Context;
 
 static const size_t mode_costing_size = static_cast<size_t>(valhalla::sif::TravelMode::kMaxTravelMode);
 using ModeCosting = valhalla::sif::cost_ptr_t[mode_costing_size];

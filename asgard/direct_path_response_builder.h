@@ -1,9 +1,17 @@
 #pragma once
 
-#include "asgard/request.pb.h"
 #include "asgard/response.pb.h"
 
-#include <valhalla/thor/pathinfo.h>
+namespace pbnavitia {
+    class Request;
+    class Response;
+}
+
+namespace valhalla {
+    namespace thor {
+        class PathInfo;
+    }
+}
 
 namespace asgard
 {

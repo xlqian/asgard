@@ -19,22 +19,13 @@
 
 #include "utils/zmq.h"
 #include "asgard/request.pb.h"
-#include "asgard/response.pb.h"
 
-#include <valhalla/loki/search.h>
-#include <valhalla/baldr/graphreader.h>
-#include <valhalla/baldr/location.h>
-#include <valhalla/thor/timedistancematrix.h>
-#include <valhalla/sif/costfactory.h>
-#include <valhalla/sif/costconstants.h>
 #include <valhalla/midgard/logging.h>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/thread.hpp>
-#include <boost/format.hpp>
-#include <boost/range/join.hpp>
 
 namespace pt = boost::property_tree;
 using namespace valhalla;

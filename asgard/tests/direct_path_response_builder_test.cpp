@@ -1,10 +1,12 @@
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE direct_path_response_builder_test
 
-#include <boost/test/unit_test.hpp>
-
 #include "asgard/direct_path_response_builder.h"
+#include "asgard/request.pb.h"
 
+#include <valhalla/thor/pathinfo.h>
+
+#include <boost/test/unit_test.hpp>
 
 using namespace valhalla;
 namespace adprb = asgard::direct_path_response_builder;

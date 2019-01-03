@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
 
-
 SET(PROTO_FILES
     ${CMAKE_SOURCE_DIR}/navitia-proto/type.proto
     ${CMAKE_SOURCE_DIR}/navitia-proto/response.proto

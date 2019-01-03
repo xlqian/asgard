@@ -2,7 +2,11 @@
 
 #include "asgard/response.pb.h"
 
-#include <valhalla/sif/costconstants.h>
+namespace valhalla {
+    namespace sif {
+        enum class TravelMode : uint8_t;
+    }
+}
 
 namespace asgard {
 

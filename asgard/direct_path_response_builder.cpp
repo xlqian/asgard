@@ -1,8 +1,10 @@
 #include "direct_path_response_builder.h"
 
+#include "asgard/request.pb.h"
 #include "util.h"
 
 #include <valhalla/midgard/logging.h>
+#include <valhalla/thor/pathinfo.h>
 
 #include <numeric>
 
@@ -37,16 +39,12 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request &request,
     journey->set_nb_transfers(0);
     journey->set_nb_sections(1);
 
-    auto epoch = time_t(0);
-    auto const departure_posix_time = epoch + time_t(request.direct_path().datetime());
+    auto const departure_posix_time = time_t(request.direct_path().datetime());
     auto const arrival_posix_time = departure_posix_time + time_t(journey->duration());
 
-    auto const dep = departure_posix_time - epoch;
-    auto const arr = arrival_posix_time - epoch;
-
-    journey->set_requested_date_time(dep);
-    journey->set_departure_date_time(dep);
-    journey->set_arrival_date_time(arr);
+    journey->set_requested_date_time(departure_posix_time);
+    journey->set_departure_date_time(departure_posix_time);
+    journey->set_arrival_date_time(arrival_posix_time);
 
     // Section
     auto *s = journey->add_sections();
@@ -56,8 +54,8 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request &request,
     // We take the mode of the first path. Could be the last too...
     // They could also be different in the list...
     s->mutable_street_network()->set_mode(asgard::util::convert_valhalla_to_navitia_mode(path_info_list.front().mode));
-    s->set_begin_date_time(dep);
-    s->set_end_date_time(arr);
+    s->set_begin_date_time(departure_posix_time);
+    s->set_end_date_time(arrival_posix_time);
     
     s->set_length(total_length);
 

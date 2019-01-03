@@ -1,5 +1,7 @@
 #include "util.h"
 
+#include <valhalla/sif/costconstants.h>
+
 using namespace valhalla;
 
 namespace asgard {
