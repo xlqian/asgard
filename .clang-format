@@ -11,10 +11,13 @@ SpacesInParentheses: false
 SpacesInSquareBrackets: false
 SpaceAfterTemplateKeyword: false
 AlwaysBreakTemplateDeclarations: true
-BreakConstructorInitializers: BeforeColon
+BreakConstructorInitializers: AfterColon
 SpacesInAngles: false
 SpaceBeforeParens: ControlStatements
 SpaceBeforeAssignmentOperators: true
+SpaceBeforeCtorInitializerColon: false
+SpaceBeforeInheritanceColon: false
+SpaceBeforeRangeBasedForLoopColon: false
 AlwaysBreakAfterReturnType: None
 BreakBeforeBraces: Custom
 BraceWrapping:
@@ -29,6 +32,7 @@ AllowShortIfStatementsOnASingleLine: true
 AllowShortLoopsOnASingleLine: true
 BinPackArguments: true
 BinPackParameters: true
+AccessModifierOffset: -4
 
 #include
 SortUsingDeclarations: true

@@ -105,11 +105,12 @@ static double get_speed_request(const pbnavitia::Request& request, const std::st
     }
 }
 
-Handler::Handler(const Context& context) : graph(context.ptree.get_child("mjolnir")),
-                                           matrix(),
-                                           factory(),
-                                           mode_costing(),
-                                           projector(context.max_cache_size) {
+Handler::Handler(const Context& context):
+    graph(context.ptree.get_child("mjolnir")),
+    matrix(),
+    factory(),
+    mode_costing(),
+    projector(context.max_cache_size) {
     factory.Register(odin::Costing::auto_, sif::CreateAutoCost);
     factory.Register(odin::Costing::pedestrian, sif::CreatePedestrianCost);
     factory.Register(odin::Costing::bicycle, sif::CreateBicycleCost);
@@ -140,10 +141,10 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     std::vector<std::string> targets;
     targets.reserve(request.sn_routing_matrix().destinations_size());
 
-    for (const auto& e : request.sn_routing_matrix().origins()) {
+    for (const auto& e: request.sn_routing_matrix().origins()) {
         sources.push_back(e.place());
     }
-    for (const auto& e : request.sn_routing_matrix().destinations()) {
+    for (const auto& e: request.sn_routing_matrix().destinations()) {
         targets.push_back(e.place());
     }
 
@@ -157,10 +158,10 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
 
     google::protobuf::RepeatedPtrField<odin::Location> path_location_sources;
     google::protobuf::RepeatedPtrField<odin::Location> path_location_targets;
-    for (const auto& e : sources) {
+    for (const auto& e: sources) {
         baldr::PathLocation::toPBF(path_locations.at(e), path_location_sources.Add(), graph);
     }
-    for (const auto& e : targets) {
+    for (const auto& e: targets) {
         baldr::PathLocation::toPBF(path_locations.at(e), path_location_targets.Add(), graph);
     }
 
@@ -179,7 +180,7 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     //in fact jormun don't want a real matrix, only a vector of solution :(
     auto* row = response.mutable_sn_routing_matrix()->add_rows();
     assert(res.size() == sources.size() * targets.size());
-    for (const auto& elt : res) {
+    for (const auto& elt: res) {
         auto* k = row->add_routing_response();
         k->set_duration(elt.time);
         if (elt.time == thor::kMaxCost) {

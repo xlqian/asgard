@@ -29,7 +29,8 @@ struct Context {
     boost::property_tree::ptree ptree;
     int max_cache_size;
 
-    Context(zmq::context_t& zmq_context, boost::property_tree::ptree ptree, int max_cache_size) : zmq_context(zmq_context), ptree(ptree), max_cache_size(max_cache_size) {}
+    Context(zmq::context_t& zmq_context, boost::property_tree::ptree ptree, int max_cache_size):
+        zmq_context(zmq_context), ptree(ptree), max_cache_size(max_cache_size) {}
 };
 
 } // namespace asgard

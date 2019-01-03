@@ -39,7 +39,7 @@ struct Handler {
     Handler(const Context&);
     pbnavitia::Response handle(const pbnavitia::Request&);
 
-  private:
+private:
     pbnavitia::Response handle_matrix(const pbnavitia::Request&);
     pbnavitia::Response handle_direct_path(const pbnavitia::Request&);
 

@@ -20,7 +20,7 @@ valhalla::baldr::Location build_location(const std::string& place) {
 } // namespace
 
 class Projector {
-  private:
+private:
     typedef std::pair<std::string, std::string> key_type;
     typedef valhalla::baldr::PathLocation mapped_type;
     typedef std::pair<const key_type, mapped_type> value_type;
@@ -41,8 +41,9 @@ class Projector {
     mutable size_t nb_cache_miss = 0;
     mutable size_t nb_calls = 0;
 
-  public:
-    Projector(size_t cache_size = 1000) : cache_size(cache_size) {}
+public:
+    Projector(size_t cache_size = 1000):
+        cache_size(cache_size) {}
 
     template<typename T>
     std::unordered_map<std::string, valhalla::baldr::PathLocation>
@@ -72,7 +73,7 @@ class Projector {
                                                          graph,
                                                          costing->GetEdgeFilter(),
                                                          costing->GetNodeFilter());
-            for (const auto& l : path_locations) {
+            for (const auto& l: path_locations) {
                 list.push_front(std::make_pair(std::make_pair(l.first.name_, mode), l.second));
                 results.emplace(l.first.name_, l.second);
             }
