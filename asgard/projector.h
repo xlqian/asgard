@@ -7,17 +7,17 @@
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 
-namespace asgard{
+namespace asgard {
 
 namespace {
-    valhalla::baldr::Location build_location(const std::string& place){
-        auto coord = navitia::parse_coordinate(place);
-        auto l = valhalla::baldr::Location({coord.first, coord.second},
-                                           valhalla::baldr::Location::StopType::BREAK);
-        l.name_ = place;
-        return l;
-    }
+valhalla::baldr::Location build_location(const std::string& place) {
+    auto coord = navitia::parse_coordinate(place);
+    auto l = valhalla::baldr::Location({coord.first, coord.second},
+                                       valhalla::baldr::Location::StopType::BREAK);
+    l.name_ = place;
+    return l;
 }
+} // namespace
 
 class Projector {
 private:
@@ -29,8 +29,8 @@ private:
         boost::multi_index::indexed_by<
             boost::multi_index::sequenced<>,
             boost::multi_index::hashed_unique<
-                boost::multi_index::member<value_type, const key_type, &value_type::first> > >
-        > Cache;
+                boost::multi_index::member<value_type, const key_type, &value_type::first>>>>
+        Cache;
 
     // maximal cached values
     size_t cache_size;
@@ -42,21 +42,21 @@ private:
     mutable size_t nb_calls = 0;
 
 public:
+    Projector(size_t cache_size = 1000):
+        cache_size(cache_size) {}
 
-    Projector(size_t cache_size = 1000): cache_size(cache_size) {}
-
-    template <typename T>
+    template<typename T>
     std::unordered_map<std::string, valhalla::baldr::PathLocation>
     operator()(const T places_begin,
                const T places_end,
                valhalla::baldr::GraphReader& graph,
                const std::string& mode,
-               valhalla::sif::cost_ptr_t costing) const{
+               valhalla::sif::cost_ptr_t costing) const {
         std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
         std::vector<valhalla::baldr::Location> missed;
         auto& list = cache.template get<0>();
         auto& map = cache.template get<1>();
-        for(auto it = places_begin; it != places_end; ++it){
+        for (auto it = places_begin; it != places_end; ++it) {
             ++nb_calls;
             const auto search = map.find(std::make_pair(*it, mode));
             if (search != map.end()) {
@@ -68,7 +68,7 @@ public:
                 missed.push_back(build_location(*it));
             }
         }
-        if(!missed.empty()){
+        if (!missed.empty()) {
             auto path_locations = valhalla::loki::Search(missed,
                                                          graph,
                                                          costing->GetEdgeFilter(),
@@ -86,4 +86,4 @@ public:
     size_t get_nb_calls() const { return nb_calls; }
 };
 
-}
+} // namespace asgard

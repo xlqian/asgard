@@ -16,29 +16,27 @@
 
 #include "context.h"
 #include "handler.h"
-
 #include "utils/zmq.h"
+
 #include "asgard/request.pb.h"
 
 #include <valhalla/midgard/logging.h>
 
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <boost/thread.hpp>
 
 namespace pt = boost::property_tree;
 using namespace valhalla;
 
-
 static void respond(zmq::socket_t& socket,
                     const std::string& address,
-                    const pbnavitia::Response& response)
-{
+                    const pbnavitia::Response& response) {
     zmq::message_t reply(response.ByteSize());
-    try{
+    try {
         response.SerializeToArray(reply.data(), response.ByteSize());
-    }catch(const google::protobuf::FatalException& e){
+    } catch (const google::protobuf::FatalException& e) {
         pbnavitia::Response error_response;
         error_response.mutable_error()->set_id(pbnavitia::Error::internal_error);
         error_response.mutable_error()->set_message(e.what());
@@ -50,15 +48,15 @@ static void respond(zmq::socket_t& socket,
     socket.send(reply);
 }
 
-static void worker(const asgard::Context& context){
-    zmq::context_t& zmq_context =  context.zmq_context;
+static void worker(const asgard::Context& context) {
+    zmq::context_t& zmq_context = context.zmq_context;
     asgard::Handler handler(context);
 
-    zmq::socket_t socket (zmq_context, ZMQ_REQ);
+    zmq::socket_t socket(zmq_context, ZMQ_REQ);
     socket.connect("inproc://workers");
     z_send(socket, "READY");
 
-    while(1){
+    while (1) {
 
         const std::string address = z_recv(socket);
         {
@@ -78,9 +76,8 @@ static void worker(const asgard::Context& context){
     }
 }
 
-
 template<typename T>
-const T get_config(const std::string& key, T value=T()){
+const T get_config(const std::string& key, T value = T()) {
     char* v = std::getenv(key.c_str());
     if (v != nullptr) {
         value = boost::lexical_cast<T>(v);
@@ -89,7 +86,7 @@ const T get_config(const std::string& key, T value=T()){
     return value;
 }
 
-int main(){
+int main() {
     const auto socket_path = get_config<std::string>("ASGARD_SOCKET_PATH", "tcp://*:6000");
     const auto cache_size = get_config<size_t>("ASGARD_CACHE_SIZE", 100000);
     const auto nb_threads = get_config<size_t>("ASGARD_NB_THREADS", 3);
@@ -111,7 +108,7 @@ int main(){
     while (true) {
         try {
             lb.run();
-        } catch (const zmq::error_t&) {}//lors d'un SIGHUP on restore la queue
+        } catch (const zmq::error_t&) {} //lors d'un SIGHUP on restore la queue
     }
 
     return 0;

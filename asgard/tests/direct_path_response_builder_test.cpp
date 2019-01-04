@@ -15,7 +15,6 @@ static std::vector<thor::PathInfo> create_path_info_list() {
     std::vector<thor::PathInfo> path_info_list;
     for (auto i = 0; i < 5; ++i) {
         path_info_list.emplace_back(sif::TravelMode::kDrive, i * 5, baldr::GraphId(), 0);
-
     }
     return path_info_list;
 }
@@ -86,7 +85,7 @@ BOOST_AUTO_TEST_CASE(compute_metadata_test) {
 
     auto durations = pb_journey.durations();
     auto distances = pb_journey.distances();
-    
+
     BOOST_CHECK_EQUAL(durations.walking(), 1337);
     BOOST_CHECK_EQUAL(durations.bike(), 1061);
     BOOST_CHECK_EQUAL(durations.car(), 75);
@@ -94,11 +93,10 @@ BOOST_AUTO_TEST_CASE(compute_metadata_test) {
 
     // Not the sum of all the lengths
     // arrival_last_section - departure_first_section
-    BOOST_CHECK_EQUAL(durations.total(), 542); 
+    BOOST_CHECK_EQUAL(durations.total(), 542);
 
     BOOST_CHECK_EQUAL(distances.walking(), 442);
     BOOST_CHECK_EQUAL(distances.bike(), 806);
     BOOST_CHECK_EQUAL(distances.car(), 59);
     BOOST_CHECK_EQUAL(distances.ridesharing(), 78);
 }
-

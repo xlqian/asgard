@@ -15,13 +15,16 @@
 // <http://www.gnu.org/licenses/>.
 
 #include "handler.h"
+
 #include "context.h"
 #include "direct_path_response_builder.h"
+
 #include "asgard/request.pb.h"
 
-#include <boost/range/join.hpp>
 #include <valhalla/thor/attributes_controller.h>
 #include <valhalla/thor/trippathbuilder.h>
+
+#include <boost/range/join.hpp>
 
 #include <ctime>
 #include <numeric>
@@ -88,8 +91,7 @@ static odin::Costing to_costing(const std::string& mode) {
     }
 }
 
-static double get_speed_request(const pbnavitia::Request& request, const std::string& mode)
-{
+static double get_speed_request(const pbnavitia::Request& request, const std::string& mode) {
     auto const& request_params = request.direct_path().streetnetwork_params();
 
     if (mode == "walking") {
@@ -103,14 +105,12 @@ static double get_speed_request(const pbnavitia::Request& request, const std::st
     }
 }
 
-
 Handler::Handler(const Context& context):
     graph(context.ptree.get_child("mjolnir")),
     matrix(),
     factory(),
     mode_costing(),
-    projector(context.max_cache_size)
-{
+    projector(context.max_cache_size) {
     factory.Register(odin::Costing::auto_, sif::CreateAutoCost);
     factory.Register(odin::Costing::pedestrian, sif::CreatePedestrianCost);
     factory.Register(odin::Costing::bicycle, sif::CreateBicycleCost);
@@ -141,10 +141,10 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     std::vector<std::string> targets;
     targets.reserve(request.sn_routing_matrix().destinations_size());
 
-    for(const auto& e: request.sn_routing_matrix().origins()){
+    for (const auto& e: request.sn_routing_matrix().origins()) {
         sources.push_back(e.place());
     }
-    for(const auto& e: request.sn_routing_matrix().destinations()){
+    for (const auto& e: request.sn_routing_matrix().destinations()) {
         targets.push_back(e.place());
     }
 
@@ -205,17 +205,16 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
 }
 
 pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& request) {
-    LOG_INFO("Processing direct_path request");   
+    LOG_INFO("Processing direct_path request");
 
     const auto mode = request.direct_path().streetnetwork_params().origin_mode();
     auto speed_request = get_speed_request(request, mode);
     mode_costing[mode_index(mode)] = factory.Create(to_costing(mode), make_costing_option(mode, speed_request));
     auto costing = mode_costing[mode_index(mode)];
 
-    std::vector<std::string> locations { request.direct_path().origin().place(),
-                                         request.direct_path().destination().place()
-                                       };
-    
+    std::vector<std::string> locations{request.direct_path().origin().place(),
+                                       request.direct_path().destination().place()};
+
     LOG_INFO("Projecting locations...");
     auto path_locations = projector(begin(locations), end(locations), graph, mode, costing);
     LOG_INFO("Projecting locations done.");
@@ -237,13 +236,13 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     // Can disable all options except the length here
     thor::AttributesController controller;
     auto trip_path = thor::TripPathBuilder::Build(controller, graph, mode_costing, path_info_list, origin,
-                                                    dest, {origin, dest});
+                                                  dest, {origin, dest});
 
     auto total_length = std::accumulate(
         trip_path.node().begin(),
         trip_path.node().end(),
         0.f,
-        [&](float sum, const odin::TripPath_Node &node) { return sum + node.edge().length() * 1000.f; });
+        [&](float sum, const odin::TripPath_Node& node) { return sum + node.edge().length() * 1000.f; });
 
     auto response = direct_path_response_builder::build_journey_response(request, path_info_list, total_length);
 
@@ -253,5 +252,4 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     return response;
 }
 
-
-}
+} // namespace asgard

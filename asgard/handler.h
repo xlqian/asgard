@@ -21,11 +21,11 @@
 
 #include <valhalla/baldr/graphreader.h>
 #include <valhalla/sif/costfactory.h>
-#include <valhalla/thor/timedistancematrix.h>
 #include <valhalla/thor/bidirectional_astar.h>
+#include <valhalla/thor/timedistancematrix.h>
 
 namespace pbnavitia {
-    class Request;
+class Request;
 }
 
 namespace asgard {
@@ -38,6 +38,7 @@ using ModeCosting = valhalla::sif::cost_ptr_t[mode_costing_size];
 struct Handler {
     Handler(const Context&);
     pbnavitia::Response handle(const pbnavitia::Request&);
+
 private:
     pbnavitia::Response handle_matrix(const pbnavitia::Request&);
     pbnavitia::Response handle_direct_path(const pbnavitia::Request&);
@@ -50,4 +51,4 @@ private:
     asgard::Projector projector;
 };
 
-}
+} // namespace asgard
