@@ -148,8 +148,6 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
         targets.push_back(e.place());
     }
 
-        int i = 9;
-                        ++i;
     mode_costing[mode_index(mode)] = factory.Create(to_costing(mode), make_costing_option(mode, request.sn_routing_matrix().speed()));
     auto costing = mode_costing[mode_index(mode)];
 
