@@ -27,7 +27,7 @@ then
     do
         for i in `seq 0 9`
         do
-            type "$base-$j" >/dev/null 2>&1 && format="$base-$j.$i" && break
+            type "$base-$j.$i" >/dev/null 2>&1 && format="$base-$j.$i" && break
             [ -z "$format" ] || break
         done
     done
