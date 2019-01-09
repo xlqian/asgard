@@ -42,8 +42,7 @@ private:
     mutable size_t nb_calls = 0;
 
 public:
-    Projector(size_t cache_size = 1000):
-        cache_size(cache_size) {}
+    Projector(size_t cache_size = 1000) : cache_size(cache_size) {}
 
     template<typename T>
     std::unordered_map<std::string, valhalla::baldr::PathLocation>
@@ -73,7 +72,7 @@ public:
                                                          graph,
                                                          costing->GetEdgeFilter(),
                                                          costing->GetNodeFilter());
-            for (const auto& l: path_locations) {
+            for (const auto& l : path_locations) {
                 list.push_front(std::make_pair(std::make_pair(l.first.name_, mode), l.second));
                 results.emplace(l.first.name_, l.second);
             }

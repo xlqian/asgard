@@ -11,19 +11,15 @@ SpacesInParentheses: false
 SpacesInSquareBrackets: false
 SpaceAfterTemplateKeyword: false
 AlwaysBreakTemplateDeclarations: true
-BreakConstructorInitializers: AfterColon
+BreakConstructorInitializersBeforeComma: false
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
 SpacesInAngles: false
 SpaceBeforeParens: ControlStatements
 SpaceBeforeAssignmentOperators: true
-SpaceBeforeCtorInitializerColon: false
-SpaceBeforeInheritanceColon: false
-SpaceBeforeRangeBasedForLoopColon: false
 AlwaysBreakAfterReturnType: None
 BreakBeforeBraces: Custom
 BraceWrapping:
     BeforeElse: false
-    SplitEmptyFunction: false
-CompactNamespaces: true
 
 #alignement
 AllowShortBlocksOnASingleLine: true
@@ -35,9 +31,6 @@ BinPackParameters: true
 AccessModifierOffset: -4
 
 #include
-SortUsingDeclarations: true
-IncludeBlocks : Regroup
-
 IncludeCategories: 
 #asgard
   - Regex:           '^"asgard/.*"'

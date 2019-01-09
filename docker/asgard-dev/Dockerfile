@@ -41,12 +41,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       cmake \
       libzmq3-dev \
       ca-certificates \
-      gnupg \
       wget \
-      software-properties-common \
-  && wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key| apt-key add - \ 
-  && apt-add-repository "deb http://apt.llvm.org/stretch/ llvm-toolchain-stretch-7 main" \
-  && apt-get update && apt-get install -y clang-format-7 \
+      clang-format-4.0 \
   && git clone --depth=1 --recursive https://github.com/valhalla/valhalla.git libvalhalla \
   && mkdir -p libvalhalla/build \
   && cd libvalhalla/build \
@@ -60,12 +56,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       libgeos++-dev \
       liblua5.2-dev \
       wget \
-      gnupg \
       unzip \
       python-all-dev \
       vim-common \
       jq \
       gucharmap \
-      software-properties-common \
  && apt-get autoremove -y && apt-get clean
 
