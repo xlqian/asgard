@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#https://stackoverflow.com/a/50264116
+
 files='.*\.\(cpp\|hpp\|cc\|cxx\|h\)'
 
 output="$(diff -u <(find asgard/ -regex "$files" -exec cat {} \;) <(find asgard/ -regex "$files" -exec clang-format-7 -style=file {} \;))"
