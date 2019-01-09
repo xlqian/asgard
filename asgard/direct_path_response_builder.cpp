@@ -73,7 +73,7 @@ void compute_metadata(pbnavitia::Journey& pb_journey) {
     uint32_t total_bike_distance = 0;
     uint32_t total_ridesharing_distance = 0;
 
-    for (const auto& section: pb_journey.sections()) {
+    for (const auto& section : pb_journey.sections()) {
         if (section.type() == pbnavitia::STREET_NETWORK || section.type() == pbnavitia::CROW_FLY) {
             switch (section.street_network().mode()) {
             case pbnavitia::StreetNetworkMode::Walking:

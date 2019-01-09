@@ -20,7 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       libsqlite3-dev \
       spatialite-bin \
       liblz4-dev \
-      wget \
       unzip \
       lua5.2 \
       python-all-dev \
@@ -42,6 +41,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       cmake \
       libzmq3-dev \
       ca-certificates \
+      wget \
+      clang-format-4.0 \
   && git clone --depth=1 --recursive https://github.com/valhalla/valhalla.git libvalhalla \
   && mkdir -p libvalhalla/build \
   && cd libvalhalla/build \
