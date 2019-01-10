@@ -14,12 +14,11 @@
 // License along with this program. If not, see
 // <http://www.gnu.org/licenses/>.
 
-#include "handler.h"
-
-#include "context.h"
-#include "direct_path_response_builder.h"
-
+#include "asgard/handler.h"
+#include "asgard/context.h"
+#include "asgard/direct_path_response_builder.h"
 #include "asgard/request.pb.h"
+#include "asgard/util.h"
 
 #include <valhalla/thor/attributes_controller.h>
 #include <valhalla/thor/trippathbuilder.h>
@@ -33,41 +32,6 @@ using namespace valhalla;
 
 namespace asgard {
 
-static odin::DirectionsOptions make_default_directions_options() {
-    odin::DirectionsOptions default_directions_options;
-    for (int i = 0; i < 12; ++i) {
-        default_directions_options.add_costing_options();
-    }
-    return default_directions_options;
-}
-static const odin::DirectionsOptions default_directions_options = make_default_directions_options();
-
-static const std::map<std::string, sif::TravelMode> mode_map = {
-    {"walking", sif::TravelMode::kPedestrian},
-    {"bike", sif::TravelMode::kBicycle},
-    {"car", sif::TravelMode::kDrive},
-};
-
-static size_t mode_index(const std::string& mode) {
-    return static_cast<size_t>(mode_map.at(mode));
-}
-
-static odin::DirectionsOptions
-make_costing_option(const std::string& mode, float speed) {
-    odin::DirectionsOptions options = default_directions_options;
-    speed *= 3.6;
-    rapidjson::Document doc;
-    sif::ParseAutoCostOptions(doc, "", options.mutable_costing_options(odin::Costing::auto_));
-    sif::ParseBicycleCostOptions(doc, "", options.mutable_costing_options(odin::Costing::bicycle));
-    sif::ParsePedestrianCostOptions(doc, "", options.mutable_costing_options(odin::Costing::pedestrian));
-
-    // Now using default value of valhalla.
-    // Should parse the request.
-    //options.mutable_costing_options(odin::Costing::pedestrian)->set_walking_speed(speed);
-    //options.mutable_costing_options(odin::Costing::bicycle)->set_cycling_speed(speed);
-    return options;
-}
-
 static float get_distance(const std::string& mode, float duration) {
     using namespace thor;
     if (mode == "walking") {
@@ -79,21 +43,10 @@ static float get_distance(const std::string& mode, float duration) {
     }
 }
 
-static odin::Costing to_costing(const std::string& mode) {
-    if (mode == "walking") {
-        return odin::Costing::pedestrian;
-    } else if (mode == "bike") {
-        return odin::Costing::bicycle;
-    } else if (mode == "car") {
-        return odin::Costing::auto_;
-    } else {
-        throw std::invalid_argument("Bad to_costing parameter");
-    }
-}
-
 static double get_speed_request(const pbnavitia::Request& request, const std::string& mode) {
     auto const& request_params = request.direct_path().streetnetwork_params();
 
+    // Is parameter really set ?
     if (mode == "walking") {
         return request_params.walking_speed();
     } else if (mode == "bike") {
@@ -107,16 +60,8 @@ static double get_speed_request(const pbnavitia::Request& request, const std::st
 
 Handler::Handler(const Context& context) : graph(context.ptree.get_child("mjolnir")),
                                            matrix(),
-                                           factory(),
                                            mode_costing(),
                                            projector(context.max_cache_size) {
-    factory.Register(odin::Costing::auto_, sif::CreateAutoCost);
-    factory.Register(odin::Costing::pedestrian, sif::CreatePedestrianCost);
-    factory.Register(odin::Costing::bicycle, sif::CreateBicycleCost);
-
-    mode_costing[mode_index("car")] = factory.Create(odin::Costing::auto_, default_directions_options);
-    mode_costing[mode_index("walking")] = factory.Create(odin::Costing::pedestrian, default_directions_options);
-    mode_costing[mode_index("bike")] = factory.Create(odin::Costing::bicycle, default_directions_options);
 }
 
 pbnavitia::Response Handler::handle(const pbnavitia::Request& request) {
@@ -147,8 +92,8 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
         targets.push_back(e.place());
     }
 
-    mode_costing[mode_index(mode)] = factory.Create(to_costing(mode), make_costing_option(mode, request.sn_routing_matrix().speed()));
-    auto costing = mode_costing[mode_index(mode)];
+    mode_costing.update_costing_for_mode(mode, request.sn_routing_matrix().speed());
+    auto costing = mode_costing.get_costing_for_mode(mode);
 
     LOG_INFO("Projecting " + std::to_string(sources.size() + targets.size()) + " locations...");
     auto range = boost::range::join(sources, targets);
@@ -168,8 +113,8 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     auto res = matrix.SourceToTarget(path_location_sources,
                                      path_location_targets,
                                      graph,
-                                     mode_costing,
-                                     mode_map.at(mode),
+                                     mode_costing.get_costing(),
+                                     util::convert_navitia_to_valhalla_mode(mode),
                                      get_distance(mode, request.sn_routing_matrix().max_duration()));
     LOG_INFO("Computing matrix done.");
 
@@ -207,9 +152,9 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     LOG_INFO("Processing direct_path request");
 
     const auto mode = request.direct_path().streetnetwork_params().origin_mode();
-    auto speed_request = get_speed_request(request, mode);
-    mode_costing[mode_index(mode)] = factory.Create(to_costing(mode), make_costing_option(mode, speed_request));
-    auto costing = mode_costing[mode_index(mode)];
+    const auto speed_request = get_speed_request(request, mode);
+    mode_costing.update_costing_for_mode(mode, speed_request);
+    auto costing = mode_costing.get_costing_for_mode(mode);
 
     std::vector<std::string> locations{request.direct_path().origin().place(),
                                        request.direct_path().destination().place()};
@@ -227,14 +172,14 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     auto path_info_list = bda.GetBestPath(origin,
                                           dest,
                                           graph,
-                                          mode_costing,
-                                          mode_map.at(mode));
+                                          mode_costing.get_costing(),
+                                          util::convert_navitia_to_valhalla_mode(mode));
     LOG_INFO("Computing best path done.");
 
     // To compute the length
     // Can disable all options except the length here
     thor::AttributesController controller;
-    auto trip_path = thor::TripPathBuilder::Build(controller, graph, mode_costing, path_info_list, origin,
+    auto trip_path = thor::TripPathBuilder::Build(controller, graph, mode_costing.get_costing(), path_info_list, origin,
                                                   dest, {origin, dest});
 
     auto total_length = std::accumulate(

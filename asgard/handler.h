@@ -16,11 +16,11 @@
 
 #pragma once
 
+#include "asgard/mode_costing.h"
 #include "asgard/projector.h"
 #include "asgard/response.pb.h"
 
 #include <valhalla/baldr/graphreader.h>
-#include <valhalla/sif/costfactory.h>
 #include <valhalla/thor/bidirectional_astar.h>
 #include <valhalla/thor/timedistancematrix.h>
 
@@ -31,9 +31,6 @@ class Request;
 namespace asgard {
 
 class Context;
-
-static const size_t mode_costing_size = static_cast<size_t>(valhalla::sif::TravelMode::kMaxTravelMode);
-using ModeCosting = valhalla::sif::cost_ptr_t[mode_costing_size];
 
 struct Handler {
     Handler(const Context&);
@@ -46,7 +43,6 @@ private:
     valhalla::baldr::GraphReader graph;
     valhalla::thor::TimeDistanceMatrix matrix;
     valhalla::thor::BidirectionalAStar bda;
-    valhalla::sif::CostFactory<valhalla::sif::DynamicCost> factory;
     ModeCosting mode_costing;
     asgard::Projector projector;
 };

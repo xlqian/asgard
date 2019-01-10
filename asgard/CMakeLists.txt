@@ -27,6 +27,7 @@ set_source_files_properties(${PROTO_HDRS} ${PROTO_SRCS} PROPERTIES GENERATED TRU
 
 
 add_library(libasgard
+  mode_costing.cpp
   direct_path_response_builder.cpp
   handler.cpp
   util.cpp
