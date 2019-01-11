@@ -25,10 +25,10 @@ make_costing_option(const std::string& mode, float speed) {
         sif::ParseAutoCostOptions(doc, "", options.mutable_costing_options(odin::Costing::auto_));
     } else if (mode == "bike") {
         sif::ParseBicycleCostOptions(doc, "", options.mutable_costing_options(odin::Costing::bicycle));
-        //options.mutable_costing_options(odin::Costing::bicycle)->set_cycling_speed(speed);
+        options.mutable_costing_options(odin::Costing::bicycle)->set_cycling_speed(speed);
     } else {
         sif::ParsePedestrianCostOptions(doc, "", options.mutable_costing_options(odin::Costing::pedestrian));
-        //options.mutable_costing_options(odin::Costing::pedestrian)->set_walking_speed(speed);
+        options.mutable_costing_options(odin::Costing::pedestrian)->set_walking_speed(speed);
     }
 
     return options;

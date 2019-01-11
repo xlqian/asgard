@@ -46,7 +46,6 @@ static float get_distance(const std::string& mode, float duration) {
 static double get_speed_request(const pbnavitia::Request& request, const std::string& mode) {
     auto const& request_params = request.direct_path().streetnetwork_params();
 
-    // Is parameter really set ?
     if (mode == "walking") {
         return request_params.walking_speed();
     } else if (mode == "bike") {
