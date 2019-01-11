@@ -50,7 +50,7 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
     s->set_duration(journey->duration());
     // We take the mode of the first path. Could be the last too...
     // They could also be different in the list...
-    s->mutable_street_network()->set_mode(asgard::util::convert_valhalla_to_navitia_mode(path_info_list.front().mode));
+    s->mutable_street_network()->set_mode(util::convert_valhalla_to_navitia_mode(path_info_list.front().mode));
     s->set_begin_date_time(departure_posix_time);
     s->set_end_date_time(arrival_posix_time);
 
@@ -115,6 +115,6 @@ void compute_metadata(pbnavitia::Journey& pb_journey) {
     distances->set_car(total_car_distance);
     distances->set_ridesharing(total_ridesharing_distance);
 }
-}
+} // namespace direct_path_response_builder
 
-} // namespace asgard::direct_path_response_builder
+} // namespace asgard

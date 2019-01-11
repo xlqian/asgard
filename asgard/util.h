@@ -1,19 +1,25 @@
 #pragma once
 
 #include "asgard/response.pb.h"
+#include <valhalla/proto/directions_options.pb.h>
 
 namespace valhalla {
 namespace sif {
 enum class TravelMode : uint8_t;
 }
-} // namespace valhalla::sif
+} // namespace valhalla
 
 namespace asgard {
 
 namespace util {
 
-// Should use the map in handler.cpp ?
 pbnavitia::StreetNetworkMode convert_valhalla_to_navitia_mode(const valhalla::sif::TravelMode& mode);
-}
 
-} // namespace asgard::util
+valhalla::sif::TravelMode convert_navitia_to_valhalla_mode(const std::string& mode);
+
+size_t navitia_to_valhalla_mode_index(const std::string& mode);
+
+valhalla::odin::Costing convert_navitia_to_valhalla_costing(const std::string& costing);
+} // namespace util
+
+} // namespace asgard
