@@ -175,6 +175,14 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
                                           util::convert_navitia_to_valhalla_mode(mode));
     LOG_INFO("Computing best path done.");
 
+    // If no solution was found
+    if (path_info_list.empty()) {
+        pbnavitia::Response response;
+        response.set_response_type(pbnavitia::NO_SOLUTION);
+        LOG_ERROR("No solution found !");
+        return response;
+    }
+
     // To compute the length
     // Can disable all options except the length here
     thor::AttributesController controller;
