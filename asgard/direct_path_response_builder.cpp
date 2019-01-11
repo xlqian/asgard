@@ -20,6 +20,12 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
                                            float total_length) {
     pbnavitia::Response response;
 
+    if (path_info_list.empty()) {
+        response.set_response_type(pbnavitia::NO_SOLUTION);
+        LOG_ERROR("No solution found !");
+        return response;
+    }
+
     LOG_INFO("Building solution...");
     // General
     response.set_response_type(pbnavitia::ITINERARY_FOUND);
