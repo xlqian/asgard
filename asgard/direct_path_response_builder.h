@@ -4,14 +4,23 @@
 
 namespace pbnavitia {
 class Request;
-class Response;
 } // namespace pbnavitia
 
 namespace valhalla {
+
 namespace thor {
 class PathInfo;
 }
-} // namespace valhalla::thor
+
+namespace midgard {
+class PointLL;
+}
+
+namespace odin {
+class TripPath;
+}
+
+} // namespace valhalla
 
 namespace asgard {
 
@@ -19,8 +28,10 @@ namespace direct_path_response_builder {
 
 pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
                                            const std::vector<valhalla::thor::PathInfo>& path_info_list,
-                                           float total_length);
+                                           const valhalla::odin::TripPath& trip_path);
 
 void compute_metadata(pbnavitia::Journey& pb_journey);
-}
-} // namespace asgard::direct_path_response_builder
+void compute_geojson(const std::vector<valhalla::midgard::PointLL>& list_geo_points, pbnavitia::Section& s);
+
+} // namespace direct_path_response_builder
+} // namespace asgard

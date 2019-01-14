@@ -4,14 +4,18 @@
 #include "asgard/direct_path_response_builder.h"
 #include "asgard/request.pb.h"
 
+#include <valhalla/midgard/pointll.h>
+#include <valhalla/proto/trippath.pb.h>
 #include <valhalla/thor/pathinfo.h>
 
 #include <boost/test/unit_test.hpp>
 
 using namespace valhalla;
-namespace adprb = asgard::direct_path_response_builder;
 
-static std::vector<thor::PathInfo> create_path_info_list() {
+namespace asgard {
+namespace direct_path_response_builder {
+
+std::vector<thor::PathInfo> create_path_info_list() {
     std::vector<thor::PathInfo> path_info_list;
     for (auto i = 0; i < 5; ++i) {
         path_info_list.emplace_back(sif::TravelMode::kDrive, i * 5, baldr::GraphId(), 0);
@@ -19,11 +23,20 @@ static std::vector<thor::PathInfo> create_path_info_list() {
     return path_info_list;
 }
 
+valhalla::odin::TripPath create_trip_path() {
+    valhalla::odin::TripPath trip_path;
+    for (auto i = 0; i < 5; ++i) {
+        trip_path.add_node()->mutable_edge()->set_length((i * 5) / 1000.f);
+    }
+    return trip_path;
+}
+
 BOOST_AUTO_TEST_CASE(build_journey_response_test) {
     // Empty path_info_list
     {
         pbnavitia::Request request;
-        auto response = adprb::build_journey_response(request, {}, 0.f);
+        valhalla::odin::TripPath trip_path;
+        auto response = build_journey_response(request, {}, trip_path);
         BOOST_CHECK_EQUAL(response.response_type(), pbnavitia::NO_SOLUTION);
         BOOST_CHECK_EQUAL(response.journeys_size(), 0);
     }
@@ -34,7 +47,8 @@ BOOST_AUTO_TEST_CASE(build_journey_response_test) {
         std::vector<thor::PathInfo> path_info_list = create_path_info_list();
         request.mutable_direct_path()->set_datetime(1470241573);
 
-        auto response = adprb::build_journey_response(request, path_info_list, 42666);
+        auto trip_path = create_trip_path();
+        auto response = build_journey_response(request, path_info_list, trip_path);
         BOOST_CHECK_EQUAL(response.response_type(), pbnavitia::ITINERARY_FOUND);
         BOOST_CHECK_EQUAL(response.journeys_size(), 1);
 
@@ -53,12 +67,29 @@ BOOST_AUTO_TEST_CASE(build_journey_response_test) {
         BOOST_CHECK_EQUAL(section->street_network().mode(), pbnavitia::Car);
         BOOST_CHECK_EQUAL(section->begin_date_time(), 1470241573);
         BOOST_CHECK_EQUAL(section->end_date_time(), 1470241593);
-        BOOST_CHECK_EQUAL(section->length(), 42666);
+        BOOST_CHECK_EQUAL(section->length(), 50);
     }
 }
 
-static void add_section(pbnavitia::Journey& pb_journey, const pbnavitia::SectionType section_type, const pbnavitia::StreetNetworkMode mode,
-                        int32_t duration, int32_t length, uint64_t begin_date_time) {
+BOOST_AUTO_TEST_CASE(compute_geojson_test) {
+    {
+        const std::vector<midgard::PointLL> list_geo_points = {
+            {50, 1}, {42, 8}, {49, 3}, {42, 7}};
+        pbnavitia::Section section;
+
+        compute_geojson(list_geo_points, section);
+
+        BOOST_CHECK_EQUAL(section.mutable_street_network()->coordinates_size(), list_geo_points.size());
+        for (size_t i = 0; i < list_geo_points.size(); ++i) {
+            const auto coords = section.mutable_street_network()->coordinates(i);
+            BOOST_CHECK_EQUAL(coords.lon(), list_geo_points.at(i).lng());
+            BOOST_CHECK_EQUAL(coords.lat(), list_geo_points.at(i).lat());
+        }
+    }
+}
+
+void add_section(pbnavitia::Journey& pb_journey, const pbnavitia::SectionType section_type, const pbnavitia::StreetNetworkMode mode,
+                 int32_t duration, int32_t length, uint64_t begin_date_time) {
     auto* s = pb_journey.add_sections();
     s->set_type(section_type);
     s->mutable_street_network()->set_mode(mode);
@@ -81,7 +112,7 @@ BOOST_AUTO_TEST_CASE(compute_metadata_test) {
     add_section(pb_journey, pbnavitia::STREET_NETWORK, pbnavitia::StreetNetworkMode::Bss, 999, 29, 1470241973);
     add_section(pb_journey, pbnavitia::STREET_NETWORK, pbnavitia::StreetNetworkMode::Ridesharing, 42, 78, 1470242073);
 
-    adprb::compute_metadata(pb_journey);
+    compute_metadata(pb_journey);
 
     auto durations = pb_journey.durations();
     auto distances = pb_journey.distances();
@@ -100,3 +131,6 @@ BOOST_AUTO_TEST_CASE(compute_metadata_test) {
     BOOST_CHECK_EQUAL(distances.car(), 59);
     BOOST_CHECK_EQUAL(distances.ridesharing(), 78);
 }
+
+} // namespace direct_path_response_builder
+} // namespace asgard
