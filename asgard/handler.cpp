@@ -189,13 +189,7 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     auto trip_path = thor::TripPathBuilder::Build(controller, graph, mode_costing.get_costing(), path_info_list, origin,
                                                   dest, {origin, dest});
 
-    auto total_length = std::accumulate(
-        trip_path.node().begin(),
-        trip_path.node().end(),
-        0.f,
-        [&](float sum, const odin::TripPath_Node& node) { return sum + node.edge().length() * 1000.f; });
-
-    auto response = direct_path_response_builder::build_journey_response(request, path_info_list, total_length);
+    auto response = direct_path_response_builder::build_journey_response(request, path_info_list, trip_path);
 
     if (graph.OverCommitted()) { graph.Clear(); }
     LOG_INFO("Everything is clear.");

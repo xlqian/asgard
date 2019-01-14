@@ -1,11 +1,11 @@
-#include "direct_path_response_builder.h"
-
-#include "util.h"
-
+#include "asgard/direct_path_response_builder.h"
 #include "asgard/request.pb.h"
+#include "asgard/util.h"
 
+#include <valhalla/midgard/encoded.h>
 #include <valhalla/midgard/logging.h>
 #include <valhalla/thor/pathinfo.h>
+#include <valhalla/thor/trippathbuilder.h>
 
 #include <numeric>
 
@@ -16,8 +16,8 @@ namespace asgard {
 namespace direct_path_response_builder {
 
 pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
-                                           const std::vector<thor::PathInfo>& path_info_list,
-                                           float total_length) {
+                                           const std::vector<valhalla::thor::PathInfo>& path_info_list,
+                                           const odin::TripPath& trip_path) {
     pbnavitia::Response response;
 
     if (path_info_list.empty()) {
@@ -54,13 +54,29 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
     s->set_begin_date_time(departure_posix_time);
     s->set_end_date_time(arrival_posix_time);
 
+    auto total_length = std::accumulate(
+        trip_path.node().begin(),
+        trip_path.node().end(),
+        0.f,
+        [&](float sum, const odin::TripPath_Node& node) { return sum + node.edge().length() * 1000.f; });
     s->set_length(total_length);
+
+    auto list_geo_points = midgard::decode<std::vector<PointLL>>(trip_path.shape());
+    compute_geojson(list_geo_points, *s);
 
     compute_metadata(*journey);
 
     LOG_INFO("Solution built...");
 
     return response;
+}
+
+void compute_geojson(const std::vector<midgard::PointLL>& list_geo_points, pbnavitia::Section& s) {
+    for (const auto point : list_geo_points) {
+        auto* geo = s.mutable_street_network()->add_coordinates();
+        geo->set_lat(point.lat());
+        geo->set_lon(point.lng());
+    }
 }
 
 void compute_metadata(pbnavitia::Journey& pb_journey) {
