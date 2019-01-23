@@ -46,7 +46,7 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
     // Section
     auto* s = journey->add_sections();
     s->set_type(pbnavitia::STREET_NETWORK);
-    s->set_id("section");
+    s->set_id("section_0");
     s->set_duration(journey->duration());
     // We take the mode of the first path. Could be the last too...
     // They could also be different in the list...
