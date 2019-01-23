@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(build_journey_response_test) {
 
         auto const section = journey->sections().begin();
         BOOST_CHECK_EQUAL(section->type(), pbnavitia::STREET_NETWORK);
-        BOOST_CHECK_EQUAL(section->id(), "section");
+        BOOST_CHECK_EQUAL(section->id(), "section_0");
         BOOST_CHECK_EQUAL(section->duration(), 20);
         BOOST_CHECK_EQUAL(section->street_network().mode(), pbnavitia::Car);
         BOOST_CHECK_EQUAL(section->begin_date_time(), 1470241573);
