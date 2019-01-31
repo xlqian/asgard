@@ -62,6 +62,10 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
     s->set_length(total_length);
 
     auto list_geo_points = midgard::decode<std::vector<PointLL>>(trip_path.shape());
+
+    set_extremity_pt_object(list_geo_points.front(), s->mutable_origin());
+    set_extremity_pt_object(list_geo_points.back(), s->mutable_destination());
+
     compute_geojson(list_geo_points, *s);
 
     compute_metadata(*journey);
@@ -69,6 +73,14 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
     LOG_INFO("Solution built...");
 
     return response;
+}
+
+void set_extremity_pt_object(const valhalla::midgard::PointLL& geo_points, pbnavitia::PtObject* o) {
+    o->set_uri("");
+    o->set_name("");
+    auto* coords = o->mutable_address()->mutable_coord();
+    coords->set_lat(geo_points.lat());
+    coords->set_lon(geo_points.lng());
 }
 
 void compute_geojson(const std::vector<midgard::PointLL>& list_geo_points, pbnavitia::Section& s) {
