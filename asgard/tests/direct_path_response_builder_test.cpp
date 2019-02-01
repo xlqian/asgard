@@ -76,12 +76,12 @@ BOOST_AUTO_TEST_CASE(build_journey_response_test) {
         BOOST_CHECK_EQUAL(section->length(), 30);
 
         auto const origin_coords = section->origin().address().coord();
-        BOOST_CHECK_EQUAL(section->origin().uri(), "");
+        BOOST_CHECK_EQUAL(section->origin().uri(), "50;1");
         BOOST_CHECK_EQUAL(section->origin().name(), "");
         BOOST_CHECK_EQUAL(origin_coords.lon(), 50);
         BOOST_CHECK_EQUAL(origin_coords.lat(), 1);
         auto const dest_coords = section->destination().address().coord();
-        BOOST_CHECK_EQUAL(section->destination().uri(), "");
+        BOOST_CHECK_EQUAL(section->destination().uri(), "42;7");
         BOOST_CHECK_EQUAL(section->destination().name(), "");
         BOOST_CHECK_EQUAL(dest_coords.lon(), 42);
         BOOST_CHECK_EQUAL(dest_coords.lat(), 7);
@@ -97,12 +97,12 @@ BOOST_AUTO_TEST_CASE(set_extremity_pt_object_test) {
         set_extremity_pt_object(list_geo_points.front(), section.mutable_origin());
         set_extremity_pt_object(list_geo_points.back(), section.mutable_destination());
 
-        BOOST_CHECK_EQUAL(section.origin().uri(), "");
+        BOOST_CHECK_EQUAL(section.origin().uri(), "50;1");
         BOOST_CHECK_EQUAL(section.origin().name(), "");
         BOOST_CHECK_EQUAL(section.origin().address().coord().lon(), 50);
         BOOST_CHECK_EQUAL(section.origin().address().coord().lat(), 1);
 
-        BOOST_CHECK_EQUAL(section.destination().uri(), "");
+        BOOST_CHECK_EQUAL(section.destination().uri(), "42;7");
         BOOST_CHECK_EQUAL(section.destination().name(), "");
         BOOST_CHECK_EQUAL(section.destination().address().coord().lon(), 42);
         BOOST_CHECK_EQUAL(section.destination().address().coord().lat(), 7);

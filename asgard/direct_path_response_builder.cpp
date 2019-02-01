@@ -75,12 +75,14 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
     return response;
 }
 
-void set_extremity_pt_object(const valhalla::midgard::PointLL& geo_points, pbnavitia::PtObject* o) {
-    o->set_uri("");
+void set_extremity_pt_object(const valhalla::midgard::PointLL& geo_point, pbnavitia::PtObject* o) {
+    auto uri = std::stringstream();
+    uri << std::setprecision(5) << geo_point.lng() << ";" << geo_point.lat();
+    o->set_uri(uri.str());
     o->set_name("");
     auto* coords = o->mutable_address()->mutable_coord();
-    coords->set_lat(geo_points.lat());
-    coords->set_lon(geo_points.lng());
+    coords->set_lat(geo_point.lat());
+    coords->set_lon(geo_point.lng());
 }
 
 void compute_geojson(const std::vector<midgard::PointLL>& list_geo_points, pbnavitia::Section& s) {

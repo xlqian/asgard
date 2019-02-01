@@ -30,7 +30,7 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
                                            const std::vector<valhalla::thor::PathInfo>& path_info_list,
                                            const valhalla::odin::TripPath& trip_path);
 
-void set_extremity_pt_object(const valhalla::midgard::PointLL& geo_points, pbnavitia::PtObject* o);
+void set_extremity_pt_object(const valhalla::midgard::PointLL& geo_point, pbnavitia::PtObject* o);
 void compute_metadata(pbnavitia::Journey& pb_journey);
 void compute_geojson(const std::vector<valhalla::midgard::PointLL>& list_geo_points, pbnavitia::Section& s);
 
