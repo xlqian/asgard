@@ -61,7 +61,7 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
         [&](float sum, const odin::TripPath_Node& node) { return sum + node.edge().length() * 1000.f; });
     s->set_length(total_length);
 
-    auto list_geo_points = midgard::decode<std::vector<PointLL>>(trip_path.shape());
+    auto const list_geo_points = midgard::decode<std::vector<PointLL>>(trip_path.shape());
 
     set_extremity_pt_object(list_geo_points.front(), s->mutable_origin());
     set_extremity_pt_object(list_geo_points.back(), s->mutable_destination());
@@ -77,7 +77,7 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
 
 void set_extremity_pt_object(const valhalla::midgard::PointLL& geo_point, pbnavitia::PtObject* o) {
     auto uri = std::stringstream();
-    uri << std::setprecision(5) << geo_point.lng() << ";" << geo_point.lat();
+    uri << std::fixed << std::setprecision(5) << geo_point.lng() << ";" << geo_point.lat();
     o->set_uri(uri.str());
     o->set_name("");
     auto* coords = o->mutable_address()->mutable_coord();

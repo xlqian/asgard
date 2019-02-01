@@ -16,6 +16,9 @@ using namespace valhalla;
 namespace asgard {
 namespace direct_path_response_builder {
 
+const std::vector<midgard::PointLL> list_geo_points = {
+    {50.12345678f, 1.457634f}, {42.46546513f, 8.4646846f}, {49.1036400f, 3.9731065f}, {42.0794687f, 7.974815640f}};
+
 std::vector<thor::PathInfo> create_path_info_list() {
     std::vector<thor::PathInfo> path_info_list;
     for (size_t i = 0; i < 5; ++i) {
@@ -25,8 +28,6 @@ std::vector<thor::PathInfo> create_path_info_list() {
 }
 
 valhalla::odin::TripPath create_trip_path() {
-    const std::vector<midgard::PointLL> list_geo_points = {
-        {50, 1}, {42, 8}, {49, 3}, {42, 7}};
     auto const s = midgard::encode(list_geo_points);
 
     valhalla::odin::TripPath trip_path;
@@ -76,43 +77,40 @@ BOOST_AUTO_TEST_CASE(build_journey_response_test) {
         BOOST_CHECK_EQUAL(section->length(), 30);
 
         auto const origin_coords = section->origin().address().coord();
-        BOOST_CHECK_EQUAL(section->origin().uri(), "50;1");
+        BOOST_CHECK_EQUAL(section->origin().uri(), "50.12346;1.45763");
         BOOST_CHECK_EQUAL(section->origin().name(), "");
-        BOOST_CHECK_EQUAL(origin_coords.lon(), 50);
-        BOOST_CHECK_EQUAL(origin_coords.lat(), 1);
+        BOOST_CHECK_CLOSE(origin_coords.lon(), 50.12345678f, 0.0001f);
+        BOOST_CHECK_CLOSE(origin_coords.lat(), 1.457634f, 0.0001f);
+
         auto const dest_coords = section->destination().address().coord();
-        BOOST_CHECK_EQUAL(section->destination().uri(), "42;7");
+        BOOST_CHECK_EQUAL(section->destination().uri(), "42.07947;7.97481");
         BOOST_CHECK_EQUAL(section->destination().name(), "");
-        BOOST_CHECK_EQUAL(dest_coords.lon(), 42);
-        BOOST_CHECK_EQUAL(dest_coords.lat(), 7);
+        BOOST_CHECK_CLOSE(dest_coords.lon(), 42.0794687f, 0.0001f);
+        BOOST_CHECK_CLOSE(dest_coords.lat(), 7.974815640f, 0.0001f);
     }
 }
 
 BOOST_AUTO_TEST_CASE(set_extremity_pt_object_test) {
     {
-        const std::vector<midgard::PointLL> list_geo_points = {
-            {50, 1}, {42, 8}, {49, 3}, {42, 7}};
         pbnavitia::Section section;
 
         set_extremity_pt_object(list_geo_points.front(), section.mutable_origin());
         set_extremity_pt_object(list_geo_points.back(), section.mutable_destination());
 
-        BOOST_CHECK_EQUAL(section.origin().uri(), "50;1");
+        BOOST_CHECK_EQUAL(section.origin().uri(), "50.12346;1.45763");
         BOOST_CHECK_EQUAL(section.origin().name(), "");
-        BOOST_CHECK_EQUAL(section.origin().address().coord().lon(), 50);
-        BOOST_CHECK_EQUAL(section.origin().address().coord().lat(), 1);
+        BOOST_CHECK_EQUAL(section.origin().address().coord().lon(), 50.12345678f);
+        BOOST_CHECK_EQUAL(section.origin().address().coord().lat(), 1.457634f);
 
-        BOOST_CHECK_EQUAL(section.destination().uri(), "42;7");
+        BOOST_CHECK_EQUAL(section.destination().uri(), "42.07947;7.97482");
         BOOST_CHECK_EQUAL(section.destination().name(), "");
-        BOOST_CHECK_EQUAL(section.destination().address().coord().lon(), 42);
-        BOOST_CHECK_EQUAL(section.destination().address().coord().lat(), 7);
+        BOOST_CHECK_EQUAL(section.destination().address().coord().lon(), 42.0794687f);
+        BOOST_CHECK_EQUAL(section.destination().address().coord().lat(), 7.974815640f);
     }
 }
 
 BOOST_AUTO_TEST_CASE(compute_geojson_test) {
     {
-        const std::vector<midgard::PointLL> list_geo_points = {
-            {50, 1}, {42, 8}, {49, 3}, {42, 7}};
         pbnavitia::Section section;
 
         compute_geojson(list_geo_points, section);
