@@ -19,11 +19,13 @@
 #include "asgard/direct_path_response_builder.h"
 #include "asgard/request.pb.h"
 #include "asgard/util.h"
+#include "asgard/metrics.h"
 
 #include <valhalla/thor/attributes_controller.h>
 #include <valhalla/thor/trippathbuilder.h>
 
 #include <boost/range/join.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <ctime>
 #include <numeric>
@@ -60,7 +62,8 @@ static double get_speed_request(const pbnavitia::Request& request, const std::st
 Handler::Handler(const Context& context) : graph(context.ptree.get_child("mjolnir")),
                                            matrix(),
                                            mode_costing(),
-                                           projector(context.max_cache_size) {
+                                           projector(context.max_cache_size),
+                                           metrics(context.metrics) {
 }
 
 pbnavitia::Response Handler::handle(const pbnavitia::Request& request) {
@@ -73,7 +76,9 @@ pbnavitia::Response Handler::handle(const pbnavitia::Request& request) {
     }
 }
 
+namespace pt = boost::posix_time;
 pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
+    pt::ptime start = pt::microsec_clock::universal_time();
     LOG_INFO("Processing matrix request " +
              std::to_string(request.sn_routing_matrix().origins_size()) + "x" +
              std::to_string(request.sn_routing_matrix().destinations_size()));
@@ -144,10 +149,13 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     if (graph.OverCommitted()) { graph.Clear(); }
     LOG_INFO("Everything is clear.");
 
+    auto duration = pt::microsec_clock::universal_time() - start;
+    metrics.observe_handle_matrix(duration.total_seconds());
     return response;
 }
 
 pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& request) {
+    pt::ptime start = pt::microsec_clock::universal_time();
     LOG_INFO("Processing direct_path request");
 
     const auto mode = request.direct_path().streetnetwork_params().origin_mode();
@@ -194,6 +202,8 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     if (graph.OverCommitted()) { graph.Clear(); }
     LOG_INFO("Everything is clear.");
 
+    auto duration = pt::microsec_clock::universal_time() - start;
+    metrics.observe_handle_direct_path(duration.total_seconds());
     return response;
 }
 
