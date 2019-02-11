@@ -18,16 +18,16 @@
 #include "handler.h"
 #include "utils/zmq.h"
 
-#include "asgard/request.pb.h"
 #include "asgard/metrics.h"
+#include "asgard/request.pb.h"
 
 #include <valhalla/midgard/logging.h>
 
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/thread.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
 using namespace valhalla;
 
@@ -78,7 +78,7 @@ static void worker(const asgard::Context& context) {
 
         respond(socket, address, response);
         auto duration = ptime::microsec_clock::universal_time() - start;
-        context.metrics.observe_api(pb_req.requested_api(), duration.total_milliseconds()/1000.0);
+        context.metrics.observe_api(pb_req.requested_api(), duration.total_milliseconds() / 1000.0);
     }
 }
 

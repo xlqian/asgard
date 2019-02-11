@@ -17,15 +17,15 @@
 #include "asgard/handler.h"
 #include "asgard/context.h"
 #include "asgard/direct_path_response_builder.h"
+#include "asgard/metrics.h"
 #include "asgard/request.pb.h"
 #include "asgard/util.h"
-#include "asgard/metrics.h"
 
 #include <valhalla/thor/attributes_controller.h>
 #include <valhalla/thor/trippathbuilder.h>
 
-#include <boost/range/join.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/range/join.hpp>
 
 #include <ctime>
 #include <numeric>
