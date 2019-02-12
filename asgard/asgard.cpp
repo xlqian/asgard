@@ -70,15 +70,12 @@ static void worker(const asgard::Context& context) {
         socket.recv(&request);
         asgard::InFlightGuard in_flight_guard(context.metrics.start_in_flight());
         pbnavitia::Request pb_req;
-        ptime::ptime start = ptime::microsec_clock::universal_time();
         pb_req.ParseFromArray(request.data(), request.size());
         LOG_INFO("Request received...");
 
         const auto response = handler.handle(pb_req);
 
         respond(socket, address, response);
-        auto duration = ptime::microsec_clock::universal_time() - start;
-        context.metrics.observe_api(pb_req.requested_api(), duration.total_milliseconds() / 1000.0);
     }
 }
 
@@ -99,13 +96,12 @@ int main() {
     const auto nb_threads = get_config<size_t>("ASGARD_NB_THREADS", 3);
     const auto valhalla_conf = get_config<std::string>("ASGARD_VALHALLA_CONF", "/data/valhalla/valhalla.conf");
     const auto metrics_binding = get_config<std::string>("ASGARD_METRICS_BINDING", "127.0.0.1:8080");
-    const auto metrics_coverage = get_config<std::string>("ASGARD_METRICS_COVERAGE", "asgard");
 
     boost::thread_group threads;
     zmq::context_t context(1);
     LoadBalancer lb(context);
     lb.bind(socket_path, "inproc://workers");
-    const asgard::Metrics metrics(metrics_binding, metrics_coverage);
+    const asgard::Metrics metrics(metrics_binding);
 
     ptree::ptree ptree;
     ptree::read_json(valhalla_conf, ptree);

@@ -150,7 +150,7 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     LOG_INFO("Everything is clear.");
 
     auto duration = pt::microsec_clock::universal_time() - start;
-    metrics.observe_handle_matrix(duration.total_seconds());
+    metrics.observe_handle_matrix(mode, duration.total_milliseconds() / 1000.0);
     return response;
 }
 
@@ -203,7 +203,7 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     LOG_INFO("Everything is clear.");
 
     auto duration = pt::microsec_clock::universal_time() - start;
-    metrics.observe_handle_direct_path(duration.total_seconds());
+    metrics.observe_handle_direct_path(mode, duration.total_milliseconds() / 1000.0);
     return response;
 }
 
