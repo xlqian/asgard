@@ -28,17 +28,6 @@ void InFlightGuard::operator=(InFlightGuard&& other) {
     other.gauge = nullptr;
 }
 
-static prometheus::Histogram::BucketBoundaries create_exponential_buckets(double start, double factor, int count) {
-    //boundaries need to be sorted!
-    auto bucket_boundaries = prometheus::Histogram::BucketBoundaries{};
-    double v = start;
-    for (auto i = 0; i < count; i++) {
-        bucket_boundaries.push_back(v);
-        v = v * factor;
-    }
-    return bucket_boundaries;
-}
-
 static prometheus::Histogram::BucketBoundaries create_fixed_duration_buckets() {
     //boundaries need to be sorted!
     auto bucket_boundaries = prometheus::Histogram::BucketBoundaries{
@@ -46,7 +35,7 @@ static prometheus::Histogram::BucketBoundaries create_fixed_duration_buckets() {
     return bucket_boundaries;
 }
 
-Metrics::Metrics(const boost::optional<std::string>& endpoint, const std::string& coverage) {
+Metrics::Metrics(const boost::optional<std::string>& endpoint) {
     if (endpoint == boost::none) {
         return;
     }
@@ -55,40 +44,30 @@ Metrics::Metrics(const boost::optional<std::string>& endpoint, const std::string
     registry = std::make_shared<prometheus::Registry>();
     exposer->RegisterCollectable(registry);
 
-    auto& histogram_family = prometheus::BuildHistogram()
-                                 .Name("asgard_request_duration_seconds")
-                                 .Help("duration of request in seconds")
-                                 .Labels({{"coverage", coverage}})
-                                 .Register(*registry);
-    auto desc = pbnavitia::API_descriptor();
-    for (int i = 0; i < desc->value_count(); ++i) {
-        auto value = desc->value(i);
-        // Asgard only manages direct_path and street_network_routing_matrix
-        if (value->name() == "direct_path" || value->name() == "street_network_routing_matrix") {
-            auto& histo = histogram_family.Add({{"api", value->name()}}, create_fixed_duration_buckets());
-            this->request_histogram[static_cast<pbnavitia::API>(value->number())] = &histo;
-        }
-    }
     auto& in_flight_family = prometheus::BuildGauge()
                                  .Name("asgard_request_in_flight")
                                  .Help("Number of requests currently beeing processed")
-                                 .Labels({{"coverage", coverage}})
                                  .Register(*registry);
     this->in_flight = &in_flight_family.Add({});
 
-    this->handle_direct_path_histogram = &prometheus::BuildHistogram()
-                                              .Name("asgard_direct_path_duration_seconds")
-                                              .Help("duration of direct path computation")
-                                              .Labels({{"coverage", coverage}})
-                                              .Register(*registry)
-                                              .Add({}, create_exponential_buckets(1, 2, 10));
+    auto& direct_path_family = prometheus::BuildHistogram()
+                                   .Name("asgard_direct_path_duration_seconds")
+                                   .Help("duration of direct path computation")
+                                   .Register(*registry);
 
-    this->handle_matrix_histogram = &prometheus::BuildHistogram()
-                                         .Name("asgard_handle_matrix_duration_seconds")
-                                         .Help("duration of matrix computation")
-                                         .Labels({{"coverage", coverage}})
-                                         .Register(*registry)
-                                         .Add({}, create_exponential_buckets(1, 2, 10));
+    auto& matrix_family = prometheus::BuildHistogram()
+                              .Name("asgard_handle_matrix_duration_seconds")
+                              .Help("duration of matrix computation")
+                              .Register(*registry);
+
+    std::vector<std::string> list_modes = {"walking", "bike", "car"};
+    for (auto const& mode : list_modes) {
+        LOG_WARN("mode = " + mode);
+        auto& histo_direct_path = direct_path_family.Add({{"mode", mode}}, create_fixed_duration_buckets());
+        this->handle_direct_path_histogram[mode] = &histo_direct_path;
+        auto& histo_matrix = matrix_family.Add({{"mode", mode}}, create_fixed_duration_buckets());
+        this->handle_matrix_histogram[mode] = &histo_matrix;
+    }
 }
 
 InFlightGuard Metrics::start_in_flight() const {
@@ -98,30 +77,28 @@ InFlightGuard Metrics::start_in_flight() const {
     return InFlightGuard(this->in_flight);
 }
 
-void Metrics::observe_api(pbnavitia::API api, double duration) const {
+void Metrics::observe_handle_direct_path(const std::string& mode, double duration) const {
     if (!registry) {
         return;
     }
-    auto it = this->request_histogram.find(api);
-    if (it != std::end(this->request_histogram)) {
+    auto it = this->handle_direct_path_histogram.find(mode);
+    if (it != std::end(this->handle_direct_path_histogram)) {
         it->second->Observe(duration);
     } else {
-        LOG_WARN("api " + pbnavitia::API_Name(api) + " not found in metrics");
+        LOG_WARN("mode " + mode + " not found in metrics");
     }
 }
 
-void Metrics::observe_handle_direct_path(double duration) const {
+void Metrics::observe_handle_matrix(const std::string& mode, double duration) const {
     if (!registry) {
         return;
     }
-    this->handle_direct_path_histogram->Observe(duration);
-}
-
-void Metrics::observe_handle_matrix(double duration) const {
-    if (!registry) {
-        return;
+    auto it = this->handle_matrix_histogram.find(mode);
+    if (it != std::end(this->handle_matrix_histogram)) {
+        it->second->Observe(duration);
+    } else {
+        LOG_WARN("mode " + mode + " not found in metrics");
     }
-    this->handle_matrix_histogram->Observe(duration);
 }
 
 } // namespace asgard
