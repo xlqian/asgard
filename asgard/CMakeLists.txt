@@ -25,8 +25,8 @@ add_custom_command(OUTPUT ${PROTO_HDRS} ${PROTO_SRCS}
 
 set_source_files_properties(${PROTO_HDRS} ${PROTO_SRCS} PROPERTIES GENERATED TRUE)
 
-
 add_library(libasgard
+  metrics.cpp
   mode_costing.cpp
   direct_path_response_builder.cpp
   handler.cpp
@@ -36,7 +36,7 @@ add_library(libasgard
   ${PROTO_SRCS})
 
 add_executable(asgard asgard.cpp)
-target_link_libraries(asgard libasgard boost_system boost_regex boost_thread ${BOOST_DEV_LIBS} valhalla z curl zmq protobuf) #TODO do not hardcode lib name
+target_link_libraries(asgard libasgard boost_system boost_regex boost_thread ${BOOST_DEV_LIBS} valhalla z curl zmq protobuf prometheus-cpp-core prometheus-cpp-pull) #TODO do not hardcode lib name
 
 enable_testing()
 

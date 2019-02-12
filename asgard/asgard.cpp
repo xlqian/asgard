@@ -18,16 +18,17 @@
 #include "handler.h"
 #include "utils/zmq.h"
 
+#include "asgard/metrics.h"
 #include "asgard/request.pb.h"
 
 #include <valhalla/midgard/logging.h>
 
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/thread.hpp>
 
-namespace pt = boost::property_tree;
 using namespace valhalla;
 
 static void respond(zmq::socket_t& socket,
@@ -48,6 +49,7 @@ static void respond(zmq::socket_t& socket,
     socket.send(reply);
 }
 
+namespace ptime = boost::posix_time;
 static void worker(const asgard::Context& context) {
     zmq::context_t& zmq_context = context.zmq_context;
     asgard::Handler handler(context);
@@ -66,6 +68,7 @@ static void worker(const asgard::Context& context) {
 
         zmq::message_t request;
         socket.recv(&request);
+        asgard::InFlightGuard in_flight_guard(context.metrics.start_in_flight());
         pbnavitia::Request pb_req;
         pb_req.ParseFromArray(request.data(), request.size());
         LOG_INFO("Request received...");
@@ -86,22 +89,25 @@ const T get_config(const std::string& key, T value = T()) {
     return value;
 }
 
+namespace ptree = boost::property_tree;
 int main() {
     const auto socket_path = get_config<std::string>("ASGARD_SOCKET_PATH", "tcp://*:6000");
     const auto cache_size = get_config<size_t>("ASGARD_CACHE_SIZE", 100000);
     const auto nb_threads = get_config<size_t>("ASGARD_NB_THREADS", 3);
     const auto valhalla_conf = get_config<std::string>("ASGARD_VALHALLA_CONF", "/data/valhalla/valhalla.conf");
+    const auto metrics_binding = get_config<std::string>("ASGARD_METRICS_BINDING", "127.0.0.1:8080");
 
     boost::thread_group threads;
     zmq::context_t context(1);
     LoadBalancer lb(context);
     lb.bind(socket_path, "inproc://workers");
+    const asgard::Metrics metrics(metrics_binding);
 
-    pt::ptree ptree;
-    pt::read_json(valhalla_conf, ptree);
+    ptree::ptree ptree;
+    ptree::read_json(valhalla_conf, ptree);
 
     for (size_t i = 0; i < nb_threads; ++i) {
-        threads.create_thread(std::bind(&worker, asgard::Context(context, ptree, cache_size)));
+        threads.create_thread(std::bind(&worker, asgard::Context(context, ptree, cache_size, metrics)));
     }
 
     // Connect worker threads to client threads via a queue

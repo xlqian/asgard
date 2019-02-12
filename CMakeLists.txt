@@ -23,11 +23,9 @@ SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer")
 
 # Load in the needed CMake modules
 include(UseBoost)
+include(ThirdParty)
 
 #add current compilation dir to include path to handle config.h
-include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third_party/rapidjson/include")
-include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third_party/date/include")
-include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third_party/")
 include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("${CMAKE_BINARY_DIR}")
 

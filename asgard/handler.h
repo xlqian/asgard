@@ -31,6 +31,7 @@ class Request;
 namespace asgard {
 
 class Context;
+class Metrics;
 
 struct Handler {
     Handler(const Context&);
@@ -45,6 +46,7 @@ private:
     valhalla::thor::BidirectionalAStar bda;
     ModeCosting mode_costing;
     asgard::Projector projector;
+    const Metrics& metrics;
 };
 
 } // namespace asgard
