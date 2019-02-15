@@ -20,6 +20,7 @@
 
 #include "asgard/metrics.h"
 #include "asgard/request.pb.h"
+#include "asgard/projector.h"
 
 #include <valhalla/midgard/logging.h>
 
@@ -102,12 +103,13 @@ int main() {
     LoadBalancer lb(context);
     lb.bind(socket_path, "inproc://workers");
     const asgard::Metrics metrics(metrics_binding);
+    const asgard::Projector projector(cache_size);
 
     ptree::ptree ptree;
     ptree::read_json(valhalla_conf, ptree);
 
     for (size_t i = 0; i < nb_threads; ++i) {
-        threads.create_thread(std::bind(&worker, asgard::Context(context, ptree, cache_size, metrics)));
+        threads.create_thread(std::bind(&worker, asgard::Context(context, ptree, cache_size, metrics, projector)));
     }
 
     // Connect worker threads to client threads via a queue
