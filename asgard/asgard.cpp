@@ -19,8 +19,8 @@
 #include "utils/zmq.h"
 
 #include "asgard/metrics.h"
-#include "asgard/request.pb.h"
 #include "asgard/projector.h"
+#include "asgard/request.pb.h"
 
 #include <valhalla/midgard/logging.h>
 
