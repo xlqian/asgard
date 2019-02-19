@@ -30,17 +30,14 @@ class Projector;
 struct Context {
     zmq::context_t& zmq_context;
     boost::property_tree::ptree ptree;
-    int max_cache_size;
     const Metrics& metrics;
     const Projector& projector;
 
     Context(zmq::context_t& zmq_context, boost::property_tree::ptree ptree,
-            int max_cache_size, const Metrics& metrics,
-            const Projector& projector) : zmq_context(zmq_context),
-                                          ptree(ptree),
-                                          max_cache_size(max_cache_size),
-                                          metrics(metrics),
-                                          projector(projector) {}
+            const Metrics& metrics, const Projector& projector) : zmq_context(zmq_context),
+                                                                  ptree(ptree),
+                                                                  metrics(metrics),
+                                                                  projector(projector) {}
 };
 
 } // namespace asgard

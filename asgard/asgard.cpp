@@ -96,7 +96,7 @@ int main() {
     const auto cache_size = get_config<size_t>("ASGARD_CACHE_SIZE", 100000);
     const auto nb_threads = get_config<size_t>("ASGARD_NB_THREADS", 3);
     const auto valhalla_conf = get_config<std::string>("ASGARD_VALHALLA_CONF", "/data/valhalla/valhalla.conf");
-    const auto metrics_binding = get_config<std::string>("ASGARD_METRICS_BINDING", "127.0.0.1:8080");
+    const auto metrics_binding = get_config<boost::optional<std::string>>("ASGARD_METRICS_BINDING", boost::none);
 
     boost::thread_group threads;
     zmq::context_t context(1);
@@ -109,7 +109,7 @@ int main() {
     ptree::read_json(valhalla_conf, ptree);
 
     for (size_t i = 0; i < nb_threads; ++i) {
-        threads.create_thread(std::bind(&worker, asgard::Context(context, ptree, cache_size, metrics, projector)));
+        threads.create_thread(std::bind(&worker, asgard::Context(context, ptree, metrics, projector)));
     }
 
     // Connect worker threads to client threads via a queue
