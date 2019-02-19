@@ -1,8 +1,6 @@
 #include "asgard/mode_costing.h"
 #include "asgard/projector.h"
 
-#include <gperftools/profiler.h>
-
 #include <valhalla/baldr/graphreader.h>
 
 #include <boost/program_options.hpp>
@@ -10,7 +8,6 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <fstream>
 #include <random>
 #include <thread>
 
