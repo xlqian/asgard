@@ -1,6 +1,8 @@
 #include "asgard/mode_costing.h"
 #include "asgard/projector.h"
 
+#include "utils/timer.h"
+
 #include <valhalla/baldr/graphreader.h>
 
 #include <boost/program_options.hpp>
@@ -568,6 +570,7 @@ int main(int argc, char** argv) {
     Projector p(cache_size);
     boost::progress_display show_progress(l.size() * nb_threads);
     {
+        Timer t("Projector cache ");
         std::vector<std::thread> threads;
 
         for (size_t i = 0; i < nb_threads; ++i) {
