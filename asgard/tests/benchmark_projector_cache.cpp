@@ -20,16 +20,6 @@ using namespace asgard;
 using ListOfLocations = std::vector<std::vector<std::string>>;
 using ListOfResults = std::vector<std::unordered_map<std::string, PathLocation>>;
 
-// struct Context {
-//     const Projector& projector;
-//     valhalla::baldr::GraphReader graph;
-
-//     Context(const Projector& projector,
-//             boost::property_tree::ptree conf
-//             /*valhalla::baldr::GraphReader& graph*/) : projector(projector),
-//                                                        graph(conf.get_child("mjolnir")) {}
-// };
-
 void compute(const Projector& projector, boost::property_tree::ptree conf, boost::progress_display& show_progress, ListOfLocations list_of_locations) {
 
     for (auto& locations : list_of_locations) {
@@ -40,7 +30,7 @@ void compute(const Projector& projector, boost::property_tree::ptree conf, boost
     auto costing = mode_costing.get_costing_for_mode("car");
     ListOfResults list_of_results;
     for (auto locations : list_of_locations) {
-        //++show_progress;
+        ++show_progress;
         auto result = projector(begin(locations), end(locations), graph, "car", costing);
 
         std::this_thread::yield();
@@ -52,8 +42,7 @@ void compute(const Projector& projector, boost::property_tree::ptree conf, boost
 }
 
 ListOfLocations build_list_of_locations(size_t nb_threads) {
-    size_t list_size = 2 * nb_threads;
-    std::cout << list_size << std::endl;
+    size_t list_size = 1000 / nb_threads;
     ListOfLocations list_of_locations;
     std::vector<std::string> locations = {"coord:2.417036:48.858501",
                                           "coord:2.417822:48.838296",
@@ -550,7 +539,7 @@ ListOfLocations build_list_of_locations(size_t nb_threads) {
         list_of_locations.push_back(locations);
     }
 
-    std::cout << "nb of locations = " << (list_of_locations.size() * locations.size()) / nb_threads << std::endl;
+    std::cout << "nb of locations = " << (list_of_locations.size() * locations.size()) * nb_threads << std::endl;
     return list_of_locations;
 }
 
@@ -558,12 +547,14 @@ int main(int argc, char** argv) {
     po::options_description desc("Options de l'outil de benchmark");
     size_t cache_size = 0;
     size_t nb_threads = 0;
+    std::string conf_path = "";
 
     // clang-format off
     desc.add_options()
             ("help", "Show this message")
             ("size,s", po::value<size_t>(&cache_size)->default_value(10), "cache size")
-            ("threads,t", po::value<size_t>(&nb_threads)->default_value(3), "number of threads to run");
+            ("threads,t", po::value<size_t>(&nb_threads)->default_value(3), "number of threads to run")
+            ("conf_path,c", po::value<std::string>(&conf_path)->default_value(""), "conf_path");
     // clang-format on
 
     po::variables_map vm;
@@ -571,18 +562,13 @@ int main(int argc, char** argv) {
     po::notify(vm);
 
     auto l = build_list_of_locations(nb_threads);
-    std::cout << cache_size << std::endl;
-    Projector p(cache_size);
-
-    // boost::property_tree::ptree conf;
-    // boost::property_tree::read_json("/app/data/valhalla/valhalla.json", conf);
-    // GraphReader g(conf.get_child("mjolnir"));
-
-    // Context c(p, g);
+    std::cout << "cache_size = " << cache_size << std::endl;
+    std::cout << "nb_threads = " << nb_threads << std::endl;
+    std::cout << "conf_path = " << conf_path << std::endl;
 
     boost::property_tree::ptree conf;
-    boost::property_tree::read_json("/app/data/valhalla/valhalla.json", conf);
-    // Context c(p, conf);
+    boost::property_tree::read_json(conf_path, conf);
+    Projector p(cache_size);
     boost::progress_display show_progress(l.size() * nb_threads);
     {
         std::vector<std::thread> threads;
