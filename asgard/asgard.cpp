@@ -94,7 +94,7 @@ int main() {
     const auto socket_path = get_config<std::string>("ASGARD_SOCKET_PATH", "tcp://*:6000");
     const auto cache_size = get_config<size_t>("ASGARD_CACHE_SIZE", 100000);
     const auto nb_threads = get_config<size_t>("ASGARD_NB_THREADS", 3);
-    const auto valhalla_conf = get_config<std::string>("ASGARD_VALHALLA_CONF", "/data/valhalla/valhalla.conf");
+    const auto valhalla_conf = get_config<std::string>("ASGARD_VALHALLA_CONF", "/data/valhalla/valhalla.json");
     const auto metrics_binding = get_config<std::string>("ASGARD_METRICS_BINDING", "127.0.0.1:8080");
 
     boost::thread_group threads;
