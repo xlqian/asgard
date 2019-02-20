@@ -18,6 +18,7 @@
 #include "asgard/context.h"
 #include "asgard/direct_path_response_builder.h"
 #include "asgard/metrics.h"
+#include "asgard/projector.h"
 #include "asgard/request.pb.h"
 #include "asgard/util.h"
 
@@ -62,8 +63,8 @@ static double get_speed_request(const pbnavitia::Request& request, const std::st
 Handler::Handler(const Context& context) : graph(context.ptree.get_child("mjolnir")),
                                            matrix(),
                                            mode_costing(),
-                                           projector(context.max_cache_size),
-                                           metrics(context.metrics) {
+                                           metrics(context.metrics),
+                                           projector(context.projector) {
 }
 
 pbnavitia::Response Handler::handle(const pbnavitia::Request& request) {

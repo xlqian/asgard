@@ -62,7 +62,6 @@ Metrics::Metrics(const boost::optional<std::string>& endpoint) {
 
     std::vector<std::string> list_modes = {"walking", "bike", "car"};
     for (auto const& mode : list_modes) {
-        LOG_WARN("mode = " + mode);
         auto& histo_direct_path = direct_path_family.Add({{"mode", mode}}, create_fixed_duration_buckets());
         this->handle_direct_path_histogram[mode] = &histo_direct_path;
         auto& histo_matrix = matrix_family.Add({{"mode", mode}}, create_fixed_duration_buckets());

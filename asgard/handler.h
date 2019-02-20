@@ -17,7 +17,6 @@
 #pragma once
 
 #include "asgard/mode_costing.h"
-#include "asgard/projector.h"
 #include "asgard/response.pb.h"
 
 #include <valhalla/baldr/graphreader.h>
@@ -32,6 +31,7 @@ namespace asgard {
 
 class Context;
 class Metrics;
+class Projector;
 
 struct Handler {
     Handler(const Context&);
@@ -45,7 +45,7 @@ private:
     valhalla::thor::TimeDistanceMatrix matrix;
     valhalla::thor::BidirectionalAStar bda;
     ModeCosting mode_costing;
-    asgard::Projector projector;
+    const Projector& projector;
     const Metrics& metrics;
 };
 
