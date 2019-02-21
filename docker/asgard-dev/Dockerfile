@@ -41,21 +41,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       cmake \
       libzmq3-dev \
       ca-certificates \
-      wget \
-      clang-format-4.0 \
-  && git clone --depth=1 --recursive https://github.com/valhalla/valhalla.git libvalhalla \
-  && mkdir -p libvalhalla/build \
+      clang-format-4.0
+
+RUN git clone --depth=1 --recursive --branch 3.0.2 https://github.com/valhalla/valhalla.git libvalhalla
+
+RUN mkdir -p libvalhalla/build \
   && cd libvalhalla/build \
-  && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=Off -DENABLE_NODE_BINDINGS=Off -DENABLE_PYTHON_BINDINGS=Off -DBUILD_SHARED_LIBS=Off -DBoost_USE_STATIC_LIBS=ON -DProtobuf_USE_STATIC_LIBS=ON -DLZ4_USE_STATIC_LIBS=ON \
-  && make -j$(nproc) install && ldconfig \
-  && apt-get -y purge \
+  && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=Off -DENABLE_NODE_BINDINGS=Off -DENABLE_PYTHON_BINDINGS=Off -DBUILD_SHARED_LIBS=Off -DBoost_USE_STATIC_LIBS=ON \
+  && make -j$(nproc) install && ldconfig
+
+RUN apt-get -y purge \
       autoconf \
       automake \
       libtool \
       libgeos-dev \
       libgeos++-dev \
       liblua5.2-dev \
-      wget \
       unzip \
       python-all-dev \
       vim-common \
