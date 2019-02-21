@@ -58,6 +58,18 @@ There are 3 differents docker images in the project :
 
 To run Asgard with docker :
 ```bash
+# Data of the whole France
 docker create --name asgard-data navitia/asgard-data:latest
 docker run --volumes-from asgard-data --rm -it -p 6000:6000/tcp navitia/asgard-prod:latest
+```
+#### What if I want to use other data ?
+
+It is possible to create an image from the asgard-data dockerfile with any pbf, tag it and create a container from that tagged image.
+Let's say you want to create an image from the german pbf and tag it "germany" :
+```bash
+cd docker/asgard-data
+# Create the image and tag it "germany"
+docker build --build-arg pbf_url=http://download.geofabrik.de/europe/germany-latest.osm.pbf -t navitia/asgard-data:germany .
+# Create a container from this image
+docker create --name asgard-data navitia/asgard-data:germany
 ```
