@@ -52,15 +52,15 @@ The CI will fail if the code is not correctly formated so be careful !
 
 There are 3 differents docker images in the project :
 
-    - asgard-dev : compiles and installs a specific release of Valhalla and contains all the librairies to run Asgard.
+    - asgard-build-deps : compiles and installs a specific release of Valhalla and contains all the dependencies to run Asgard.
     - asgard-data : creates the configuration file to run asgard and the tiles of a specific pbf. By default it contains the tiles of the whole France.
-    - asgard-prod : compiles and run Asgard with the data of a asgard-data container.
+    - asgard-app : compiles and run Asgard with the data of a asgard-data container.
 
 To run Asgard with docker :
 ```bash
 # Data of the whole France
 docker create --name asgard-data navitia/asgard-data:latest
-docker run --volumes-from asgard-data --rm -it -p 6000:6000/tcp navitia/asgard-prod:latest
+docker run --volumes-from asgard-data --rm -it -p 6000:6000/tcp navitia/asgard-app:latest
 ```
 #### What if I want to use other data ?
 

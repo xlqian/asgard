@@ -1,4 +1,4 @@
-FROM navitia/asgard-dev:latest as builder
+FROM navitia/asgard-build-deps:latest as builder
 WORKDIR /data/valhalla
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -1,4 +1,4 @@
-FROM navitia/asgard-dev:latest
+FROM navitia/asgard-build-deps:latest
 
 RUN apt-get update && apt-get install -y --no-install-recommends
   
