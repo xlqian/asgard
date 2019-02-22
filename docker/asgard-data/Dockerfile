@@ -13,9 +13,8 @@ RUN wget --progress=bar:force:noscroll $pbf_url \
   && valhalla_build_tiles -c valhalla.json *.pbf \
   && find valhalla_tiles | sort -n | tar cf valhalla_tiles.tar --no-recursion -T -
 
-FROM scratch
+FROM alpine:latest
 COPY --from=builder /data/valhalla/valhalla_tiles.tar /data/valhalla/
 COPY --from=builder /data/valhalla/valhalla.json /data/valhalla/
 VOLUME [ "/data/valhalla" ]
-# ENTRYPOINT Must be present, otherwise docker refuses to build the container
-ENTRYPOINT ["/no/such/file"]
+ENTRYPOINT date

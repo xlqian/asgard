@@ -12,4 +12,4 @@ RUN sed -i 's,git\@github.com:\([^/]*\)/\(.*\).git,https://github.com/\1/\2,' .g
   && apt-get autoremove -y && apt-get clean
 
 EXPOSE 6000
-CMD ["/usr/bin/asgard"]
+ENTRYPOINT ["/usr/bin/asgard"]
