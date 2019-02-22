@@ -6,8 +6,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       tar
 
 # Download the pbf given in argument
-ARG pbf_url=http://download.geofabrik.de/europe/france-latest.osm.pbf
-RUN wget --progress=bar:force:noscroll $pbf_url \
+ARG PBF_URL=http://download.geofabrik.de/europe/france-latest.osm.pbf
+RUN wget --progress=bar:force:noscroll $PBF_URL \
   && mkdir -p valhalla_tiles \
   && valhalla_build_config --mjolnir-tile-dir ${PWD}/valhalla_tiles --mjolnir-tile-extract ${PWD}/valhalla_tiles.tar --mjolnir-timezone ${PWD}/valhalla_tiles/timezones.sqlite --mjolnir-admin ${PWD}/valhalla_tiles/admins.sqlite > valhalla.json \
   && valhalla_build_tiles -c valhalla.json *.pbf \
