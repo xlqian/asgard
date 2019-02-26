@@ -1,6 +1,5 @@
 FROM debian:9
 
-VOLUME /data/valhalla
 RUN apt-get update && apt-get install -y --no-install-recommends git \
       autoconf \
       automake \
@@ -21,7 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       libsqlite3-dev \
       spatialite-bin \
       liblz4-dev \
-      wget \
       unzip \
       lua5.2 \
       python-all-dev \
@@ -43,42 +41,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       cmake \
       libzmq3-dev \
       ca-certificates \
-  && git clone --depth=1 --recursive https://github.com/valhalla/valhalla.git libvalhalla \
-  && mkdir -p libvalhalla/build \
+      clang-format-4.0
+
+RUN git clone --depth=1 --recursive --branch 3.0.2 https://github.com/valhalla/valhalla.git libvalhalla
+
+RUN mkdir -p libvalhalla/build \
   && cd libvalhalla/build \
-  && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=Off -DENABLE_NODE_BINDINGS=Off -DENABLE_PYTHON_BINDINGS=Off -DBUILD_SHARED_LIBS=Off -DBoost_USE_STATIC_LIBS=ON -DProtobuf_USE_STATIC_LIBS=ON -DLZ4_USE_STATIC_LIBS=ON \
-  && make -j$(nproc) install && ldconfig \
-  && cd - && rm -rf libvalhalla \
-  && git clone --depth=1 https://github.com/canaltp/asgard asgard && cd asgard \
-  && sed -i 's,git\@github.com:\([^/]*\)/\(.*\).git,https://github.com/\1/\2,' .gitmodules && git submodule update --init \
-  && mkdir build && cd build \
-  && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j$(nproc) && cp asgard/asgard /usr/bin/asgard \
-  && cd - && rm -rf asgard \
-  && apt-get -y purge \
-      git \
+  && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=Off -DENABLE_NODE_BINDINGS=Off -DENABLE_PYTHON_BINDINGS=Off -DBUILD_SHARED_LIBS=Off -DBoost_USE_STATIC_LIBS=ON \
+  && make -j$(nproc) install && ldconfig
+
+RUN apt-get -y purge \
       autoconf \
       automake \
-      make \
       libtool \
-      pkg-config \
-      g++ \
-      gcc \
-      protobuf-compiler \
-      libboost-all-dev \
-      libprotobuf-dev \
       libgeos-dev \
       libgeos++-dev \
       liblua5.2-dev \
-      wget \
       unzip \
       python-all-dev \
       vim-common \
       jq \
       gucharmap \
-      cmake \
-      libboost-all-dev \
  && apt-get autoremove -y && apt-get clean
 
-
-EXPOSE 6000
-CMD ["/usr/bin/asgard"]
