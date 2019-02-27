@@ -111,10 +111,8 @@ struct AsgardConf {
 
         reachability = valhalla_conf.get<unsigned int>("loki.service_defaults.minimum_reachability", 0);
         radius = valhalla_conf.get<unsigned int>("loki.service_defaults.radius", 0);
-
     }
 };
-
 
 int main() {
     AsgardConf asgard_conf{};
