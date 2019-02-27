@@ -53,10 +53,10 @@ private:
 
 public:
     Projector(size_t cache_size = 1000,
-              unsigned int reachability = 0 ,
+              unsigned int reachability = 0,
               unsigned int radius = 0) : cache_size(cache_size),
                                          reachability(reachability),
-                                         radius(radius){}
+                                         radius(radius) {}
 
     template<typename T>
     std::unordered_map<std::string, valhalla::baldr::PathLocation>

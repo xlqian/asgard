@@ -91,7 +91,7 @@ const T get_config(const std::string& key, T value = T()) {
 }
 
 namespace ptree = boost::property_tree;
-struct AsgardConf{
+struct AsgardConf {
     std::string socket_path;
     std::size_t cache_size;
     std::size_t nb_threads;
@@ -109,8 +109,8 @@ struct AsgardConf{
         auto valhalla_conf_json = get_config<std::string>("ASGARD_VALHALLA_CONF", "/data/valhalla/valhalla.json");
         ptree::read_json(valhalla_conf_json, valhalla_conf);
 
-        reachability = valhalla_conf.get<unsigned int>("loki.service_defaults.minimum_reachability" , 0);
-        radius = valhalla_conf.get<unsigned int>("loki.service_defaults.radius" , 0);
+        reachability = valhalla_conf.get<unsigned int>("loki.service_defaults.minimum_reachability", 0);
+        radius = valhalla_conf.get<unsigned int>("loki.service_defaults.radius", 0);
 
     }
 };
