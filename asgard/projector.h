@@ -15,7 +15,9 @@ namespace {
 valhalla::baldr::Location build_location(const std::string& place) {
     auto coord = navitia::parse_coordinate(place);
     auto l = valhalla::baldr::Location({coord.first, coord.second},
-                                       valhalla::baldr::Location::StopType::BREAK);
+                                       valhalla::baldr::Location::StopType::BREAK,
+                                       0,
+                                       20);
     l.name_ = place;
     return l;
 }

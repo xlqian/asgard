@@ -80,9 +80,9 @@ pbnavitia::Response Handler::handle(const pbnavitia::Request& request) {
 namespace pt = boost::posix_time;
 pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     pt::ptime start = pt::microsec_clock::universal_time();
-    LOG_INFO("Processing matrix request " +
-             std::to_string(request.sn_routing_matrix().origins_size()) + "x" +
-             std::to_string(request.sn_routing_matrix().destinations_size()));
+    LOG_INFO(util::string_format("Processing matrix request %d x %d",
+             request.sn_routing_matrix().origins_size
+             request.sn_routing_matrix().destinations_size()));
     const std::string mode = request.sn_routing_matrix().mode();
     std::vector<std::string> sources;
     sources.reserve(request.sn_routing_matrix().origins_size());
@@ -100,7 +100,7 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     mode_costing.update_costing_for_mode(mode, request.sn_routing_matrix().speed());
     auto costing = mode_costing.get_costing_for_mode(mode);
 
-    LOG_INFO("Projecting " + std::to_string(sources.size() + targets.size()) + " locations...");
+    LOG_INFO(util::string_format("Projecting %d locations...", sources.size() + targets.size()));
     auto range = boost::range::join(sources, targets);
     auto path_locations = projector(begin(range), end(range), graph, mode, costing);
     LOG_INFO("Projecting locations done.");
@@ -124,7 +124,6 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     LOG_INFO("Computing matrix done.");
 
     pbnavitia::Response response;
-    int nb_unknown = 0;
     int nb_unreached = 0;
     //in fact jormun don't want a real matrix, only a vector of solution :(
     auto* row = response.mutable_sn_routing_matrix()->add_rows();
@@ -132,10 +131,8 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     for (const auto& elt : res) {
         auto* k = row->add_routing_response();
         k->set_duration(elt.time);
-        if (elt.time == thor::kMaxCost) {
-            k->set_routing_status(pbnavitia::RoutingStatus::unknown);
-            ++nb_unknown;
-        } else if (elt.time > uint32_t(request.sn_routing_matrix().max_duration())) {
+        if (elt.time == thor::kMaxCost ||
+            elt.time > uint32_t(request.sn_routing_matrix().max_duration())) {
             k->set_routing_status(pbnavitia::RoutingStatus::unreached);
             ++nb_unreached;
         } else {
@@ -143,9 +140,7 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
         }
     }
 
-    LOG_INFO("Request done with " +
-             std::to_string(nb_unknown) + " unknown and " +
-             std::to_string(nb_unreached) + " unreached");
+    LOG_INFO(util::string_format("Request done with %d unreached", nb_unreached));
 
     if (graph.OverCommitted()) { graph.Clear(); }
     LOG_INFO("Everything is clear.");
