@@ -91,25 +91,48 @@ const T get_config(const std::string& key, T value = T()) {
 }
 
 namespace ptree = boost::property_tree;
+struct AsgardConf{
+    std::string socket_path;
+    std::size_t cache_size;
+    std::size_t nb_threads;
+    ptree::ptree valhalla_conf;
+    boost::optional<std::string> metrics_binding;
+    unsigned int reachability;
+    unsigned int radius;
+
+    AsgardConf() {
+        socket_path = get_config<std::string>("ASGARD_SOCKET_PATH", "tcp://*:6000");
+        cache_size = get_config<size_t>("ASGARD_CACHE_SIZE", 100000);
+        nb_threads = get_config<size_t>("ASGARD_NB_THREADS", 3);
+        metrics_binding = get_config<boost::optional<std::string>>("ASGARD_METRICS_BINDING", boost::none);
+
+        auto valhalla_conf_json = get_config<std::string>("ASGARD_VALHALLA_CONF", "/data/valhalla/valhalla.json");
+        ptree::read_json(valhalla_conf_json, valhalla_conf);
+
+        reachability = valhalla_conf.get<unsigned int>("loki.service_defaults.minimum_reachability" , 0);
+        radius = valhalla_conf.get<unsigned int>("loki.service_defaults.radius" , 0);
+
+    }
+};
+
+
 int main() {
-    const auto socket_path = get_config<std::string>("ASGARD_SOCKET_PATH", "tcp://*:6000");
-    const auto cache_size = get_config<size_t>("ASGARD_CACHE_SIZE", 100000);
-    const auto nb_threads = get_config<size_t>("ASGARD_NB_THREADS", 3);
-    const auto valhalla_conf = get_config<std::string>("ASGARD_VALHALLA_CONF", "/data/valhalla/valhalla.json");
-    const auto metrics_binding = get_config<boost::optional<std::string>>("ASGARD_METRICS_BINDING", boost::none);
+    AsgardConf asgard_conf{};
 
     boost::thread_group threads;
     zmq::context_t context(1);
     LoadBalancer lb(context);
-    lb.bind(socket_path, "inproc://workers");
-    const asgard::Metrics metrics(metrics_binding);
-    const asgard::Projector projector(cache_size);
+    lb.bind(asgard_conf.socket_path, "inproc://workers");
+    const asgard::Metrics metrics(asgard_conf.metrics_binding);
+    const asgard::Projector projector(asgard_conf.cache_size,
+                                      asgard_conf.reachability,
+                                      asgard_conf.radius);
 
-    ptree::ptree ptree;
-    ptree::read_json(valhalla_conf, ptree);
-
-    for (size_t i = 0; i < nb_threads; ++i) {
-        threads.create_thread(std::bind(&worker, asgard::Context(context, ptree, metrics, projector)));
+    for (size_t i = 0; i < asgard_conf.nb_threads; ++i) {
+        threads.create_thread(std::bind(&worker, asgard::Context(context,
+                                                                 asgard_conf.valhalla_conf,
+                                                                 metrics,
+                                                                 projector)));
     }
 
     // Connect worker threads to client threads via a queue
