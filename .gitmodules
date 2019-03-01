@@ -7,3 +7,9 @@
 [submodule "utils"]
 	path = utils
 	url = git@github.com:CanalTP/utils.git
+[submodule "third_party/date"]
+	path = third_party/date
+	url = https://github.com/HowardHinnant/date.git
+[submodule "third_party/prometheus-cpp"]
+	path = third_party/prometheus-cpp
+	url = https://github.com/jupp0r/prometheus-cpp.git

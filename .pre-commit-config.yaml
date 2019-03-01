@@ -1,0 +1,5 @@
+repos:
+-   repo: https://github.com/CanalTP/asgard.git
+    rev: v1.0.0
+    hooks:
+    -   id: clang-format
