@@ -12,10 +12,14 @@
 namespace asgard {
 
 namespace {
-valhalla::baldr::Location build_location(const std::string& place) {
+valhalla::baldr::Location build_location(const std::string& place,
+                                         unsigned int reachability,
+                                         unsigned int radius) {
     auto coord = navitia::parse_coordinate(place);
     auto l = valhalla::baldr::Location({coord.first, coord.second},
-                                       valhalla::baldr::Location::StopType::BREAK);
+                                       valhalla::baldr::Location::StopType::BREAK,
+                                       reachability,
+                                       radius);
     l.name_ = place;
     return l;
 }
@@ -37,6 +41,9 @@ private:
     // maximal cached values
     size_t cache_size;
 
+    unsigned int reachability;
+    unsigned int radius;
+
     // the cache, mutable because side effect are not visible from the
     // exterior because of the purity of f
     mutable Cache cache;
@@ -45,7 +52,11 @@ private:
     mutable std::mutex mutex;
 
 public:
-    Projector(size_t cache_size = 1000) : cache_size(cache_size) {}
+    Projector(size_t cache_size = 1000,
+              unsigned int reachability = 0,
+              unsigned int radius = 0) : cache_size(cache_size),
+                                         reachability(reachability),
+                                         radius(radius) {}
 
     template<typename T>
     std::unordered_map<std::string, valhalla::baldr::PathLocation>
@@ -69,7 +80,7 @@ public:
                     results.emplace(*it, search->second);
                 } else {
                     ++nb_cache_miss;
-                    missed.push_back(build_location(*it));
+                    missed.push_back(build_location(*it, reachability, radius));
                 }
             }
         }

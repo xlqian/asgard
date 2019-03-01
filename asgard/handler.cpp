@@ -124,7 +124,6 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     LOG_INFO("Computing matrix done.");
 
     pbnavitia::Response response;
-    int nb_unknown = 0;
     int nb_unreached = 0;
     //in fact jormun don't want a real matrix, only a vector of solution :(
     auto* row = response.mutable_sn_routing_matrix()->add_rows();
@@ -132,10 +131,8 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     for (const auto& elt : res) {
         auto* k = row->add_routing_response();
         k->set_duration(elt.time);
-        if (elt.time == thor::kMaxCost) {
-            k->set_routing_status(pbnavitia::RoutingStatus::unknown);
-            ++nb_unknown;
-        } else if (elt.time > uint32_t(request.sn_routing_matrix().max_duration())) {
+        if (elt.time == thor::kMaxCost ||
+            elt.time > uint32_t(request.sn_routing_matrix().max_duration())) {
             k->set_routing_status(pbnavitia::RoutingStatus::unreached);
             ++nb_unreached;
         } else {
@@ -143,9 +140,7 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
         }
     }
 
-    LOG_INFO("Request done with " +
-             std::to_string(nb_unknown) + " unknown and " +
-             std::to_string(nb_unreached) + " unreached");
+    LOG_INFO("Request done with " + std::to_string(nb_unreached) + " unreached");
 
     if (graph.OverCommitted()) { graph.Clear(); }
     LOG_INFO("Everything is clear.");
