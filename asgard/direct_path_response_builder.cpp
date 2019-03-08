@@ -65,7 +65,6 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
 
     set_extremity_pt_object(list_geo_points.front(), s->mutable_origin());
     set_extremity_pt_object(list_geo_points.back(), s->mutable_destination());
-
     compute_geojson(list_geo_points, *s);
 
     compute_metadata(*journey);
@@ -144,6 +143,8 @@ void compute_metadata(pbnavitia::Journey& pb_journey) {
     distances->set_bike(total_bike_distance);
     distances->set_car(total_car_distance);
     distances->set_ridesharing(total_ridesharing_distance);
+
+    pb_journey.set_duration(ts_arrival - ts_departure);
 }
 } // namespace direct_path_response_builder
 
