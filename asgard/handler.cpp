@@ -157,7 +157,7 @@ thor::PathAlgorithm* Handler::get_path_algorithm(const std::string& mode) {
     if (mode == "walking") {
         return &astar;
     }
-    
+
     return &bda;
 }
 
@@ -185,11 +185,11 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     thor::PathAlgorithm* algo = get_path_algorithm(mode);
 
     LOG_INFO("Computing best path...");
-    auto const path_info_list = algo->GetBestPath(origin,
-                                          dest,
-                                          graph,
-                                          mode_costing.get_costing(),
-                                          util::convert_navitia_to_valhalla_mode(mode));
+    const auto path_info_list = algo->GetBestPath(origin,
+                                                  dest,
+                                                  graph,
+                                                  mode_costing.get_costing(),
+                                                  util::convert_navitia_to_valhalla_mode(mode));
     LOG_INFO("Computing best path done.");
 
     // If no solution was found
@@ -201,10 +201,10 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     }
 
     thor::AttributesController controller;
-    auto const trip_path = thor::TripPathBuilder::Build(controller, graph, mode_costing.get_costing(), path_info_list, origin,
+    const auto trip_path = thor::TripPathBuilder::Build(controller, graph, mode_costing.get_costing(), path_info_list, origin,
                                                         dest, {origin, dest});
 
-    auto const response = direct_path_response_builder::build_journey_response(request, path_info_list, trip_path);
+    const auto response = direct_path_response_builder::build_journey_response(request, path_info_list, trip_path);
 
     if (graph.OverCommitted()) { graph.Clear(); }
     algo->Clear();
