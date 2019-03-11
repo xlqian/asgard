@@ -41,7 +41,7 @@ private:
     pbnavitia::Response handle_matrix(const pbnavitia::Request&);
     pbnavitia::Response handle_direct_path(const pbnavitia::Request&);
 
-    valhalla::thor::PathAlgorithm* get_path_algorithm(const std::string& mode);
+    valhalla::thor::PathAlgorithm& get_path_algorithm(const std::string& mode);
 
     valhalla::baldr::GraphReader graph;
     valhalla::thor::TimeDistanceMatrix matrix;

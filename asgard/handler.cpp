@@ -151,14 +151,14 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     return response;
 }
 
-thor::PathAlgorithm* Handler::get_path_algorithm(const std::string& mode) {
+thor::PathAlgorithm& Handler::get_path_algorithm(const std::string& mode) {
     // We use astar for walking to avoid differences between
     // The time from the matrix and the one from the direct_path
     if (mode == "walking") {
-        return &astar;
+        return astar;
     }
 
-    return &bda;
+    return bda;
 }
 
 pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& request) {
@@ -182,14 +182,14 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     baldr::PathLocation::toPBF(path_locations.at(locations.front()), &origin, graph);
     baldr::PathLocation::toPBF(path_locations.at(locations.back()), &dest, graph);
 
-    thor::PathAlgorithm* algo = get_path_algorithm(mode);
+    auto& algo = get_path_algorithm(mode);
 
     LOG_INFO("Computing best path...");
-    const auto path_info_list = algo->GetBestPath(origin,
-                                                  dest,
-                                                  graph,
-                                                  mode_costing.get_costing(),
-                                                  util::convert_navitia_to_valhalla_mode(mode));
+    const auto path_info_list = algo.GetBestPath(origin,
+                                                 dest,
+                                                 graph,
+                                                 mode_costing.get_costing(),
+                                                 util::convert_navitia_to_valhalla_mode(mode));
     LOG_INFO("Computing best path done.");
 
     // If no solution was found
@@ -207,7 +207,7 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     const auto response = direct_path_response_builder::build_journey_response(request, path_info_list, trip_path);
 
     if (graph.OverCommitted()) { graph.Clear(); }
-    algo->Clear();
+    algo.Clear();
     LOG_INFO("Everything is clear.");
 
     auto duration = pt::microsec_clock::universal_time() - start;
