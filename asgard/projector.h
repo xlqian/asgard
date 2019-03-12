@@ -11,22 +11,10 @@
 
 namespace asgard {
 
-namespace {
-valhalla::baldr::Location build_location(const std::string& place,
-                                         unsigned int reachability,
-                                         unsigned int radius) {
-    auto coord = navitia::parse_coordinate(place);
-    auto l = valhalla::baldr::Location({coord.first, coord.second},
-                                       valhalla::baldr::Location::StopType::BREAK,
-                                       reachability,
-                                       radius);
-    l.name_ = place;
-    return l;
-}
-} // namespace
-
 class Projector {
 private:
+    friend class UnitTestProjector;
+
     typedef std::pair<std::string, std::string> key_type;
     typedef valhalla::baldr::PathLocation mapped_type;
     typedef std::pair<const key_type, mapped_type> value_type;
@@ -50,6 +38,18 @@ private:
     mutable size_t nb_cache_miss = 0;
     mutable size_t nb_calls = 0;
     mutable std::mutex mutex;
+
+    valhalla::baldr::Location build_location(const std::string& place,
+                                             unsigned int reachability,
+                                             unsigned int radius) const {
+        auto coord = navitia::parse_coordinate(place);
+        auto l = valhalla::baldr::Location({coord.first, coord.second},
+                                           valhalla::baldr::Location::StopType::BREAK,
+                                           reachability,
+                                           radius);
+        l.name_ = place;
+        return l;
+    }
 
 public:
     Projector(size_t cache_size = 1000,
