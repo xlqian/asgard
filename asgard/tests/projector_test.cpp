@@ -22,6 +22,22 @@ using namespace valhalla;
 
 namespace asgard {
 
+class UnitTestProjector {
+public:
+    UnitTestProjector(size_t cache_size = 5,
+                      unsigned int reachability = 0,
+                      unsigned int radius = 0) : p(cache_size, reachability, radius) {}
+
+    valhalla::baldr::Location build_location(const std::string& place,
+                                             unsigned int reachability,
+                                             unsigned int radius) const {
+        return p.build_location(place, reachability, radius);
+    }
+
+private:
+    Projector p;
+};
+
 auto tile_dir = std::string(TESTS_SOURCE_DIR) + "tile_dir";
 GraphId tile_id = TileHierarchy::GetGraphId({.125, .125}, 2);
 PointLL base_ll = TileHierarchy::get_tiling(tile_id.level()).Base(tile_id.tileid());
@@ -176,6 +192,39 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
         BOOST_CHECK_EQUAL(p.get_nb_calls(), 7);
     }
     // cache = { coord:.01:.1; coord:.2:.1 }
+}
+
+BOOST_AUTO_TEST_CASE(build_location_test) {
+    UnitTestProjector testProjector(3);
+    {
+        BOOST_CHECK_THROW(testProjector.build_location("plop", 0, 0), navitia::wrong_coordinate);
+    }
+    {
+        const auto l = testProjector.build_location("coord:.01:.1", 12u, 42l);
+        BOOST_CHECK_CLOSE(l.latlng_.lng(), .01f, .0001f);
+        BOOST_CHECK_CLOSE(l.latlng_.lat(), .1f, .0001f);
+        BOOST_CHECK_EQUAL(static_cast<bool>(l.stoptype_), false);
+        BOOST_CHECK_EQUAL(l.minimum_reachability_, 12u);
+        BOOST_CHECK_EQUAL(l.radius_, 42l);
+    }
+    {
+        const auto l = testProjector.build_location("coord:.01:.1", 12u, 42l);
+        BOOST_CHECK_CLOSE(l.latlng_.lng(), .01f, .0001f);
+        BOOST_CHECK_CLOSE(l.latlng_.lat(), .1f, .0001f);
+        BOOST_CHECK_EQUAL(static_cast<bool>(l.stoptype_), false);
+        BOOST_CHECK_EQUAL(l.minimum_reachability_, 12u);
+        BOOST_CHECK_EQUAL(l.radius_, 42l);
+        BOOST_CHECK_EQUAL(l.name_, "coord:.01:.1");
+    }
+    {
+        const auto l = testProjector.build_location("92;43", 29u, 15l);
+        BOOST_CHECK_CLOSE(l.latlng_.lng(), 92.f, .0001f);
+        BOOST_CHECK_CLOSE(l.latlng_.lat(), 43.f, .0001f);
+        BOOST_CHECK_EQUAL(static_cast<bool>(l.stoptype_), false);
+        BOOST_CHECK_EQUAL(l.minimum_reachability_, 29u);
+        BOOST_CHECK_EQUAL(l.radius_, 15l);
+        BOOST_CHECK_EQUAL(l.name_, "92;43");
+    }
 }
 
 } // namespace asgard
