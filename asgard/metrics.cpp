@@ -60,7 +60,7 @@ Metrics::Metrics(const boost::optional<std::string>& endpoint) {
                               .Help("duration of matrix computation")
                               .Register(*registry);
 
-    std::vector<std::string> list_modes = {"walking", "bike", "car"};
+    std::vector<std::string> list_modes = {"walking", "bike", "car", "taxi"};
     for (auto const& mode : list_modes) {
         auto& histo_direct_path = direct_path_family.Add({{"mode", mode}}, create_fixed_duration_buckets());
         this->handle_direct_path_histogram[mode] = &histo_direct_path;

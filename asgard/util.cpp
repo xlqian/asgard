@@ -28,6 +28,7 @@ const std::map<std::string, sif::TravelMode> navitia_to_valhalla_mode_map = {
     {"walking", sif::TravelMode::kPedestrian},
     {"bike", sif::TravelMode::kBicycle},
     {"car", sif::TravelMode::kDrive},
+    {"taxi", sif::TravelMode::kDrive},
 };
 
 sif::TravelMode convert_navitia_to_valhalla_mode(const std::string& mode) {
@@ -42,6 +43,7 @@ const std::map<std::string, odin::Costing> navitia_to_valhalla_costing_map = {
     {"walking", odin::Costing::pedestrian},
     {"bike", odin::Costing::bicycle},
     {"car", odin::Costing::auto_},
+    {"taxi", odin::Costing::auto_},
 };
 
 odin::Costing convert_navitia_to_valhalla_costing(const std::string& costing) {
