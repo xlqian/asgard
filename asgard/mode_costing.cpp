@@ -21,7 +21,7 @@ make_costing_option(const std::string& mode, float speed) {
     speed *= 3.6;
 
     rapidjson::Document doc;
-    if (mode == "car") {
+    if (mode == "car" || mode == "taxi") {
         sif::ParseAutoCostOptions(doc, "", options.mutable_costing_options(odin::Costing::auto_));
     } else if (mode == "bike") {
         sif::ParseBicycleCostOptions(doc, "", options.mutable_costing_options(odin::Costing::bicycle));
@@ -40,6 +40,7 @@ ModeCosting::ModeCosting() : factory(), costing() {
     factory.Register(odin::Costing::bicycle, sif::CreateBicycleCost);
 
     costing[util::navitia_to_valhalla_mode_index("car")] = factory.Create(odin::Costing::auto_, default_directions_options);
+    costing[util::navitia_to_valhalla_mode_index("taxi")] = factory.Create(odin::Costing::auto_, default_directions_options);
     costing[util::navitia_to_valhalla_mode_index("walking")] = factory.Create(odin::Costing::pedestrian, default_directions_options);
     costing[util::navitia_to_valhalla_mode_index("bike")] = factory.Create(odin::Costing::bicycle, default_directions_options);
 }
