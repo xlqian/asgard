@@ -62,7 +62,7 @@ static double get_speed_request(const pbnavitia::Request& request, const std::st
     }
 }
 
-Handler::Handler(const Context& context) : graph(context.ptree.get_child("mjolnir")),
+Handler::Handler(const Context& context) : graph(context.graph),
                                            matrix(),
                                            mode_costing(),
                                            metrics(context.metrics),
