@@ -17,6 +17,8 @@ RUN wget --progress=bar:force:noscroll $pbf_url \
   && sed -i 's,\"radius\"\: [[:digit:]]*,\"radius\"\: 30,' valhalla.json \
   && sed -i 's,\"shortcuts\"\: [^,]*,\"shortcuts\"\: false,' valhalla.json \
   && sed -i 's,\"hierarchy\"\: [^,]*,\"hierarchy\"\: false,' valhalla.json \
+  # Make the graph shareable between threads in a thread-safe way
+  && sed -i '/"hierarchy":/a \\t"global_synchronized_cache": true,' valhalla.json \
   && valhalla_build_tiles -c valhalla.json *.pbf \
   && find valhalla_tiles | sort -n | tar cf valhalla_tiles.tar --no-recursion -T -
 

@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <valhalla/baldr/graphreader.h>
+
 #include <boost/property_tree/ptree.hpp>
 
 namespace zmq {
@@ -29,13 +31,13 @@ class Projector;
 
 struct Context {
     zmq::context_t& zmq_context;
-    boost::property_tree::ptree ptree;
+    valhalla::baldr::GraphReader& graph;
     const Metrics& metrics;
     const Projector& projector;
 
-    Context(zmq::context_t& zmq_context, boost::property_tree::ptree ptree,
+    Context(zmq::context_t& zmq_context, valhalla::baldr::GraphReader& graph,
             const Metrics& metrics, const Projector& projector) : zmq_context(zmq_context),
-                                                                  ptree(ptree),
+                                                                  graph(graph),
                                                                   metrics(metrics),
                                                                   projector(projector) {}
 };
