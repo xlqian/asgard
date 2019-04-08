@@ -127,7 +127,6 @@ int main() {
                                       asgard_conf.radius);
     valhalla::baldr::GraphReader graph(asgard_conf.valhalla_conf.get_child("mjolnir"));
 
-
     for (size_t i = 0; i < asgard_conf.nb_threads; ++i) {
         threads.create_thread(std::bind(&worker, asgard::Context(context,
                                                                  graph,
