@@ -43,7 +43,7 @@ const std::map<std::string, odin::Costing> navitia_to_valhalla_costing_map = {
     {"walking", odin::Costing::pedestrian},
     {"bike", odin::Costing::bicycle},
     {"car", odin::Costing::auto_},
-    {"taxi", odin::Costing::auto_},
+    {"taxi", odin::Costing::taxi},
 };
 
 odin::Costing convert_navitia_to_valhalla_costing(const std::string& costing) {
