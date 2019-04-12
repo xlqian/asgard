@@ -43,7 +43,7 @@ private:
 
     valhalla::thor::PathAlgorithm& get_path_algorithm(const std::string& mode);
 
-    valhalla::baldr::GraphReader graph;
+    valhalla::baldr::GraphReader& graph;
     valhalla::thor::TimeDistanceMatrix matrix;
     valhalla::thor::BidirectionalAStar bda;
     valhalla::thor::AStarPathAlgorithm astar;

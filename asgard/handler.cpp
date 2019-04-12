@@ -55,12 +55,14 @@ static double get_speed_request(const pbnavitia::Request& request, const std::st
         return request_params.bike_speed();
     } else if (mode == "car") {
         return request_params.car_speed();
+    } else if (mode == "taxi") {
+        return request_params.car_no_park_speed();
     } else {
         throw std::invalid_argument("Bad get_speed_request parameter");
     }
 }
 
-Handler::Handler(const Context& context) : graph(context.ptree.get_child("mjolnir")),
+Handler::Handler(const Context& context) : graph(context.graph),
                                            matrix(),
                                            mode_costing(),
                                            metrics(context.metrics),
