@@ -1,7 +1,6 @@
 #include "metrics.h"
 
-#include "conf.h"
-
+#include "asgard/conf.h"
 #include "asgard/asgard_conf.h"
 
 #include <prometheus/counter.h>
