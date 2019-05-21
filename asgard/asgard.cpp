@@ -18,16 +18,12 @@
 #include "handler.h"
 #include "utils/zmq.h"
 
+#include "asgard/asgard_conf.h"
 #include "asgard/metrics.h"
 #include "asgard/projector.h"
 #include "asgard/request.pb.h"
 
-#include <valhalla/midgard/logging.h>
-
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
 #include <boost/thread.hpp>
 
 using namespace valhalla;
@@ -80,48 +76,14 @@ static void worker(const asgard::Context& context) {
     }
 }
 
-template<typename T>
-const T get_config(const std::string& key, T value = T()) {
-    char* v = std::getenv(key.c_str());
-    if (v != nullptr) {
-        value = boost::lexical_cast<T>(v);
-    }
-    LOG_INFO("Config: " + key + "=" + boost::lexical_cast<std::string>(value));
-    return value;
-}
-
-namespace ptree = boost::property_tree;
-struct AsgardConf {
-    std::string socket_path;
-    std::size_t cache_size;
-    std::size_t nb_threads;
-    ptree::ptree valhalla_conf;
-    boost::optional<std::string> metrics_binding;
-    unsigned int reachability;
-    unsigned int radius;
-
-    AsgardConf() {
-        socket_path = get_config<std::string>("ASGARD_SOCKET_PATH", "tcp://*:6000");
-        cache_size = get_config<size_t>("ASGARD_CACHE_SIZE", 100000);
-        nb_threads = get_config<size_t>("ASGARD_NB_THREADS", 3);
-        metrics_binding = get_config<boost::optional<std::string>>("ASGARD_METRICS_BINDING", boost::none);
-
-        auto valhalla_conf_json = get_config<std::string>("ASGARD_VALHALLA_CONF", "/data/valhalla/valhalla.json");
-        ptree::read_json(valhalla_conf_json, valhalla_conf);
-
-        reachability = valhalla_conf.get<unsigned int>("loki.service_defaults.minimum_reachability", 0);
-        radius = valhalla_conf.get<unsigned int>("loki.service_defaults.radius", 0);
-    }
-};
-
 int main() {
-    AsgardConf asgard_conf{};
+    asgard::AsgardConf asgard_conf{};
 
     boost::thread_group threads;
     zmq::context_t context(1);
     LoadBalancer lb(context);
     lb.bind(asgard_conf.socket_path, "inproc://workers");
-    const asgard::Metrics metrics(asgard_conf.metrics_binding);
+    const asgard::Metrics metrics(asgard_conf);
     const asgard::Projector projector(asgard_conf.cache_size,
                                       asgard_conf.reachability,
                                       asgard_conf.radius);
