@@ -1,4 +1,8 @@
 #include "metrics.h"
+
+#include "asgard/asgard_conf.h"
+#include "asgard/conf.h"
+
 #include <prometheus/counter.h>
 #include <prometheus/exposer.h>
 #include <prometheus/registry.h>
@@ -35,14 +39,29 @@ static prometheus::Histogram::BucketBoundaries create_fixed_duration_buckets() {
     return bucket_boundaries;
 }
 
-Metrics::Metrics(const boost::optional<std::string>& endpoint) {
-    if (endpoint == boost::none) {
+Metrics::Metrics(const AsgardConf& conf) {
+    if (conf.metrics_binding == boost::none) {
         return;
     }
-    LOG_INFO("metrics available at http://" + *endpoint + "/metrics");
-    exposer = std::make_unique<prometheus::Exposer>(*endpoint);
+    LOG_INFO("metrics available at http://" + *conf.metrics_binding + "/metrics");
+    exposer = std::make_unique<prometheus::Exposer>(*conf.metrics_binding);
     registry = std::make_shared<prometheus::Registry>();
     exposer->RegisterCollectable(registry);
+
+    const std::map<std::string, std::string> infos = {
+        {"version", std::string(config::project_version)},
+        {"build_type", std::string(config::asgard_build_type)},
+        {"cache_size", std::to_string(conf.cache_size)},
+        {"nb_threads", std::to_string(conf.nb_threads)},
+        {"reachability", std::to_string(conf.reachability)},
+        {"radius", std::to_string(conf.radius)}};
+
+    auto& status_family = prometheus::BuildGauge()
+                              .Labels(infos)
+                              .Name("asgard_status")
+                              .Help("Status API of Asgard")
+                              .Register(*registry);
+    this->status_family = &status_family.Add({});
 
     auto& in_flight_family = prometheus::BuildGauge()
                                  .Name("asgard_request_in_flight")

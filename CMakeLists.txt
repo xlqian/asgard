@@ -1,12 +1,11 @@
 project(asgard)
 cmake_minimum_required(VERSION 3.0)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
-#find_package(GoogleTcmalloc)
 find_package(Protoc)
 
 #get git revision as the version number
-#include(GetGitRevisionDescription)
-#git_describe(GIT_REVISION)
+include(GetGitRevisionDescription)
+git_describe(GIT_REVISION)
 
 IF(NOT CMAKE_BUILD_TYPE)
     #https://cmake.org/pipermail/cmake/2009-June/030311.html
@@ -32,3 +31,5 @@ include_directories("${CMAKE_BINARY_DIR}")
 link_directories(${Boost_LIBRARY_DIRS})
 
 add_subdirectory(asgard)
+
+include(LoadConfig)

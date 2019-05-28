@@ -18,6 +18,8 @@ class Histogram;
 
 namespace asgard {
 
+struct AsgardConf;
+
 class InFlightGuard {
     prometheus::Gauge* gauge;
 
@@ -35,11 +37,12 @@ protected:
     std::unique_ptr<prometheus::Exposer> exposer;
     std::shared_ptr<prometheus::Registry> registry;
     prometheus::Gauge* in_flight;
+    prometheus::Gauge* status_family;
     std::map<const std::string, prometheus::Histogram*> handle_direct_path_histogram;
     std::map<const std::string, prometheus::Histogram*> handle_matrix_histogram;
 
 public:
-    Metrics(const boost::optional<std::string>& endpoint);
+    Metrics(const AsgardConf& conf);
     InFlightGuard start_in_flight() const;
 
     void observe_handle_direct_path(const std::string&, double duration) const;
