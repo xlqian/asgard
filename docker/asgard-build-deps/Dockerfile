@@ -43,10 +43,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       ca-certificates \
       clang-format-4.0
 
-# This commit contains the modification in valhalla to use TaxiCost
-RUN git clone --depth=1 --recursive https://github.com/valhalla/valhalla.git libvalhalla \
-  && cd libvalhalla \
-  && git checkout 2345ba1f4936b9b547f1e0e43ba18c1d733a5e52
+RUN git clone --depth=1 --recursive --branch 3.0.3 https://github.com/valhalla/valhalla.git libvalhalla
 
 RUN mkdir -p libvalhalla/build \
   && cd libvalhalla/build \
