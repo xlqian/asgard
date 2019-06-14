@@ -15,6 +15,9 @@ namespace asgard {
 
 namespace direct_path_response_builder {
 
+constexpr static float KM_TO_M = 1000.f;
+constexpr static float HOUR_TO_SECONDS = 3600.f;
+
 pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
                                            const std::vector<valhalla::thor::PathInfo>& path_info_list,
                                            const odin::TripPath& trip_path) {
@@ -58,7 +61,7 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
         trip_path.node().begin(),
         trip_path.node().end(),
         0.f,
-        [&](float sum, const odin::TripPath_Node& node) { return sum + node.edge().length() * 1000.f; });
+        [&](float sum, const odin::TripPath_Node& node) { return sum + node.edge().length() * KM_TO_M; });
     s->set_length(total_length);
 
     auto const list_geo_points = midgard::decode<std::vector<PointLL>>(trip_path.shape());
@@ -66,6 +69,7 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
     set_extremity_pt_object(list_geo_points.front(), s->mutable_origin());
     set_extremity_pt_object(list_geo_points.back(), s->mutable_destination());
     compute_geojson(list_geo_points, *s);
+    compute_path_items(trip_path, s->mutable_street_network());
 
     compute_metadata(*journey);
 
@@ -85,7 +89,7 @@ void set_extremity_pt_object(const valhalla::midgard::PointLL& geo_point, pbnavi
 }
 
 void compute_geojson(const std::vector<midgard::PointLL>& list_geo_points, pbnavitia::Section& s) {
-    for (const auto point : list_geo_points) {
+    for (const auto& point : list_geo_points) {
         auto* geo = s.mutable_street_network()->add_coordinates();
         geo->set_lat(point.lat());
         geo->set_lon(point.lng());
@@ -146,6 +150,39 @@ void compute_metadata(pbnavitia::Journey& pb_journey) {
 
     pb_journey.set_duration(ts_arrival - ts_departure);
 }
+
+void compute_path_items(const odin::TripPath& trip_path, pbnavitia::StreetNetwork* sn) {
+    uint32_t previous_node_elapsed_time = 0;
+    for (auto const& n : trip_path.node()) {
+        auto* path_item = sn->add_path_items();
+        auto const& e = n.edge();
+        set_path_item_name(e, *path_item);
+        set_path_item_length(e, *path_item);
+        previous_node_elapsed_time = set_path_item_duration(n, previous_node_elapsed_time, *path_item);
+    }
+}
+
+void set_path_item_name(const odin::TripPath_Edge& edge, pbnavitia::PathItem& path_item) {
+    if (!edge.name().empty() && edge.name().Get(0).has_value()) {
+        path_item.set_name(edge.name().Get(0).value());
+    }
+}
+
+void set_path_item_length(const odin::TripPath_Edge& edge, pbnavitia::PathItem& path_item) {
+    if (edge.has_length()) {
+        path_item.set_length(edge.length() * KM_TO_M);
+    }
+}
+
+uint32_t set_path_item_duration(const valhalla::odin::TripPath_Node& node, uint32_t previous_node_elapsed_time, pbnavitia::PathItem& path_item) {
+    if (node.has_elapsed_time()) {
+        path_item.set_duration(node.elapsed_time() - previous_node_elapsed_time);
+        return node.elapsed_time();
+    }
+
+    return 0;
+}
+
 } // namespace direct_path_response_builder
 
 } // namespace asgard
