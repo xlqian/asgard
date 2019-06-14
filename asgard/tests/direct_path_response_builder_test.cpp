@@ -234,8 +234,6 @@ BOOST_AUTO_TEST_CASE(compute_path_items_test) {
             BOOST_CHECK_EQUAL(sn.path_items().Get(i).duration(), expected_durations_list_in_proto.at(i));
         }
     }
-
-    // void compute_path_items(const valhalla::odin::TripPath& trip_path, pbnavitia::StreetNetwork* s);
 }
 
 BOOST_AUTO_TEST_CASE(set_path_item_name_test) {
