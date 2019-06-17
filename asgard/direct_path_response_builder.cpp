@@ -174,6 +174,8 @@ void set_path_item_length(const odin::TripPath_Edge& edge, pbnavitia::PathItem& 
     }
 }
 
+// The duration of the path_item is the current node duration - previous_node_elapsed_time
+// Returns node duration if current node has one, else returns 0
 uint32_t set_path_item_duration(const valhalla::odin::TripPath_Node& node, uint32_t previous_node_elapsed_time, pbnavitia::PathItem& path_item) {
     if (node.has_elapsed_time()) {
         path_item.set_duration(node.elapsed_time() - previous_node_elapsed_time);
