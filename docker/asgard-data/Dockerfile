@@ -23,7 +23,11 @@ RUN wget --progress=bar:force:noscroll $pbf_url \
   && find valhalla_tiles | sort -n | tar cf valhalla_tiles.tar --no-recursion -T -
 
 FROM alpine:latest
+# We have to create a group and a user with the same gid and uid than the docker-app
+RUN addgroup -S asgard-user --gid 1000 && adduser -S asgard-user -G asgard-user --uid 1000
 COPY --from=builder /data/valhalla/valhalla_tiles.tar /data/valhalla/
 COPY --from=builder /data/valhalla/valhalla.json /data/valhalla/
+RUN chown -R asgard-user:asgard-user /data/valhalla
+USER asgard-user
 VOLUME [ "/data/valhalla" ]
 ENTRYPOINT date
