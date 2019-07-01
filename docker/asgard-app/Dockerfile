@@ -9,7 +9,7 @@ RUN sed -i 's,git\@github.com:\([^/]*\)/\(.*\).git,https://github.com/\1/\2,' .g
 
 FROM debian:9
 # We have to create a group and a user with the same gid and uid than the docker-data
-RUN groupadd -g 1000 -r asgard-user && useradd --no-log-init -r -g asgard-user -u 1000 asgard-user
+RUN groupadd -g 1234 -r asgard-user && useradd --no-log-init -r -g asgard-user -u 1234 asgard-user
 USER asgard-user
 COPY --from=builder /asgard/build/asgard/asgard /usr/bin/asgard
 COPY --from=builder /usr/lib/ /usr/lib/
