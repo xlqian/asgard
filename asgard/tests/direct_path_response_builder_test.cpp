@@ -168,5 +168,170 @@ BOOST_AUTO_TEST_CASE(compute_metadata_test) {
     BOOST_CHECK_EQUAL(distances.ridesharing(), 78);
 }
 
+BOOST_AUTO_TEST_CASE(compute_path_items_test) {
+    // No node in trip_path
+    {
+        odin::TripPath trip_path;
+        auto sn = pbnavitia::StreetNetwork();
+
+        compute_path_items(trip_path, &sn);
+
+        BOOST_CHECK_EQUAL(sn.path_items_size(), 0);
+    }
+
+    // Multiple empty nodes
+    {
+        odin::TripPath trip_path;
+        auto sn = pbnavitia::StreetNetwork();
+        int nb_nodes = 3;
+
+        // We add 3 nodes but don't set anything
+        for (int i = 0; i < nb_nodes; ++i) {
+            trip_path.add_node();
+        }
+
+        compute_path_items(trip_path, &sn);
+
+        BOOST_CHECK_EQUAL(sn.path_items_size(), nb_nodes);
+        for (int i = 0; i < nb_nodes; ++i) {
+            BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_length(), false);
+            BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_name(), false);
+            BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_duration(), false);
+        }
+    }
+
+    // Multiple nodes
+    {
+        odin::TripPath trip_path;
+        auto sn = pbnavitia::StreetNetwork();
+        auto const nb_nodes = 3;
+        auto const lengths_list = std::array<double, nb_nodes>{12., 23., 38.};
+        auto const names_list = std::array<std::string, nb_nodes>{"plop", "plip", "plouf"};
+        auto const durations_list = std::array<double, nb_nodes>{24., 46., 76.};
+        auto const expected_durations_list_in_proto = std::array<double, nb_nodes>{durations_list.at(0) - 0.,
+                                                                                   durations_list.at(1) - durations_list.at(0),
+                                                                                   durations_list.at(2) - durations_list.at(1)};
+
+        // We add 3 nodes and set all the needed values
+        for (int i = 0; i < nb_nodes; ++i) {
+            auto* n = trip_path.add_node();
+            n->mutable_edge()->set_length(lengths_list.at(i));
+            n->mutable_edge()->add_name()->set_value(names_list.at(i));
+            n->set_elapsed_time(durations_list.at(i));
+        }
+
+        compute_path_items(trip_path, &sn);
+
+        BOOST_CHECK_EQUAL(sn.path_items_size(), nb_nodes);
+        for (int i = 0; i < nb_nodes; ++i) {
+            BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_length(), true);
+            BOOST_CHECK_EQUAL(sn.path_items().Get(i).length(), lengths_list.at(i) * 1000.f);
+
+            BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_name(), true);
+            BOOST_CHECK_EQUAL(sn.path_items().Get(i).name(), names_list.at(i));
+
+            BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_duration(), true);
+            BOOST_CHECK_EQUAL(sn.path_items().Get(i).duration(), expected_durations_list_in_proto.at(i));
+        }
+    }
+}
+
+BOOST_AUTO_TEST_CASE(set_path_item_name_test) {
+    // No value set in path_item
+    {
+        odin::TripPath_Node node;
+        auto edge = node.mutable_edge();
+        auto path_item = pbnavitia::PathItem();
+
+        set_path_item_name(*edge, path_item);
+        BOOST_CHECK_EQUAL(path_item.has_name(), false);
+    }
+
+    // One value in edge then set in path_item
+    {
+        odin::TripPath_Node node;
+        auto edge = node.mutable_edge();
+        auto path_item = pbnavitia::PathItem();
+        auto const value = std::string("Plop");
+        edge->mutable_name()->Add()->set_value(value);
+
+        set_path_item_name(*edge, path_item);
+
+        BOOST_CHECK_EQUAL(path_item.has_name(), true);
+        BOOST_CHECK_EQUAL(path_item.name(), value);
+    }
+
+    // Multiple value in edge, only the first one is set in path_item
+    {
+        odin::TripPath_Node node;
+        auto edge = node.mutable_edge();
+        auto path_item = pbnavitia::PathItem();
+        const std::vector<std::string> values_list = {"Plip", "Plouf", "PlapPlap"};
+        for (auto const& v : values_list) {
+            edge->mutable_name()->Add()->set_value(v);
+        }
+
+        set_path_item_name(*edge, path_item);
+
+        BOOST_CHECK_EQUAL(path_item.has_name(), true);
+        BOOST_CHECK_EQUAL(path_item.name(), values_list.front());
+    }
+}
+
+BOOST_AUTO_TEST_CASE(set_path_item_length_test) {
+    // No value set in path_item
+    {
+        odin::TripPath_Node node;
+        auto edge = node.mutable_edge();
+        auto path_item = pbnavitia::PathItem();
+
+        set_path_item_length(*edge, path_item);
+        BOOST_CHECK_EQUAL(path_item.has_length(), false);
+    }
+
+    // One value set in path_item
+    {
+        odin::TripPath_Node node;
+        auto edge = node.mutable_edge();
+        edge->set_length(42.f);
+        auto path_item = pbnavitia::PathItem();
+
+        set_path_item_length(*edge, path_item);
+        BOOST_CHECK_EQUAL(path_item.has_length(), true);
+        BOOST_CHECK_EQUAL(path_item.length(), 42000.f);
+    }
+
+    // One value set in path_item
+    {
+        odin::TripPath_Node node;
+        auto edge = node.mutable_edge();
+        edge->set_length(999.f);
+        auto path_item = pbnavitia::PathItem();
+
+        set_path_item_length(*edge, path_item);
+        BOOST_CHECK_EQUAL(path_item.has_length(), true);
+        BOOST_CHECK_EQUAL(path_item.length(), 999000.f);
+    }
+}
+
+// Create a node and set its elapsed_time with node_elapsed_time
+// Checks that the value in path_item.duration() is node_elapsed_time - previous
+// And set_path_item_duration return value is node_elapsed_time
+void exec_set_path_item_duration_test(uint32_t previous, uint32_t node_elapsed_time, uint32_t expected_path_item_duration) {
+    odin::TripPath_Node node;
+    node.set_elapsed_time(node_elapsed_time);
+    auto path_item = pbnavitia::PathItem();
+    auto res = set_path_item_duration(node, previous, path_item);
+    BOOST_CHECK_EQUAL(path_item.duration(), expected_path_item_duration);
+    BOOST_CHECK_EQUAL(res, node_elapsed_time);
+}
+
+BOOST_AUTO_TEST_CASE(set_path_item_duration_test) {
+    exec_set_path_item_duration_test(30, 42, 12);
+    exec_set_path_item_duration_test(0, 36, 36);
+    exec_set_path_item_duration_test(999, 1024, 25);
+    exec_set_path_item_duration_test(45, 662, 617);
+}
+
 } // namespace direct_path_response_builder
 } // namespace asgard
