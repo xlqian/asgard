@@ -17,13 +17,18 @@ RUN wget --progress=bar:force:noscroll $pbf_url \
   && sed -i 's,\"radius\"\: [[:digit:]]*,\"radius\"\: 30,' valhalla.json \
   && sed -i 's,\"shortcuts\"\: [^,]*,\"shortcuts\"\: false,' valhalla.json \
   && sed -i 's,\"hierarchy\"\: [^,]*,\"hierarchy\"\: false,' valhalla.json \
-  # Make the graph shareable between threads in a thread-safe way
-  && sed -i '/"hierarchy":/a \\t"global_synchronized_cache": true,' valhalla.json \
   && valhalla_build_tiles -c valhalla.json *.pbf \
-  && find valhalla_tiles | sort -n | tar cf valhalla_tiles.tar --no-recursion -T -
+  && find valhalla_tiles | sort -n | tar cf valhalla_tiles.tar --no-recursion -T - \
+  # Make the graph shareable between threads in a thread-safe way
+  # This has to be set after the creation of the tiles to avoid seg faults
+  && sed -i '/"hierarchy":/a \\t"global_synchronized_cache": true,' valhalla.json
 
 FROM alpine:latest
+# We have to create a group and a user with the same gid and uid than the docker-app
+RUN addgroup -S asgard-user --gid 1234 && adduser -S asgard-user -G asgard-user --uid 1234
 COPY --from=builder /data/valhalla/valhalla_tiles.tar /data/valhalla/
 COPY --from=builder /data/valhalla/valhalla.json /data/valhalla/
+RUN chown -R asgard-user:asgard-user /data/valhalla
+USER asgard-user
 VOLUME [ "/data/valhalla" ]
 ENTRYPOINT date
