@@ -50,6 +50,25 @@ odin::Costing convert_navitia_to_valhalla_costing(const std::string& costing) {
     return navitia_to_valhalla_costing_map.at(costing);
 }
 
+pbnavitia::CyclePathType convert_valhalla_to_navitia_cycle_lane(const odin::TripPath::CycleLane& cycle_lane) {
+    switch (cycle_lane) {
+    case odin::TripPath_CycleLane_kNoCycleLane:
+        return pbnavitia::NoCycleLane;
+
+    case odin::TripPath_CycleLane_kShared:
+        return pbnavitia::SharedCycleWay;
+
+    case odin::TripPath_CycleLane_kDedicated:
+        return pbnavitia::DedicatedCycleWay;
+
+    case odin::TripPath_CycleLane_kSeparated:
+        return pbnavitia::SeparatedCycleWay;
+
+    default:
+        throw std::invalid_argument("Bad convert_valhalla_to_navitia_cycle_lane parameter");
+    }
+}
+
 } // namespace util
 
 } // namespace asgard

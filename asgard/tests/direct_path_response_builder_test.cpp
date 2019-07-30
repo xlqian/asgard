@@ -314,6 +314,35 @@ BOOST_AUTO_TEST_CASE(set_path_item_length_test) {
     }
 }
 
+void set_and_check_cycle_path_type(const odin::TripPath::CycleLane& valhalla_cycle_lane, const pbnavitia::CyclePathType& expected_navitia_type) {
+    odin::TripPath_Node node;
+    auto edge = node.mutable_edge();
+    edge->set_cycle_lane(valhalla_cycle_lane);
+    auto path_item = pbnavitia::PathItem();
+
+    set_path_item_type(*edge, path_item);
+    BOOST_CHECK_EQUAL(path_item.has_cycle_path_type(), true);
+    BOOST_CHECK_EQUAL(path_item.cycle_path_type(), expected_navitia_type);
+}
+
+BOOST_AUTO_TEST_CASE(set_path_item_type_test) {
+    // No value set in path_item
+    {
+        odin::TripPath_Node node;
+        auto edge = node.mutable_edge();
+        auto path_item = pbnavitia::PathItem();
+
+        set_path_item_type(*edge, path_item);
+        BOOST_CHECK_EQUAL(path_item.cycle_path_type(), false);
+    }
+
+    // One value set in path_item
+    set_and_check_cycle_path_type(odin::TripPath_CycleLane_kNoCycleLane, pbnavitia::NoCycleLane);
+    set_and_check_cycle_path_type(odin::TripPath_CycleLane_kShared, pbnavitia::SharedCycleWay);
+    set_and_check_cycle_path_type(odin::TripPath_CycleLane_kDedicated, pbnavitia::DedicatedCycleWay);
+    set_and_check_cycle_path_type(odin::TripPath_CycleLane_kSeparated, pbnavitia::SeparatedCycleWay);
+}
+
 // Create a node and set its elapsed_time with node_elapsed_time
 // Checks that the value in path_item.duration() is node_elapsed_time - previous
 // And set_path_item_duration return value is node_elapsed_time

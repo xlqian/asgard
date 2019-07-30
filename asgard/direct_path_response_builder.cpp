@@ -158,6 +158,7 @@ void compute_path_items(const odin::TripPath& trip_path, pbnavitia::StreetNetwor
         auto const& e = n.edge();
         set_path_item_name(e, *path_item);
         set_path_item_length(e, *path_item);
+        set_path_item_type(e, *path_item);
         previous_node_elapsed_time = set_path_item_duration(n, previous_node_elapsed_time, *path_item);
     }
 }
@@ -171,6 +172,13 @@ void set_path_item_name(const odin::TripPath_Edge& edge, pbnavitia::PathItem& pa
 void set_path_item_length(const odin::TripPath_Edge& edge, pbnavitia::PathItem& path_item) {
     if (edge.has_length()) {
         path_item.set_length(edge.length() * KM_TO_M);
+    }
+}
+
+// For now, we only handle cycle lanes
+void set_path_item_type(const valhalla::odin::TripPath_Edge& edge, pbnavitia::PathItem& path_item) {
+    if (edge.has_cycle_lane()) {
+        path_item.set_cycle_path_type(util::convert_valhalla_to_navitia_cycle_lane(edge.cycle_lane()));
     }
 }
 
