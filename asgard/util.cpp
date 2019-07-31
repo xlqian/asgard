@@ -65,7 +65,7 @@ pbnavitia::CyclePathType convert_valhalla_to_navitia_cycle_lane(const odin::Trip
         return pbnavitia::SeparatedCycleWay;
 
     default:
-        throw std::invalid_argument("Bad convert_valhalla_to_navitia_cycle_lane parameter");
+        LOG_WARN("Unknown convert_valhalla_to_navitia_cycle_lane parameter. Value = " + std::to_string(cycle_lane));
     }
 }
 
