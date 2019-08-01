@@ -139,7 +139,7 @@ void add_section(pbnavitia::Journey& pb_journey, const pbnavitia::SectionType se
 BOOST_AUTO_TEST_CASE(compute_metadata_test) {
     auto pb_journey = pbnavitia::Journey();
     pb_journey.set_departure_date_time(1470241573);
-    pb_journey.set_arrival_date_time(1470242073);
+    pb_journey.set_arrival_date_time(1470242173);
 
     add_section(pb_journey, pbnavitia::STREET_NETWORK, pbnavitia::StreetNetworkMode::Walking, 1337, 442, 1470241573);
     add_section(pb_journey, pbnavitia::STREET_NETWORK, pbnavitia::StreetNetworkMode::Car, 30, 26, 1470241673);
@@ -147,6 +147,7 @@ BOOST_AUTO_TEST_CASE(compute_metadata_test) {
     add_section(pb_journey, pbnavitia::STREET_NETWORK, pbnavitia::StreetNetworkMode::Bike, 62, 777, 1470241873);
     add_section(pb_journey, pbnavitia::STREET_NETWORK, pbnavitia::StreetNetworkMode::Bss, 999, 29, 1470241973);
     add_section(pb_journey, pbnavitia::STREET_NETWORK, pbnavitia::StreetNetworkMode::Ridesharing, 42, 78, 1470242073);
+    add_section(pb_journey, pbnavitia::STREET_NETWORK, pbnavitia::StreetNetworkMode::Taxi, 95, 200, 1470242173);
 
     compute_metadata(pb_journey);
 
@@ -157,15 +158,18 @@ BOOST_AUTO_TEST_CASE(compute_metadata_test) {
     BOOST_CHECK_EQUAL(durations.bike(), 1061);
     BOOST_CHECK_EQUAL(durations.car(), 75);
     BOOST_CHECK_EQUAL(durations.ridesharing(), 42);
+    BOOST_CHECK_EQUAL(durations.taxi(), 95);
 
     // Not the sum of all the lengths
     // arrival_last_section - departure_first_section
-    BOOST_CHECK_EQUAL(durations.total(), 542);
+    // Here (1470242173 + 95) - 1470241573
+    BOOST_CHECK_EQUAL(durations.total(), 695);
 
     BOOST_CHECK_EQUAL(distances.walking(), 442);
     BOOST_CHECK_EQUAL(distances.bike(), 806);
     BOOST_CHECK_EQUAL(distances.car(), 59);
     BOOST_CHECK_EQUAL(distances.ridesharing(), 78);
+    BOOST_CHECK_EQUAL(distances.taxi(), 200);
 }
 
 BOOST_AUTO_TEST_CASE(compute_path_items_test) {
