@@ -42,6 +42,14 @@ BOOST_AUTO_TEST_CASE(convert_navitia_to_valhalla_costing_test) {
     BOOST_CHECK_THROW(convert_navitia_to_valhalla_costing("plopi"), std::out_of_range);
 }
 
+BOOST_AUTO_TEST_CASE(convert_valhalla_to_navitia_cycle_lane_test) {
+    BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(odin::TripPath_CycleLane_kNoCycleLane), pbnavitia::NoCycleLane);
+    BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(odin::TripPath_CycleLane_kShared), pbnavitia::SharedCycleWay);
+    BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(odin::TripPath_CycleLane_kDedicated), pbnavitia::DedicatedCycleWay);
+    BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(odin::TripPath_CycleLane_kSeparated), pbnavitia::SeparatedCycleWay);
+    BOOST_CHECK_NO_THROW(convert_valhalla_to_navitia_cycle_lane(static_cast<odin::TripPath::CycleLane>(42)));
+}
+
 } // namespace util
 
 } // namespace asgard

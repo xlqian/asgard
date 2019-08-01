@@ -39,7 +39,7 @@ void compute_path_items(const valhalla::odin::TripPath& trip_path, pbnavitia::St
 
 void set_path_item_name(const valhalla::odin::TripPath_Edge& edge, pbnavitia::PathItem& path_item);
 void set_path_item_length(const valhalla::odin::TripPath_Edge& edge, pbnavitia::PathItem& path_item);
-//void set_path_item_type(const valhalla::odin::TripPath_Edge& edge, pbnavitia::PathItem& path_item); @TODO
+void set_path_item_type(const valhalla::odin::TripPath_Edge& edge, pbnavitia::PathItem& path_item);
 uint32_t set_path_item_duration(const valhalla::odin::TripPath_Node& node, uint32_t previous_node_elapsed_time, pbnavitia::PathItem& path_item);
 
 } // namespace direct_path_response_builder
