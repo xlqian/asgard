@@ -1,5 +1,8 @@
 project(asgard)
 cmake_minimum_required(VERSION 3.0)
+include(FindPkgConfig)
+set(BOOSTROOT /home/xiaolong/dev/boost_1_62_0/)
+
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 find_package(Protoc)
 
@@ -28,7 +31,13 @@ include(ThirdParty)
 include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("${CMAKE_BINARY_DIR}")
 
-link_directories(${Boost_LIBRARY_DIRS})
+pkg_check_modules(libvalhalla REQUIRED libvalhalla>=3.0.0)
+  find_library(libvalhalla_LIBRARY
+    NAME ${libvalhalla_LIBRARIES}
+    HINTS ${libvalhalla_LIBRARY_DIRS})
+
+include_directories(${libvalhalla_INCLUDE_DIRS})
+link_directories(${Boost_LIBRARY_DIRS} ${libvalhalla_LIBRARIES})
 
 add_subdirectory(asgard)
 
