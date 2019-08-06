@@ -35,6 +35,17 @@ using namespace valhalla;
 
 namespace asgard {
 
+static pbnavitia::Response make_projection_error_response() {
+    pbnavitia::Response error_response;
+    error_response.set_response_type(pbnavitia::NO_SOLUTION);
+    error_response.mutable_error()->set_id(
+        pbnavitia::Error::no_origin_nor_destination);
+    error_response.mutable_error()->set_message(
+        "Cannot project given coordinates");
+    LOG_ERROR("Cannot project given coordinates! No solution found !");
+    return error_response;
+}
+
 static float get_distance(const std::string& mode, float duration) {
     using namespace thor;
     if (mode == "walking") {
@@ -107,6 +118,10 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     auto path_locations = projector(begin(range), end(range), graph, mode, costing);
     LOG_INFO("Projecting locations done.");
 
+    if (path_locations.empty()) {
+        return make_projection_error_response();
+    }
+
     google::protobuf::RepeatedPtrField<odin::Location> path_location_sources;
     google::protobuf::RepeatedPtrField<odin::Location> path_location_targets;
     for (const auto& e : sources) {
@@ -178,6 +193,10 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     LOG_INFO("Projecting locations...");
     auto path_locations = projector(begin(locations), end(locations), graph, mode, costing);
     LOG_INFO("Projecting locations done.");
+
+    if (path_locations.empty()) {
+        return make_projection_error_response();
+    }
 
     odin::Location origin;
     odin::Location dest;
