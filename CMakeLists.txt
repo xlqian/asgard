@@ -2,6 +2,8 @@ project(asgard)
 cmake_minimum_required(VERSION 3.0)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 find_package(Protoc)
+SET(VALHALLA_FIND_REQUIRED true)
+find_package(Valhalla)
 
 #get git revision as the version number
 include(GetGitRevisionDescription)
@@ -27,6 +29,7 @@ include(ThirdParty)
 #add current compilation dir to include path to handle config.h
 include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("${CMAKE_BINARY_DIR}")
+include_directories(SYSTEM "${VALHALLA_INCLUDES}")
 
 link_directories(${Boost_LIBRARY_DIRS})
 
