@@ -14,15 +14,17 @@
 ## -----------------------------------------------------------------------------
 ## Check for the header files
 
+include(FindPkgConfig)
+pkg_check_modules(libvalhalla QUIET libvalhalla>=3.0.0)
 find_path (VALHALLA_INCLUDES valhalla/valhalla.h
-  PATHS /usr/local/include /usr/include /sw/include ${VALHALLA_INCLUDEDIR}
+    PATHS /usr/local/include /usr/include /sw/include ${VALHALLA_INCLUDEDIR} ${libvalhalla_INCLUDE_DIRS}
 )
 
 ## -----------------------------------------------------------------------------
 ## Check for the library
 
 find_library (VALHALLA_LIBRARIES libvalhalla.a
-  PATHS /usr/local/lib /usr/lib /lib /sw/lib ${VALHALLA_LIBRARYDIR}
+  PATHS /usr/local/lib /usr/lib /lib /sw/lib ${VALHALLA_LIBRARYDIR} ${libvalhalla_LIBRARY_DIRS}
 )
 
 ## -----------------------------------------------------------------------------
