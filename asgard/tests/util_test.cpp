@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_CASE(convert_valhalla_to_navitia_cycle_lane_test) {
     BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(odin::TripPath_CycleLane_kShared), pbnavitia::SharedCycleWay);
     BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(odin::TripPath_CycleLane_kDedicated), pbnavitia::DedicatedCycleWay);
     BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(odin::TripPath_CycleLane_kSeparated), pbnavitia::SeparatedCycleWay);
-    BOOST_CHECK_NO_THROW(convert_valhalla_to_navitia_cycle_lane(static_cast<odin::TripPath::CycleLane>(42)));
+    BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(static_cast<odin::TripPath::CycleLane>(42)), pbnavitia::NoCycleLane);
 }
 
 } // namespace util
