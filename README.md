@@ -3,18 +3,19 @@
 To build Asgard:
 ```bash
 git clone https://github.com/CanalTP/asgard.git asgard
-cd asgard
-git clone --depth=1 --recursive https://github.com/valhalla/valhalla.git libvalhalla
-mkdir -p libvalhalla/build
-cd libvalhalla/build
-cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_SERVICES=Off -DENABLE_NODE_BINDINGS=Off -DENABLE_PYTHON_BINDINGS=Off -DBUILD_SHARED_LIBS=Off -DBoost_USE_STATIC_LIBS=ON -DProtobuf_USE_STATIC_LIBS=ON -DLZ4_USE_STATIC_LIBS=ON
-make -j$(nproc) install && ldconfig
-cd ../.. && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo
-make -j$(nproc)
+cd asgard/scripts
+./build_asgard_for_ubuntu.sh -a <path_to_asgard_project>
 ```
 
-The executable will be located in build/asgard.
+This will build [Valhalla](https://github.com/valhalla/valhalla) in <path_to_asgard_project>/libvalhalla and install it in <path_to_asgard_project>/valhalla_install.
+
+The executable of Asgard will be located in build/asgard.
+
+To create the data download the pfbs you want here http://download.geofabrik.de/. Then run:
+```bash
+./create_asgard_data.sh -e <path_to_valhalla_executables> -i <path_of_pbf_dir> -o <path_of_output_dir>
+```
+By default <path_to_valhalla_executables> will be <path_to_asgard_project>/valhalla_install/bin
 
 You can also use the docker located in the docker directory:
 ```bash
