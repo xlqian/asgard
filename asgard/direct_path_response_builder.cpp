@@ -4,8 +4,8 @@
 
 #include <valhalla/midgard/encoded.h>
 #include <valhalla/midgard/logging.h>
+#include <valhalla/midgard/pointll.h>
 #include <valhalla/thor/pathinfo.h>
-#include <valhalla/thor/trippathbuilder.h>
 
 #include <numeric>
 
@@ -19,11 +19,11 @@ constexpr static float KM_TO_M = 1000.f;
 constexpr static float HOUR_TO_SECONDS = 3600.f;
 
 pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
-                                           const std::vector<valhalla::thor::PathInfo>& path_info_list,
-                                           const odin::TripPath& trip_path) {
+                                           const std::vector<valhalla::thor::PathInfo>& pathedges,
+                                           const TripLeg& trip_leg) {
     pbnavitia::Response response;
 
-    if (path_info_list.empty()) {
+    if (pathedges.empty()) {
         response.set_response_type(pbnavitia::NO_SOLUTION);
         LOG_ERROR("No solution found !");
         return response;
@@ -35,7 +35,7 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
 
     // Journey
     auto* journey = response.mutable_journeys()->Add();
-    journey->set_duration(path_info_list.back().elapsed_time);
+    journey->set_duration(pathedges.back().elapsed_time);
     journey->set_nb_transfers(0);
     journey->set_nb_sections(1);
 
@@ -53,23 +53,23 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
     s->set_duration(journey->duration());
     // We take the mode of the first path. Could be the last too...
     // They could also be different in the list...
-    s->mutable_street_network()->set_mode(util::convert_valhalla_to_navitia_mode(path_info_list.front().mode));
+    s->mutable_street_network()->set_mode(util::convert_valhalla_to_navitia_mode(pathedges.front().mode));
     s->set_begin_date_time(departure_posix_time);
     s->set_end_date_time(arrival_posix_time);
 
     auto total_length = std::accumulate(
-        trip_path.node().begin(),
-        trip_path.node().end(),
+        trip_leg.node().begin(),
+        trip_leg.node().end(),
         0.f,
-        [&](float sum, const odin::TripPath_Node& node) { return sum + node.edge().length() * KM_TO_M; });
+        [&](float sum, const TripLeg_Node& node) { return sum + node.edge().length() * KM_TO_M; });
     s->set_length(total_length);
 
-    auto const list_geo_points = midgard::decode<std::vector<PointLL>>(trip_path.shape());
+    auto const list_geo_points = midgard::decode<std::vector<midgard::PointLL>>(trip_leg.shape());
 
     set_extremity_pt_object(list_geo_points.front(), s->mutable_origin());
     set_extremity_pt_object(list_geo_points.back(), s->mutable_destination());
     compute_geojson(list_geo_points, *s);
-    compute_path_items(trip_path, s->mutable_street_network());
+    compute_path_items(trip_leg, s->mutable_street_network());
 
     compute_metadata(*journey);
 
@@ -160,9 +160,9 @@ void compute_metadata(pbnavitia::Journey& pb_journey) {
     pb_journey.set_duration(ts_arrival - ts_departure);
 }
 
-void compute_path_items(const odin::TripPath& trip_path, pbnavitia::StreetNetwork* sn) {
+void compute_path_items(const TripLeg& trip_leg, pbnavitia::StreetNetwork* sn) {
     uint32_t previous_node_elapsed_time = 0;
-    for (auto const& n : trip_path.node()) {
+    for (auto const& n : trip_leg.node()) {
         auto* path_item = sn->add_path_items();
         auto const& e = n.edge();
         set_path_item_name(e, *path_item);
@@ -172,20 +172,20 @@ void compute_path_items(const odin::TripPath& trip_path, pbnavitia::StreetNetwor
     }
 }
 
-void set_path_item_name(const odin::TripPath_Edge& edge, pbnavitia::PathItem& path_item) {
+void set_path_item_name(const TripLeg_Edge& edge, pbnavitia::PathItem& path_item) {
     if (!edge.name().empty() && edge.name().Get(0).has_value()) {
         path_item.set_name(edge.name().Get(0).value());
     }
 }
 
-void set_path_item_length(const odin::TripPath_Edge& edge, pbnavitia::PathItem& path_item) {
+void set_path_item_length(const TripLeg_Edge& edge, pbnavitia::PathItem& path_item) {
     if (edge.has_length()) {
         path_item.set_length(edge.length() * KM_TO_M);
     }
 }
 
 // For now, we only handle cycle lanes
-void set_path_item_type(const valhalla::odin::TripPath_Edge& edge, pbnavitia::PathItem& path_item) {
+void set_path_item_type(const TripLeg_Edge& edge, pbnavitia::PathItem& path_item) {
     if (edge.has_cycle_lane()) {
         path_item.set_cycle_path_type(util::convert_valhalla_to_navitia_cycle_lane(edge.cycle_lane()));
     }
@@ -193,7 +193,7 @@ void set_path_item_type(const valhalla::odin::TripPath_Edge& edge, pbnavitia::Pa
 
 // The duration of the path_item is the current node duration - previous_node_elapsed_time
 // Returns node duration if current node has one, else returns 0
-uint32_t set_path_item_duration(const valhalla::odin::TripPath_Node& node, uint32_t previous_node_elapsed_time, pbnavitia::PathItem& path_item) {
+uint32_t set_path_item_duration(const TripLeg_Node& node, uint32_t previous_node_elapsed_time, pbnavitia::PathItem& path_item) {
     if (node.has_elapsed_time()) {
         path_item.set_duration(node.elapsed_time() - previous_node_elapsed_time);
         return node.elapsed_time();

@@ -27,7 +27,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       jq \
       gucharmap \
       libprotobuf10 \
-      libgeos-3.5.1 \
       liblua5.2 \
       libsqlite3-0 \
       libboost-all-dev \
@@ -43,7 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       ca-certificates \
       clang-format-4.0
 
-RUN git clone --depth=1 --recursive --branch 3.0.3 https://github.com/valhalla/valhalla.git libvalhalla
+RUN git clone --depth=1 --recursive --branch 3.0.8 https://github.com/valhalla/valhalla.git libvalhalla
 
 RUN mkdir -p libvalhalla/build \
   && cd libvalhalla/build \
