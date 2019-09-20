@@ -1,5 +1,6 @@
 #include "util.h"
 
+#include <valhalla/midgard/logging.h>
 #include <valhalla/sif/costconstants.h>
 
 using namespace valhalla;
@@ -39,29 +40,29 @@ size_t navitia_to_valhalla_mode_index(const std::string& mode) {
     return static_cast<size_t>(navitia_to_valhalla_mode_map.at(mode));
 }
 
-const std::map<std::string, odin::Costing> navitia_to_valhalla_costing_map = {
-    {"walking", odin::Costing::pedestrian},
-    {"bike", odin::Costing::bicycle},
-    {"car", odin::Costing::auto_},
-    {"taxi", odin::Costing::taxi},
+const std::map<std::string, Costing> navitia_to_valhalla_costing_map = {
+    {"walking", Costing::pedestrian},
+    {"bike", Costing::bicycle},
+    {"car", Costing::auto_},
+    {"taxi", Costing::taxi},
 };
 
-odin::Costing convert_navitia_to_valhalla_costing(const std::string& costing) {
+Costing convert_navitia_to_valhalla_costing(const std::string& costing) {
     return navitia_to_valhalla_costing_map.at(costing);
 }
 
-pbnavitia::CyclePathType convert_valhalla_to_navitia_cycle_lane(const odin::TripPath::CycleLane& cycle_lane) {
+pbnavitia::CyclePathType convert_valhalla_to_navitia_cycle_lane(const TripLeg_CycleLane& cycle_lane) {
     switch (cycle_lane) {
-    case odin::TripPath_CycleLane_kNoCycleLane:
+    case TripLeg_CycleLane_kNoCycleLane:
         return pbnavitia::NoCycleLane;
 
-    case odin::TripPath_CycleLane_kShared:
+    case TripLeg_CycleLane_kShared:
         return pbnavitia::SharedCycleWay;
 
-    case odin::TripPath_CycleLane_kDedicated:
+    case TripLeg_CycleLane_kDedicated:
         return pbnavitia::DedicatedCycleWay;
 
-    case odin::TripPath_CycleLane_kSeparated:
+    case TripLeg_CycleLane_kSeparated:
         return pbnavitia::SeparatedCycleWay;
 
     default:

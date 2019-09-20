@@ -79,7 +79,7 @@ pip3 install pre-commit
 # Clone Valhalla
 echo "** clone Valhalla"
 cd ${asgard_dir}
-git clone --depth=1 --recursive --branch 3.0.3 https://github.com/valhalla/valhalla.git libvalhalla
+git clone --depth=1 --recursive --branch 3.0.8 https://github.com/valhalla/valhalla.git libvalhalla
 
 
 # Build and install Valhalla

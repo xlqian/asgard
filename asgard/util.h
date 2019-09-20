@@ -1,8 +1,9 @@
 #pragma once
 
 #include "asgard/response.pb.h"
-#include <valhalla/proto/directions_options.pb.h>
-#include <valhalla/thor/trippathbuilder.h>
+
+#include <valhalla/proto/options.pb.h>
+#include <valhalla/proto/trip.pb.h>
 
 namespace valhalla {
 namespace sif {
@@ -20,9 +21,9 @@ valhalla::sif::TravelMode convert_navitia_to_valhalla_mode(const std::string& mo
 
 size_t navitia_to_valhalla_mode_index(const std::string& mode);
 
-valhalla::odin::Costing convert_navitia_to_valhalla_costing(const std::string& costing);
+valhalla::Costing convert_navitia_to_valhalla_costing(const std::string& costing);
 
-pbnavitia::CyclePathType convert_valhalla_to_navitia_cycle_lane(const valhalla::odin::TripPath::CycleLane& cycle_lane);
+pbnavitia::CyclePathType convert_valhalla_to_navitia_cycle_lane(const valhalla::TripLeg_CycleLane& cycle_lane);
 } // namespace util
 
 } // namespace asgard

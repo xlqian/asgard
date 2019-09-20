@@ -23,7 +23,7 @@
 #include "asgard/util.h"
 
 #include <valhalla/thor/attributes_controller.h>
-#include <valhalla/thor/trippathbuilder.h>
+#include <valhalla/thor/triplegbuilder.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/range/join.hpp>
@@ -122,8 +122,8 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
         return make_projection_error_response();
     }
 
-    google::protobuf::RepeatedPtrField<odin::Location> path_location_sources;
-    google::protobuf::RepeatedPtrField<odin::Location> path_location_targets;
+    google::protobuf::RepeatedPtrField<valhalla::Location> path_location_sources;
+    google::protobuf::RepeatedPtrField<valhalla::Location> path_location_targets;
     for (const auto& e : sources) {
         baldr::PathLocation::toPBF(path_locations.at(e), path_location_sources.Add(), graph);
     }
@@ -198,8 +198,8 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
         return make_projection_error_response();
     }
 
-    odin::Location origin;
-    odin::Location dest;
+    Location origin;
+    Location dest;
     baldr::PathLocation::toPBF(path_locations.at(locations.front()), &origin, graph);
     baldr::PathLocation::toPBF(path_locations.at(locations.back()), &dest, graph);
 
@@ -221,11 +221,16 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
         return response;
     }
 
+    // The path algorithms all are allowed to return more than one path now.
+    // None of them do, but the api allows for it
+    // We just take the first and only one then
+    const auto& pathedges = path_info_list.front();
     thor::AttributesController controller;
-    const auto trip_path = thor::TripPathBuilder::Build(controller, graph, mode_costing.get_costing(), path_info_list, origin,
-                                                        dest, {origin, dest});
+    valhalla::TripLeg trip_leg;
+    thor::TripLegBuilder::Build(controller, graph, mode_costing.get_costing(), pathedges.begin(),
+                                pathedges.end(), origin, dest, {}, trip_leg);
 
-    const auto response = direct_path_response_builder::build_journey_response(request, path_info_list, trip_path);
+    const auto response = direct_path_response_builder::build_journey_response(request, pathedges, trip_leg);
 
     if (graph.OverCommitted()) { graph.Clear(); }
     algo.Clear();

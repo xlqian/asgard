@@ -6,6 +6,7 @@
 #include <boost/test/unit_test.hpp>
 
 using namespace valhalla;
+using vc = valhalla::Costing;
 
 namespace asgard {
 
@@ -35,19 +36,19 @@ BOOST_AUTO_TEST_CASE(navitia_to_valhalla_mode_index_test) {
 }
 
 BOOST_AUTO_TEST_CASE(convert_navitia_to_valhalla_costing_test) {
-    BOOST_CHECK_EQUAL(convert_navitia_to_valhalla_costing("walking"), odin::Costing::pedestrian);
-    BOOST_CHECK_EQUAL(convert_navitia_to_valhalla_costing("bike"), odin::Costing::bicycle);
-    BOOST_CHECK_EQUAL(convert_navitia_to_valhalla_costing("car"), odin::Costing::auto_);
-    BOOST_CHECK_EQUAL(convert_navitia_to_valhalla_costing("taxi"), odin::Costing::taxi);
+    BOOST_CHECK_EQUAL(convert_navitia_to_valhalla_costing("walking"), vc::pedestrian);
+    BOOST_CHECK_EQUAL(convert_navitia_to_valhalla_costing("bike"), vc::bicycle);
+    BOOST_CHECK_EQUAL(convert_navitia_to_valhalla_costing("car"), vc::auto_);
+    BOOST_CHECK_EQUAL(convert_navitia_to_valhalla_costing("taxi"), vc::taxi);
     BOOST_CHECK_THROW(convert_navitia_to_valhalla_costing("plopi"), std::out_of_range);
 }
 
 BOOST_AUTO_TEST_CASE(convert_valhalla_to_navitia_cycle_lane_test) {
-    BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(odin::TripPath_CycleLane_kNoCycleLane), pbnavitia::NoCycleLane);
-    BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(odin::TripPath_CycleLane_kShared), pbnavitia::SharedCycleWay);
-    BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(odin::TripPath_CycleLane_kDedicated), pbnavitia::DedicatedCycleWay);
-    BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(odin::TripPath_CycleLane_kSeparated), pbnavitia::SeparatedCycleWay);
-    BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(static_cast<odin::TripPath::CycleLane>(42)), pbnavitia::NoCycleLane);
+    BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(TripLeg_CycleLane_kNoCycleLane), pbnavitia::NoCycleLane);
+    BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(TripLeg_CycleLane_kShared), pbnavitia::SharedCycleWay);
+    BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(TripLeg_CycleLane_kDedicated), pbnavitia::DedicatedCycleWay);
+    BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(TripLeg_CycleLane_kSeparated), pbnavitia::SeparatedCycleWay);
+    BOOST_CHECK_EQUAL(convert_valhalla_to_navitia_cycle_lane(static_cast<TripLeg::CycleLane>(42)), pbnavitia::NoCycleLane);
 }
 
 } // namespace util

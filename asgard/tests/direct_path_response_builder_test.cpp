@@ -6,7 +6,7 @@
 
 #include <valhalla/midgard/encoded.h>
 #include <valhalla/midgard/pointll.h>
-#include <valhalla/proto/trippath.pb.h>
+#include <valhalla/proto/trip.pb.h>
 #include <valhalla/thor/pathinfo.h>
 
 #include <boost/test/unit_test.hpp>
@@ -22,28 +22,28 @@ const std::vector<midgard::PointLL> list_geo_points = {
 std::vector<thor::PathInfo> create_path_info_list() {
     std::vector<thor::PathInfo> path_info_list;
     for (size_t i = 0; i < 5; ++i) {
-        path_info_list.emplace_back(sif::TravelMode::kDrive, i * 5, baldr::GraphId(), 0);
+        path_info_list.emplace_back(sif::TravelMode::kDrive, i * 5, baldr::GraphId(), 0, i * 10.);
     }
     return path_info_list;
 }
 
-valhalla::odin::TripPath create_trip_path() {
+valhalla::TripLeg create_trip_leg() {
     auto const s = midgard::encode(list_geo_points);
 
-    valhalla::odin::TripPath trip_path;
-    trip_path.set_shape(s);
+    valhalla::TripLeg trip_leg;
+    trip_leg.set_shape(s);
     for (size_t i = 0; i < list_geo_points.size(); ++i) {
-        trip_path.add_node()->mutable_edge()->set_length((i * 5) / 1000.f);
+        trip_leg.add_node()->mutable_edge()->set_length((i * 5) / 1000.f);
     }
-    return trip_path;
+    return trip_leg;
 }
 
 BOOST_AUTO_TEST_CASE(build_journey_response_test) {
     // Empty path_info_list
     {
         pbnavitia::Request request;
-        valhalla::odin::TripPath trip_path;
-        auto response = build_journey_response(request, {}, trip_path);
+        valhalla::TripLeg trip_leg;
+        auto response = build_journey_response(request, {}, trip_leg);
         BOOST_CHECK_EQUAL(response.response_type(), pbnavitia::NO_SOLUTION);
         BOOST_CHECK_EQUAL(response.journeys_size(), 0);
     }
@@ -54,8 +54,8 @@ BOOST_AUTO_TEST_CASE(build_journey_response_test) {
         std::vector<thor::PathInfo> path_info_list = create_path_info_list();
         request.mutable_direct_path()->set_datetime(1470241573);
 
-        auto trip_path = create_trip_path();
-        auto response = build_journey_response(request, path_info_list, trip_path);
+        auto trip_leg = create_trip_leg();
+        auto response = build_journey_response(request, path_info_list, trip_leg);
         BOOST_CHECK_EQUAL(response.response_type(), pbnavitia::ITINERARY_FOUND);
         BOOST_CHECK_EQUAL(response.journeys_size(), 1);
 
@@ -173,28 +173,28 @@ BOOST_AUTO_TEST_CASE(compute_metadata_test) {
 }
 
 BOOST_AUTO_TEST_CASE(compute_path_items_test) {
-    // No node in trip_path
+    // No node in trip_leg
     {
-        odin::TripPath trip_path;
+        TripLeg trip_leg;
         auto sn = pbnavitia::StreetNetwork();
 
-        compute_path_items(trip_path, &sn);
+        compute_path_items(trip_leg, &sn);
 
         BOOST_CHECK_EQUAL(sn.path_items_size(), 0);
     }
 
     // Multiple empty nodes
     {
-        odin::TripPath trip_path;
+        TripLeg trip_leg;
         auto sn = pbnavitia::StreetNetwork();
         int nb_nodes = 3;
 
         // We add 3 nodes but don't set anything
         for (int i = 0; i < nb_nodes; ++i) {
-            trip_path.add_node();
+            trip_leg.add_node();
         }
 
-        compute_path_items(trip_path, &sn);
+        compute_path_items(trip_leg, &sn);
 
         BOOST_CHECK_EQUAL(sn.path_items_size(), nb_nodes);
         for (int i = 0; i < nb_nodes; ++i) {
@@ -206,7 +206,7 @@ BOOST_AUTO_TEST_CASE(compute_path_items_test) {
 
     // Multiple nodes
     {
-        odin::TripPath trip_path;
+        TripLeg trip_leg;
         auto sn = pbnavitia::StreetNetwork();
         auto const nb_nodes = 3;
         auto const lengths_list = std::array<double, nb_nodes>{12., 23., 38.};
@@ -218,13 +218,13 @@ BOOST_AUTO_TEST_CASE(compute_path_items_test) {
 
         // We add 3 nodes and set all the needed values
         for (int i = 0; i < nb_nodes; ++i) {
-            auto* n = trip_path.add_node();
+            auto* n = trip_leg.add_node();
             n->mutable_edge()->set_length(lengths_list.at(i));
             n->mutable_edge()->add_name()->set_value(names_list.at(i));
             n->set_elapsed_time(durations_list.at(i));
         }
 
-        compute_path_items(trip_path, &sn);
+        compute_path_items(trip_leg, &sn);
 
         BOOST_CHECK_EQUAL(sn.path_items_size(), nb_nodes);
         for (int i = 0; i < nb_nodes; ++i) {
@@ -243,7 +243,7 @@ BOOST_AUTO_TEST_CASE(compute_path_items_test) {
 BOOST_AUTO_TEST_CASE(set_path_item_name_test) {
     // No value set in path_item
     {
-        odin::TripPath_Node node;
+        TripLeg_Node node;
         auto edge = node.mutable_edge();
         auto path_item = pbnavitia::PathItem();
 
@@ -253,7 +253,7 @@ BOOST_AUTO_TEST_CASE(set_path_item_name_test) {
 
     // One value in edge then set in path_item
     {
-        odin::TripPath_Node node;
+        TripLeg_Node node;
         auto edge = node.mutable_edge();
         auto path_item = pbnavitia::PathItem();
         auto const value = std::string("Plop");
@@ -267,7 +267,7 @@ BOOST_AUTO_TEST_CASE(set_path_item_name_test) {
 
     // Multiple value in edge, only the first one is set in path_item
     {
-        odin::TripPath_Node node;
+        TripLeg_Node node;
         auto edge = node.mutable_edge();
         auto path_item = pbnavitia::PathItem();
         const std::vector<std::string> values_list = {"Plip", "Plouf", "PlapPlap"};
@@ -285,7 +285,7 @@ BOOST_AUTO_TEST_CASE(set_path_item_name_test) {
 BOOST_AUTO_TEST_CASE(set_path_item_length_test) {
     // No value set in path_item
     {
-        odin::TripPath_Node node;
+        TripLeg_Node node;
         auto edge = node.mutable_edge();
         auto path_item = pbnavitia::PathItem();
 
@@ -295,7 +295,7 @@ BOOST_AUTO_TEST_CASE(set_path_item_length_test) {
 
     // One value set in path_item
     {
-        odin::TripPath_Node node;
+        TripLeg_Node node;
         auto edge = node.mutable_edge();
         edge->set_length(42.f);
         auto path_item = pbnavitia::PathItem();
@@ -307,7 +307,7 @@ BOOST_AUTO_TEST_CASE(set_path_item_length_test) {
 
     // One value set in path_item
     {
-        odin::TripPath_Node node;
+        TripLeg_Node node;
         auto edge = node.mutable_edge();
         edge->set_length(999.f);
         auto path_item = pbnavitia::PathItem();
@@ -318,8 +318,8 @@ BOOST_AUTO_TEST_CASE(set_path_item_length_test) {
     }
 }
 
-void set_and_check_cycle_path_type(const odin::TripPath::CycleLane& valhalla_cycle_lane, const pbnavitia::CyclePathType& expected_navitia_type) {
-    odin::TripPath_Node node;
+void set_and_check_cycle_path_type(const TripLeg::CycleLane& valhalla_cycle_lane, const pbnavitia::CyclePathType& expected_navitia_type) {
+    TripLeg_Node node;
     auto edge = node.mutable_edge();
     edge->set_cycle_lane(valhalla_cycle_lane);
     auto path_item = pbnavitia::PathItem();
@@ -332,7 +332,7 @@ void set_and_check_cycle_path_type(const odin::TripPath::CycleLane& valhalla_cyc
 BOOST_AUTO_TEST_CASE(set_path_item_type_test) {
     // No value set in path_item
     {
-        odin::TripPath_Node node;
+        TripLeg_Node node;
         auto edge = node.mutable_edge();
         auto path_item = pbnavitia::PathItem();
 
@@ -341,17 +341,17 @@ BOOST_AUTO_TEST_CASE(set_path_item_type_test) {
     }
 
     // One value set in path_item
-    set_and_check_cycle_path_type(odin::TripPath_CycleLane_kNoCycleLane, pbnavitia::NoCycleLane);
-    set_and_check_cycle_path_type(odin::TripPath_CycleLane_kShared, pbnavitia::SharedCycleWay);
-    set_and_check_cycle_path_type(odin::TripPath_CycleLane_kDedicated, pbnavitia::DedicatedCycleWay);
-    set_and_check_cycle_path_type(odin::TripPath_CycleLane_kSeparated, pbnavitia::SeparatedCycleWay);
+    set_and_check_cycle_path_type(TripLeg_CycleLane_kNoCycleLane, pbnavitia::NoCycleLane);
+    set_and_check_cycle_path_type(TripLeg_CycleLane_kShared, pbnavitia::SharedCycleWay);
+    set_and_check_cycle_path_type(TripLeg_CycleLane_kDedicated, pbnavitia::DedicatedCycleWay);
+    set_and_check_cycle_path_type(TripLeg_CycleLane_kSeparated, pbnavitia::SeparatedCycleWay);
 }
 
 // Create a node and set its elapsed_time with node_elapsed_time
 // Checks that the value in path_item.duration() is node_elapsed_time - previous
 // And set_path_item_duration return value is node_elapsed_time
 void exec_set_path_item_duration_test(uint32_t previous, uint32_t node_elapsed_time, uint32_t expected_path_item_duration) {
-    odin::TripPath_Node node;
+    TripLeg_Node node;
     node.set_elapsed_time(node_elapsed_time);
     auto path_item = pbnavitia::PathItem();
     auto res = set_path_item_duration(node, previous, path_item);
