@@ -14,5 +14,5 @@ USER asgard-user
 COPY --from=builder /asgard/build/asgard/asgard /usr/bin/asgard
 COPY --from=builder /usr/lib/ /usr/lib/
 COPY --from=builder /lib/ /lib/
-EXPOSE 6000
+EXPOSE 6000 8080
 ENTRYPOINT ["/usr/bin/asgard"]
