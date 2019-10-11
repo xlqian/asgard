@@ -93,10 +93,11 @@ pbnavitia::Response Handler::handle(const pbnavitia::Request& request) {
 namespace pt = boost::posix_time;
 pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     pt::ptime start = pt::microsec_clock::universal_time();
+    const std::string mode = request.sn_routing_matrix().mode();
     LOG_INFO("Processing matrix request " +
              std::to_string(request.sn_routing_matrix().origins_size()) + "x" +
-             std::to_string(request.sn_routing_matrix().destinations_size()));
-    const std::string mode = request.sn_routing_matrix().mode();
+             std::to_string(request.sn_routing_matrix().destinations_size()) +
+             " with mode " + mode);
     std::vector<std::string> sources;
     sources.reserve(request.sn_routing_matrix().origins_size());
 
@@ -180,9 +181,9 @@ thor::PathAlgorithm& Handler::get_path_algorithm(const std::string& mode) {
 
 pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& request) {
     pt::ptime start = pt::microsec_clock::universal_time();
-    LOG_INFO("Processing direct_path request");
-
     const auto mode = request.direct_path().streetnetwork_params().origin_mode();
+    LOG_INFO("Processing direct_path request with mode " + mode);
+
     const auto speed_request = get_speed_request(request, mode);
     mode_costing.update_costing_for_mode(mode, speed_request);
     auto costing = mode_costing.get_costing_for_mode(mode);
