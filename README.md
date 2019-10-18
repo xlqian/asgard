@@ -1,4 +1,64 @@
-### NOTICE
+# Asgard
+
+Asgard is the interface between [Navitia](https://github.com/CanalTP/navitia) and [Valhalla](https://github.com/valhalla/valhalla). It can be used to compute street_network direct_paths and matrix.
+
+## How to use
+
+To use Asgard with Navitia, you will need to give Jormungandr a configuration file telling Navitia to use Asgard for every street_network_modes you want. Here's a (not so) basic one:
+
+```json
+{
+  "key": "my_instance",
+  "zmq_socket": "ipc:///tmp/my_instance_kraken",
+  "street_network": [
+    {
+      "modes": [
+        "car",
+        "walking",
+        "bike"
+      ],
+      "class": "jormungandr.street_network.asgard.Asgard",
+      "args": {
+        "service_url": "http://localhost",
+        "asgard_socket": "ipc:///tmp/asgard",
+        "timeout": 2000
+      }
+    },
+    {
+      "args": {
+        "street_network": {
+          "args": {
+            "service_url": "http://localhost",
+            "asgard_socket": "ipc:///tmp/asgard",
+            "timeout": 2000
+          },
+          "class": "jormungandr.street_network.asgard.Asgard",
+          "modes": []
+        }
+      },
+      "class": "jormungandr.street_network.Taxi",
+      "modes": [
+        "taxi"
+      ]
+    }
+  ]
+}
+```
+
+You can then run Asgard via docker or from the sources.
+
+### With docker and navitia-docker-compose
+
+You can clone the repository navitia-docker-compose available [here](https://github.com/CanalTP/navitia-docker-compose).  
+Then launch this command at the root directory of the repo 'navitia-docker-compose': 
+`docker-compose -f asgard/docker-compose_asgard.yml up`
+
+You will have a running Asgard docker with data from France.
+
+To stop the docker, launch this command at the root directory of the repo 'navitia-docker-compose': 
+`docker-compose -f asgard/docker-compose_asgard.yml down -v`
+
+### From the sources
 
 To build Asgard:
 ```bash
@@ -49,7 +109,7 @@ pre-commit run <hook_id>
 
 The CI will fail if the code is not correctly formated so be careful !
 
-### DOCKER
+## More about the dockers
 
 There are 3 differents docker images in the project :
 
@@ -63,7 +123,7 @@ To run Asgard with docker :
 docker create --name asgard-data navitia/asgard-data:latest
 docker run --volumes-from asgard-data --rm -it -p 6000:6000/tcp navitia/asgard-app:latest
 ```
-#### What if I want to use other data ?
+## What if I want to use other data ?
 
 It is possible to create an image from the asgard-data dockerfile with any pbf, tag it and create a container from that tagged image.
 Let's say you want to create an image from the german pbf and tag it "germany" :
