@@ -6,7 +6,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-namespace asgard {
+namespace {
 
 template<typename T>
 const T get_config(const std::string& key, T value = T()) {
@@ -17,6 +17,21 @@ const T get_config(const std::string& key, T value = T()) {
     LOG_INFO("Config: " + key + "=" + boost::lexical_cast<std::string>(value));
     return value;
 }
+
+void configure_logs(const std::string& key) {
+    const auto* v = std::getenv(key.c_str());
+    if (v == nullptr) {
+        LOG_INFO("Using default log configuration. Logs are going to std_out");
+        return;
+    }
+
+    const auto logging_file_path = boost::lexical_cast<std::string>(v);
+    valhalla::midgard::logging::Configure({{"type", "file"}, {"file_name", logging_file_path}, {"reopen_interval", "1"}});
+}
+
+} // namespace
+
+namespace asgard {
 
 namespace ptree = boost::property_tree;
 struct AsgardConf {
@@ -29,6 +44,7 @@ struct AsgardConf {
     unsigned int radius;
 
     AsgardConf() {
+        configure_logs("ASGARD_LOGGING_FILE_PATH");
         socket_path = get_config<std::string>("ASGARD_SOCKET_PATH", "tcp://*:6000");
         cache_size = get_config<size_t>("ASGARD_CACHE_SIZE", 100000);
         nb_threads = get_config<size_t>("ASGARD_NB_THREADS", 3);
