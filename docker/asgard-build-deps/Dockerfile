@@ -40,7 +40,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       cmake \
       libzmq3-dev \
       ca-certificates \
-      clang-format-4.0
+      clang-format-4.0 \
+      wget
 
 RUN git clone --depth=1 --recursive --branch 3.0.8 https://github.com/valhalla/valhalla.git libvalhalla
 
