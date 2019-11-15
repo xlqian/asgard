@@ -25,7 +25,7 @@ RUN wget --progress=bar:force:noscroll $pbf_url \
 # Create an healthcheck script which will be run by asgard-app
 ARG from_coords=""
 ARG to_coords=""
-RUN echo "/asgard-query directpath \"$from_coords\" \"$to_coords\"" >> healthcheck.sh \
+RUN echo "/usr/bin/asgard-query directpath \"$from_coords\" \"$to_coords\"" >> healthcheck.sh \
   && chmod +x healthcheck.sh
 
 FROM alpine:latest
