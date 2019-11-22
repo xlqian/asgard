@@ -35,16 +35,16 @@ using namespace valhalla;
 
 namespace asgard {
 
+constexpr size_t MAX_MASK_SIZE = 10000;
+
 namespace {
 
-pbnavitia::Response make_projection_error_response() {
+pbnavitia::Response make_error_response(pbnavitia::Error_error_id err_id, const std::string err_msg) {
     pbnavitia::Response error_response;
     error_response.set_response_type(pbnavitia::NO_SOLUTION);
-    error_response.mutable_error()->set_id(
-        pbnavitia::Error::no_origin_nor_destination);
-    error_response.mutable_error()->set_message(
-        "Cannot project given coordinates");
-    LOG_ERROR("Cannot project given coordinates! No solution found !");
+    error_response.mutable_error()->set_id(err_id);
+    error_response.mutable_error()->set_message(err_msg);
+    LOG_ERROR(err_msg + " No solution found !");
     return error_response;
 }
 
@@ -93,8 +93,16 @@ ValhallaLocations make_valhalla_locations_from_projected_locations(const std::ve
                                                                    const ProjectedLocations& projected_locations,
                                                                    valhalla::baldr::GraphReader& graph) {
     ValhallaLocations valhalla_locations;
+    std::bitset<MAX_MASK_SIZE> projection_mask;
+    size_t source_idx = -1;
     for (const auto& l : navitia_locations) {
-        baldr::PathLocation::toPBF(projected_locations.at(l), valhalla_locations.Add(), graph);
+        ++source_idx;
+        auto it = projected_locations.find(l);
+        if (it == projected_locations.end()) {
+            projection_mask.set(source_idx);
+            continue;
+        }
+        baldr::PathLocation::toPBF(it->second, valhalla_locations.Add(), graph);
     }
 
     return valhalla_locations;
@@ -140,35 +148,58 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     LOG_INFO("Projecting locations done.");
 
     if (projected_locations.empty()) {
-        return make_projection_error_response();
+        return make_error_response(pbnavitia::Error::no_origin_nor_destination, "Cannot project the given coords!");
+        ;
     }
 
-    const auto valhalla_location_sources = make_valhalla_locations_from_projected_locations(navitia_sources, projected_locations, graph);
-    const auto valhalla_location_targets = make_valhalla_locations_from_projected_locations(navitia_targets, projected_locations, graph);
+    google::protobuf::RepeatedPtrField<valhalla::Location> path_location_sources;
+    google::protobuf::RepeatedPtrField<valhalla::Location> path_location_targets;
+    for (const auto& e : sources) {
+        baldr::PathLocation::toPBF(path_locations.at(e), path_location_sources.Add(), graph);
+    }
+    for (const auto& e : targets) {
+        baldr::PathLocation::toPBF(path_locations.at(e), path_location_targets.Add(), graph);
+    }
 
     LOG_INFO("Computing matrix...");
-    const auto res = matrix.SourceToTarget(valhalla_location_sources,
-                                           valhalla_location_targets,
-                                           graph,
-                                           mode_costing.get_costing(),
-                                           util::convert_navitia_to_valhalla_mode(mode),
-                                           get_distance(mode, request.sn_routing_matrix().max_duration()));
+    auto res = matrix.SourceToTarget(path_location_sources,
+                                     path_location_targets,
+                                     graph,
+                                     mode_costing.get_costing(),
+                                     util::convert_navitia_to_valhalla_mode(mode),
+                                     get_distance(mode, request.sn_routing_matrix().max_duration()));
     LOG_INFO("Computing matrix done.");
 
     pbnavitia::Response response;
     int nb_unreached = 0;
+
     //in fact jormun don't want a real matrix, only a vector of solution :(
     auto* row = response.mutable_sn_routing_matrix()->add_rows();
-    assert(res.size() == navitia_sources.size() * navitia_targets.size());
-    for (const auto& elt : res) {
+
+    assert(res.size() == path_location_sources.size() * path_location_targets.size());
+
+    const auto& failed_projection_mask = (sources.size() == 1) ? targets_projection_mask : sources_projection_mask;
+
+    size_t elt_idx = -1;
+    size_t row_size = sources.size() == 1 ? targets.size() : sources.size();
+    auto elt_it = res.cbegin();
+
+    while (++elt_idx < row_size) {
         auto* k = row->add_routing_response();
-        k->set_duration(elt.time);
-        if (elt.time == thor::kMaxCost ||
-            elt.time > uint32_t(request.sn_routing_matrix().max_duration())) {
+        if (failed_projection_mask[elt_idx]) {
+            k->set_duration(-1);
             k->set_routing_status(pbnavitia::RoutingStatus::unreached);
             ++nb_unreached;
-        } else {
-            k->set_routing_status(pbnavitia::RoutingStatus::reached);
+        } else if (elt_it != res.cend()) {
+            k->set_duration(elt_it->time);
+            if (elt_it->time == thor::kMaxCost ||
+                elt_it->time > uint32_t(request.sn_routing_matrix().max_duration())) {
+                k->set_routing_status(pbnavitia::RoutingStatus::unreached);
+                ++nb_unreached;
+            } else {
+                k->set_routing_status(pbnavitia::RoutingStatus::reached);
+            }
+            ++elt_it;
         }
     }
 
@@ -210,7 +241,7 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     LOG_INFO("Projecting locations done.");
 
     if (projected_locations.empty()) {
-        return make_projection_error_response();
+        return make_error_response(pbnavitia::Error::no_origin_nor_destination, "Cannot project the given coords!");
     }
 
     Location origin;
