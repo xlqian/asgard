@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include "utils/coord_parser.h"
@@ -85,11 +86,9 @@ public:
             }
         }
         if (!missed.empty()) {
-            const auto path_locations = valhalla::loki::Search(missed,
-                                                               graph,
-                                                               costing->GetEdgeFilter(),
-                                                               costing->GetNodeFilter());
-
+            auto path_locations = valhalla::loki::Search(missed,
+                                                         graph,
+                                                         costing.get());
             std::lock_guard<std::mutex> lock(mutex);
             for (const auto& l : path_locations) {
                 list.push_front(std::make_pair(std::make_pair(l.first.name_, mode), l.second));

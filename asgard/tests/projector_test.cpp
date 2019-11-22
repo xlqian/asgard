@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(build_location_test) {
         BOOST_CHECK_CLOSE(l.latlng_.lng(), .01f, .0001f);
         BOOST_CHECK_CLOSE(l.latlng_.lat(), .1f, .0001f);
         BOOST_CHECK_EQUAL(static_cast<bool>(l.stoptype_), false);
-        BOOST_CHECK_EQUAL(l.minimum_reachability_, 12u);
+        //BOOST_CHECK_EQUAL(l.minimum_reachability_, 12u);
         BOOST_CHECK_EQUAL(l.radius_, 42l);
     }
     {
@@ -212,7 +212,7 @@ BOOST_AUTO_TEST_CASE(build_location_test) {
         BOOST_CHECK_CLOSE(l.latlng_.lng(), .01f, .0001f);
         BOOST_CHECK_CLOSE(l.latlng_.lat(), .1f, .0001f);
         BOOST_CHECK_EQUAL(static_cast<bool>(l.stoptype_), false);
-        BOOST_CHECK_EQUAL(l.minimum_reachability_, 12u);
+        //BOOST_CHECK_EQUAL(l.minimum_reachability_, 12u);
         BOOST_CHECK_EQUAL(l.radius_, 42l);
         BOOST_CHECK_EQUAL(l.name_, "coord:.01:.1");
     }
@@ -221,7 +221,7 @@ BOOST_AUTO_TEST_CASE(build_location_test) {
         BOOST_CHECK_CLOSE(l.latlng_.lng(), 92.f, .0001f);
         BOOST_CHECK_CLOSE(l.latlng_.lat(), 43.f, .0001f);
         BOOST_CHECK_EQUAL(static_cast<bool>(l.stoptype_), false);
-        BOOST_CHECK_EQUAL(l.minimum_reachability_, 29u);
+        //BOOST_CHECK_EQUAL(l.minimum_reachability_, 29u);
         BOOST_CHECK_EQUAL(l.radius_, 15l);
         BOOST_CHECK_EQUAL(l.name_, "92;43");
     }
