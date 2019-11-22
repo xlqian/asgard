@@ -39,6 +39,7 @@ namespace asgard {
 using ValhallaLocations = google::protobuf::RepeatedPtrField<valhalla::Location>;
 using ProjectedLocations = std::unordered_map<std::string, valhalla::baldr::PathLocation>;
 
+// The max size of matrix in jormungandr is 5000 so far...
 constexpr size_t MAX_MASK_SIZE = 10000;
 using ProjectionFailedMask = std::bitset<MAX_MASK_SIZE>;
 
@@ -97,20 +98,22 @@ make_valhalla_locations_from_projected_locations(const std::vector<std::string>&
                                                  const ProjectedLocations& projected_locations,
                                                  valhalla::baldr::GraphReader& graph) {
     ValhallaLocations valhalla_locations;
-    ProjectionFailedMask projection_mask;
+    // This mask is used to remember the index of navitia locations whose projection has failed
+    // 0 means projection OK, 1 means projection KO
+    ProjectionFailedMask projection_failed_mask;
 
     size_t source_idx = -1;
     for (const auto& l : navitia_locations) {
         ++source_idx;
         auto it = projected_locations.find(l);
         if (it == projected_locations.end()) {
-            projection_mask.set(source_idx);
+            projection_failed_mask.set(source_idx);
             continue;
         }
         baldr::PathLocation::toPBF(it->second, valhalla_locations.Add(), graph);
     }
 
-    return std::make_pair(std::move(valhalla_locations), std::move(projection_mask));
+    return std::make_pair(std::move(valhalla_locations), std::move(projection_failed_mask));
 }
 
 } // namespace
@@ -176,33 +179,27 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
              std::to_string(projection_mask_targets.count()) + " target(s) projection failed");
 
     LOG_INFO("Projection Done");
-
     LOG_INFO("Computing matrix...");
-    auto res = matrix.SourceToTarget(valhalla_location_sources,
-                                     valhalla_location_targets,
-                                     graph,
-                                     mode_costing.get_costing(),
-                                     util::convert_navitia_to_valhalla_mode(mode),
-                                     get_distance(mode, request.sn_routing_matrix().max_duration()));
+    const auto res = matrix.SourceToTarget(valhalla_location_sources,
+                                           valhalla_location_targets,
+                                           graph,
+                                           mode_costing.get_costing(),
+                                           util::convert_navitia_to_valhalla_mode(mode),
+                                           get_distance(mode, request.sn_routing_matrix().max_duration()));
     LOG_INFO("Computing matrix done.");
 
     pbnavitia::Response response;
     int nb_unreached = 0;
-
     //in fact jormun don't want a real matrix, only a vector of solution :(
     auto* row = response.mutable_sn_routing_matrix()->add_rows();
-
     assert(res.size() == valhalla_location_sources.size() * valhalla_location_targets.size());
 
     const auto& failed_projection_mask = (navitia_sources.size() == 1) ? projection_mask_targets : projection_mask_sources;
-
     size_t elt_idx = -1;
     size_t resp_row_size = navitia_sources.size() == 1 ? navitia_targets.size() : navitia_sources.size();
-
     assert(resp_row_size == failed_projection_mask.count() + res.size());
 
     auto elt_it = res.cbegin();
-
     while (++elt_idx < resp_row_size) {
         auto* k = row->add_routing_response();
         if (failed_projection_mask[elt_idx]) {
