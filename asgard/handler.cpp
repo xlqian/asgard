@@ -153,7 +153,6 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
 
     if (projected_locations.empty()) {
         return make_error_response(pbnavitia::Error::no_origin_nor_destination, "Cannot project the given coords!");
-        ;
     }
     LOG_INFO("Projecting locations done.");
 
