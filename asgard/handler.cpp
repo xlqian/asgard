@@ -42,7 +42,6 @@ using ProjectedLocations = std::unordered_map<std::string, valhalla::baldr::Path
 constexpr size_t MAX_MASK_SIZE = 10000;
 using ProjectionFailedMask = std::bitset<MAX_MASK_SIZE>;
 
-
 namespace {
 
 pbnavitia::Response make_error_response(pbnavitia::Error_error_id err_id, const std::string& err_msg) {
@@ -95,8 +94,8 @@ std::vector<std::string> get_locations_from_matrix_request(const LocationContext
 
 std::pair<ValhallaLocations, ProjectionFailedMask>
 make_valhalla_locations_from_projected_locations(const std::vector<std::string>& navitia_locations,
-                                                                   const ProjectedLocations& projected_locations,
-                                                                   valhalla::baldr::GraphReader& graph) {
+                                                 const ProjectedLocations& projected_locations,
+                                                 valhalla::baldr::GraphReader& graph) {
     ValhallaLocations valhalla_locations;
     ProjectionFailedMask projection_mask;
 
@@ -153,8 +152,8 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     const auto projected_locations = projector(begin(range), end(range), graph, mode, costing);
 
     if (projected_locations.empty()) {
-            return make_error_response(pbnavitia::Error::no_origin_nor_destination, "Cannot project the given coords!");
-            ;
+        return make_error_response(pbnavitia::Error::no_origin_nor_destination, "Cannot project the given coords!");
+        ;
     }
     LOG_INFO("Projecting locations done.");
 
@@ -181,7 +180,7 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
 
     LOG_INFO("Computing matrix...");
     auto res = matrix.SourceToTarget(valhalla_location_sources,
-    		                         valhalla_location_targets,
+                                     valhalla_location_targets,
                                      graph,
                                      mode_costing.get_costing(),
                                      util::convert_navitia_to_valhalla_mode(mode),
