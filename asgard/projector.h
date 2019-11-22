@@ -42,7 +42,7 @@ private:
     valhalla::baldr::Location build_location(const std::string& place,
                                              unsigned int reachability,
                                              unsigned int radius) const {
-        auto coord = navitia::parse_coordinate(place);
+        const auto coord = navitia::parse_coordinate(place);
         auto l = valhalla::baldr::Location({coord.first, coord.second},
                                            valhalla::baldr::Location::StopType::BREAK,
                                            reachability,
@@ -68,7 +68,7 @@ public:
         std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
         std::vector<valhalla::baldr::Location> missed;
         auto& list = cache.template get<0>();
-        auto& map = cache.template get<1>();
+        const auto& map = cache.template get<1>();
         {
             std::lock_guard<std::mutex> lock(mutex);
             for (auto it = places_begin; it != places_end; ++it) {
@@ -85,10 +85,10 @@ public:
             }
         }
         if (!missed.empty()) {
-            auto path_locations = valhalla::loki::Search(missed,
-                                                         graph,
-                                                         costing->GetEdgeFilter(),
-                                                         costing->GetNodeFilter());
+            const auto path_locations = valhalla::loki::Search(missed,
+                                                               graph,
+                                                               costing->GetEdgeFilter(),
+                                                               costing->GetNodeFilter());
 
             std::lock_guard<std::mutex> lock(mutex);
             for (const auto& l : path_locations) {
