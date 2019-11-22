@@ -199,23 +199,23 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     size_t resp_row_size = navitia_sources.size() == 1 ? navitia_targets.size() : navitia_sources.size();
     assert(resp_row_size == failed_projection_mask.count() + res.size());
 
-    auto elt_it = res.cbegin();
+    auto res_it = res.cbegin();
     while (++elt_idx < resp_row_size) {
         auto* k = row->add_routing_response();
         if (failed_projection_mask[elt_idx]) {
             k->set_duration(-1);
             k->set_routing_status(pbnavitia::RoutingStatus::unreached);
             ++nb_unreached;
-        } else if (elt_it != res.cend()) {
-            k->set_duration(elt_it->time);
-            if (elt_it->time == thor::kMaxCost ||
-                elt_it->time > uint32_t(request.sn_routing_matrix().max_duration())) {
+        } else if (res_it != res.cend()) {
+            k->set_duration(res_it->time);
+            if (res_it->time == thor::kMaxCost ||
+                res_it->time > uint32_t(request.sn_routing_matrix().max_duration())) {
                 k->set_routing_status(pbnavitia::RoutingStatus::unreached);
                 ++nb_unreached;
             } else {
                 k->set_routing_status(pbnavitia::RoutingStatus::reached);
             }
-            ++elt_it;
+            ++res_it;
         }
     }
 
