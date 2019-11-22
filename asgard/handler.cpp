@@ -30,21 +30,27 @@
 
 #include <ctime>
 #include <numeric>
+#include <utility>
 
 using namespace valhalla;
 
 namespace asgard {
 
+using ValhallaLocations = google::protobuf::RepeatedPtrField<valhalla::Location>;
+using ProjectedLocations = std::unordered_map<std::string, valhalla::baldr::PathLocation>;
+
+// The max size of matrix in jormungandr is 5000 so far...
+constexpr size_t MAX_MASK_SIZE = 10000;
+using ProjectionFailedMask = std::bitset<MAX_MASK_SIZE>;
+
 namespace {
 
-pbnavitia::Response make_projection_error_response() {
+pbnavitia::Response make_error_response(pbnavitia::Error_error_id err_id, const std::string& err_msg) {
     pbnavitia::Response error_response;
     error_response.set_response_type(pbnavitia::NO_SOLUTION);
-    error_response.mutable_error()->set_id(
-        pbnavitia::Error::no_origin_nor_destination);
-    error_response.mutable_error()->set_message(
-        "Cannot project given coordinates");
-    LOG_ERROR("Cannot project given coordinates! No solution found !");
+    error_response.mutable_error()->set_id(err_id);
+    error_response.mutable_error()->set_message(err_msg);
+    LOG_ERROR(err_msg + " No solution found !");
     return error_response;
 }
 
@@ -87,17 +93,27 @@ std::vector<std::string> get_locations_from_matrix_request(const LocationContext
     return locations;
 }
 
-using ValhallaLocations = google::protobuf::RepeatedPtrField<valhalla::Location>;
-using ProjectedLocations = std::unordered_map<std::string, valhalla::baldr::PathLocation>;
-ValhallaLocations make_valhalla_locations_from_projected_locations(const std::vector<std::string>& navitia_locations,
-                                                                   const ProjectedLocations& projected_locations,
-                                                                   valhalla::baldr::GraphReader& graph) {
+std::pair<ValhallaLocations, ProjectionFailedMask>
+make_valhalla_locations_from_projected_locations(const std::vector<std::string>& navitia_locations,
+                                                 const ProjectedLocations& projected_locations,
+                                                 valhalla::baldr::GraphReader& graph) {
     ValhallaLocations valhalla_locations;
+    // This mask is used to remember the index of navitia locations whose projection has failed
+    // 0 means projection OK, 1 means projection KO
+    ProjectionFailedMask projection_failed_mask;
+
+    size_t source_idx = -1;
     for (const auto& l : navitia_locations) {
-        baldr::PathLocation::toPBF(projected_locations.at(l), valhalla_locations.Add(), graph);
+        ++source_idx;
+        auto it = projected_locations.find(l);
+        if (it == projected_locations.end()) {
+            projection_failed_mask.set(source_idx);
+            continue;
+        }
+        baldr::PathLocation::toPBF(it->second, valhalla_locations.Add(), graph);
     }
 
-    return valhalla_locations;
+    return std::make_pair(std::move(valhalla_locations), std::move(projection_failed_mask));
 }
 
 } // namespace
@@ -137,15 +153,32 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     LOG_INFO("Projecting " + std::to_string(navitia_sources.size() + navitia_targets.size()) + " locations...");
     const auto range = boost::range::join(navitia_sources, navitia_targets);
     const auto projected_locations = projector(begin(range), end(range), graph, mode, costing);
-    LOG_INFO("Projecting locations done.");
 
     if (projected_locations.empty()) {
-        return make_projection_error_response();
+        return make_error_response(pbnavitia::Error::no_origin_nor_destination, "Cannot project the given coords!");
     }
+    LOG_INFO("Projecting locations done.");
 
-    const auto valhalla_location_sources = make_valhalla_locations_from_projected_locations(navitia_sources, projected_locations, graph);
-    const auto valhalla_location_targets = make_valhalla_locations_from_projected_locations(navitia_targets, projected_locations, graph);
+    ValhallaLocations valhalla_location_sources;
+    ProjectionFailedMask projection_mask_sources;
+    std::tie(valhalla_location_sources, projection_mask_sources) = make_valhalla_locations_from_projected_locations(navitia_sources, projected_locations, graph);
 
+    ValhallaLocations valhalla_location_targets;
+    ProjectionFailedMask projection_mask_targets;
+    std::tie(valhalla_location_targets, projection_mask_targets) = make_valhalla_locations_from_projected_locations(navitia_targets, projected_locations, graph);
+
+    if (valhalla_location_sources.empty()) {
+        LOG_ERROR("All sources projections failed!");
+        return make_error_response(pbnavitia::Error::no_origin, "origins projection failed");
+    }
+    if (valhalla_location_targets.empty()) {
+        LOG_ERROR("All targets projections failed!");
+        return make_error_response(pbnavitia::Error::no_destination, "destinations projection failed");
+    }
+    LOG_INFO(std::to_string(projection_mask_sources.count()) + " origin(s) projection failed " +
+             std::to_string(projection_mask_targets.count()) + " target(s) projection failed");
+
+    LOG_INFO("Projection Done");
     LOG_INFO("Computing matrix...");
     const auto res = matrix.SourceToTarget(valhalla_location_sources,
                                            valhalla_location_targets,
@@ -159,16 +192,30 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     int nb_unreached = 0;
     //in fact jormun don't want a real matrix, only a vector of solution :(
     auto* row = response.mutable_sn_routing_matrix()->add_rows();
-    assert(res.size() == navitia_sources.size() * navitia_targets.size());
-    for (const auto& elt : res) {
+    assert(res.size() == valhalla_location_sources.size() * valhalla_location_targets.size());
+
+    const auto& failed_projection_mask = (navitia_sources.size() == 1) ? projection_mask_targets : projection_mask_sources;
+    size_t elt_idx = -1;
+    size_t resp_row_size = navitia_sources.size() == 1 ? navitia_targets.size() : navitia_sources.size();
+    assert(resp_row_size == failed_projection_mask.count() + res.size());
+
+    auto res_it = res.cbegin();
+    while (++elt_idx < resp_row_size) {
         auto* k = row->add_routing_response();
-        k->set_duration(elt.time);
-        if (elt.time == thor::kMaxCost ||
-            elt.time > uint32_t(request.sn_routing_matrix().max_duration())) {
+        if (failed_projection_mask[elt_idx]) {
+            k->set_duration(-1);
             k->set_routing_status(pbnavitia::RoutingStatus::unreached);
             ++nb_unreached;
-        } else {
-            k->set_routing_status(pbnavitia::RoutingStatus::reached);
+        } else if (res_it != res.cend()) {
+            k->set_duration(res_it->time);
+            if (res_it->time == thor::kMaxCost ||
+                res_it->time > uint32_t(request.sn_routing_matrix().max_duration())) {
+                k->set_routing_status(pbnavitia::RoutingStatus::unreached);
+                ++nb_unreached;
+            } else {
+                k->set_routing_status(pbnavitia::RoutingStatus::reached);
+            }
+            ++res_it;
         }
     }
 
@@ -209,8 +256,8 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     auto projected_locations = projector(begin(locations), end(locations), graph, mode, costing);
     LOG_INFO("Projecting locations done.");
 
-    if (projected_locations.empty()) {
-        return make_projection_error_response();
+    if (projected_locations.size() != 2) {
+        return make_error_response(pbnavitia::Error::no_origin_nor_destination, "Cannot project the given coords!");
     }
 
     Location origin;
