@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "utils/coord_parser.h"
@@ -43,7 +42,7 @@ private:
     valhalla::baldr::Location build_location(const std::string& place,
                                              unsigned int reachability,
                                              unsigned int radius) const {
-        const auto coord = navitia::parse_coordinate(place);
+        auto coord = navitia::parse_coordinate(place);
         auto l = valhalla::baldr::Location({coord.first, coord.second},
                                            valhalla::baldr::Location::StopType::BREAK,
                                            reachability,
@@ -69,7 +68,7 @@ public:
         std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
         std::vector<valhalla::baldr::Location> missed;
         auto& list = cache.template get<0>();
-        const auto& map = cache.template get<1>();
+        auto& map = cache.template get<1>();
         {
             std::lock_guard<std::mutex> lock(mutex);
             for (auto it = places_begin; it != places_end; ++it) {
@@ -88,7 +87,9 @@ public:
         if (!missed.empty()) {
             auto path_locations = valhalla::loki::Search(missed,
                                                          graph,
-                                                         costing.get());
+                                                         costing->GetEdgeFilter(),
+                                                         costing->GetNodeFilter());
+
             std::lock_guard<std::mutex> lock(mutex);
             for (const auto& l : path_locations) {
                 list.push_front(std::make_pair(std::make_pair(l.first.name_, mode), l.second));
