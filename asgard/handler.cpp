@@ -130,6 +130,7 @@ pbnavitia::Response Handler::handle(const pbnavitia::Request& request) {
     case pbnavitia::street_network_routing_matrix: return handle_matrix(request);
     case pbnavitia::direct_path: return handle_direct_path(request);
     default:
+        LOG_WARN(request.DebugString());
         LOG_WARN("wrong request: aborting");
         return pbnavitia::Response();
     }
