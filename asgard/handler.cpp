@@ -108,6 +108,7 @@ make_valhalla_locations_from_projected_locations(const std::vector<std::string>&
         auto it = projected_locations.find(l);
         if (it == projected_locations.end()) {
             projection_failed_mask.set(source_idx);
+            LOG_ERROR("Cannot project coor: " + l);
             continue;
         }
         baldr::PathLocation::toPBF(it->second, valhalla_locations.Add(), graph);
@@ -130,7 +131,7 @@ pbnavitia::Response Handler::handle(const pbnavitia::Request& request) {
     case pbnavitia::street_network_routing_matrix: return handle_matrix(request);
     case pbnavitia::direct_path: return handle_direct_path(request);
     default:
-        LOG_WARN("wrong request: aborting");
+        LOG_ERROR("wrong request: aborting");
         return pbnavitia::Response();
     }
 }
