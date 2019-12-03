@@ -69,6 +69,7 @@ static void worker(const asgard::Context& context) {
         pbnavitia::Request pb_req;
         pb_req.ParseFromArray(request.data(), request.size());
         LOG_INFO("Request received...");
+        LOG_INFO(pb_req.DebugString());
 
         const auto response = handler.handle(pb_req);
 
