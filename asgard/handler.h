@@ -48,8 +48,8 @@ private:
     valhalla::thor::BidirectionalAStar bda;
     valhalla::thor::AStarPathAlgorithm astar;
     ModeCosting mode_costing;
-    const Projector& projector;
     const Metrics& metrics;
+    const Projector& projector;
 };
 
 } // namespace asgard

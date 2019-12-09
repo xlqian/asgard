@@ -16,7 +16,6 @@ namespace asgard {
 namespace direct_path_response_builder {
 
 constexpr static float KM_TO_M = 1000.f;
-constexpr static float HOUR_TO_SECONDS = 3600.f;
 
 pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
                                            const std::vector<valhalla::thor::PathInfo>& pathedges,

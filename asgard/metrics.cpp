@@ -22,14 +22,15 @@ InFlightGuard::~InFlightGuard() {
     }
 }
 
-InFlightGuard::InFlightGuard(InFlightGuard&& other) {
+InFlightGuard::InFlightGuard(InFlightGuard&& other) noexcept {
     this->gauge = other.gauge;
     other.gauge = nullptr;
 }
 
-void InFlightGuard::operator=(InFlightGuard&& other) {
+InFlightGuard& InFlightGuard::operator=(InFlightGuard&& other) noexcept {
     this->gauge = other.gauge;
     other.gauge = nullptr;
+    return *this;
 }
 
 static prometheus::Histogram::BucketBoundaries create_fixed_duration_buckets() {

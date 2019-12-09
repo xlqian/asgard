@@ -25,29 +25,36 @@ pbnavitia::StreetNetworkMode convert_valhalla_to_navitia_mode(const sif::TravelM
     }
 }
 
-const std::map<std::string, sif::TravelMode> navitia_to_valhalla_mode_map = {
-    {"walking", sif::TravelMode::kPedestrian},
-    {"bike", sif::TravelMode::kBicycle},
-    {"car", sif::TravelMode::kDrive},
-    {"taxi", sif::TravelMode::kDrive},
-};
+const std::map<std::string, sif::TravelMode> make_navitia_to_valhalla_mode_map() {
+    return {
+        {"walking", sif::TravelMode::kPedestrian},
+        {"bike", sif::TravelMode::kBicycle},
+        {"car", sif::TravelMode::kDrive},
+        {"taxi", sif::TravelMode::kDrive},
+    };
+}
 
 sif::TravelMode convert_navitia_to_valhalla_mode(const std::string& mode) {
+    static const auto navitia_to_valhalla_mode_map = make_navitia_to_valhalla_mode_map();
     return navitia_to_valhalla_mode_map.at(mode);
 }
 
 size_t navitia_to_valhalla_mode_index(const std::string& mode) {
+    static const auto navitia_to_valhalla_mode_map = make_navitia_to_valhalla_mode_map();
     return static_cast<size_t>(navitia_to_valhalla_mode_map.at(mode));
 }
 
-const std::map<std::string, Costing> navitia_to_valhalla_costing_map = {
-    {"walking", Costing::pedestrian},
-    {"bike", Costing::bicycle},
-    {"car", Costing::auto_},
-    {"taxi", Costing::taxi},
-};
+const std::map<std::string, Costing> make_navitia_to_valhalla_costing_map() {
+    return {
+        {"walking", Costing::pedestrian},
+        {"bike", Costing::bicycle},
+        {"car", Costing::auto_},
+        {"taxi", Costing::taxi},
+    };
+}
 
 Costing convert_navitia_to_valhalla_costing(const std::string& costing) {
+    static const auto navitia_to_valhalla_costing_map = make_navitia_to_valhalla_costing_map();
     return navitia_to_valhalla_costing_map.at(costing);
 }
 
