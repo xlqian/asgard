@@ -58,11 +58,11 @@ float get_distance(const std::string& mode, float duration) {
     using namespace thor;
     if (mode == "walking") {
         return duration * kTimeDistCostThresholdPedestrianDivisor;
-    } else if (mode == "bike") {
-        return duration * kTimeDistCostThresholdBicycleDivisor;
-    } else {
-        return duration * kTimeDistCostThresholdAutoDivisor;
     }
+    if (mode == "bike") {
+        return duration * kTimeDistCostThresholdBicycleDivisor;
+    }
+    return duration * kTimeDistCostThresholdAutoDivisor;
 }
 
 double get_speed_request(const pbnavitia::Request& request, const std::string& mode) {
@@ -70,15 +70,17 @@ double get_speed_request(const pbnavitia::Request& request, const std::string& m
 
     if (mode == "walking") {
         return request_params.walking_speed();
-    } else if (mode == "bike") {
-        return request_params.bike_speed();
-    } else if (mode == "car") {
-        return request_params.car_speed();
-    } else if (mode == "taxi") {
-        return request_params.car_no_park_speed();
-    } else {
-        throw std::invalid_argument("Bad get_speed_request parameter");
     }
+    if (mode == "bike") {
+        return request_params.bike_speed();
+    }
+    if (mode == "car") {
+        return request_params.car_speed();
+    }
+    if (mode == "taxi") {
+        return request_params.car_no_park_speed();
+    }
+    throw std::invalid_argument("Bad get_speed_request parameter");
 }
 
 using LocationContextList = google::protobuf::RepeatedPtrField<pbnavitia::LocationContext>;
@@ -114,14 +116,13 @@ make_valhalla_locations_from_projected_locations(const std::vector<std::string>&
         baldr::PathLocation::toPBF(it->second, valhalla_locations.Add(), graph);
     }
 
-    return std::make_pair(std::move(valhalla_locations), std::move(projection_failed_mask));
+    return std::make_pair(std::move(valhalla_locations), projection_failed_mask);
 }
 
 } // namespace
 
 Handler::Handler(const Context& context) : graph(context.graph),
-                                           matrix(),
-                                           mode_costing(),
+
                                            metrics(context.metrics),
                                            projector(context.projector) {
 }

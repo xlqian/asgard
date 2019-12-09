@@ -40,7 +40,7 @@ make_costing_option(const std::string& mode, float speed) {
     return options;
 }
 
-ModeCosting::ModeCosting() : factory(), costing() {
+ModeCosting::ModeCosting() {
     factory.Register(vc::auto_, sif::CreateAutoCost);
     factory.Register(vc::taxi, sif::CreateTaxiCost);
     factory.Register(vc::pedestrian, sif::CreatePedestrianCost);
