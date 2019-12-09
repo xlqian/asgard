@@ -1,19 +1,16 @@
 #pragma once
 
-#include <prometheus/counter.h>
 #include <prometheus/exposer.h>
-#include <prometheus/gauge.h>
-#include "asgard/request.pb.h"
-#include <boost/optional.hpp>
-#include <boost/utility.hpp>
+#include <boost/core/noncopyable.hpp>
+
 #include <map>
 #include <memory>
+#include <string>
 
-//forward declare
 namespace prometheus {
 class Registry;
-class Counter;
 class Histogram;
+class Gauge;
 } // namespace prometheus
 
 namespace asgard {

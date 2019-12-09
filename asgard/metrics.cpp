@@ -3,10 +3,21 @@
 #include "asgard/asgard_conf.h"
 #include "asgard/conf.h"
 
-#include <prometheus/counter.h>
 #include <prometheus/exposer.h>
+#include <prometheus/family.h>
+#include <prometheus/gauge.h>
+#include <prometheus/gauge_builder.h>
+#include <prometheus/histogram.h>
+#include <prometheus/histogram_builder.h>
 #include <prometheus/registry.h>
 #include <valhalla/midgard/logging.h>
+#include <boost/none.hpp>
+#include <boost/optional/detail/optional_relops.hpp>
+#include <boost/optional/optional.hpp>
+
+#include <iterator>
+#include <utility>
+#include <vector>
 
 namespace asgard {
 
