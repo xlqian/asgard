@@ -46,7 +46,6 @@ static void respond(zmq::socket_t& socket,
     socket.send(reply);
 }
 
-namespace ptime = boost::posix_time;
 static void worker(const asgard::Context& context) {
     zmq::context_t& zmq_context = context.zmq_context;
     asgard::Handler handler(context);
@@ -55,7 +54,7 @@ static void worker(const asgard::Context& context) {
     socket.connect("inproc://workers");
     z_send(socket, "READY");
 
-    while (1) {
+    while (true) {
 
         const std::string address = z_recv(socket);
         {
