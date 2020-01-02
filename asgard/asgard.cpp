@@ -67,7 +67,7 @@ static void worker(const asgard::Context& context) {
         socket.recv(&request);
         asgard::InFlightGuard in_flight_guard(context.metrics.start_in_flight());
         pbnavitia::Request pb_req;
-        if (! pb_req.ParseFromArray(request.data(), request.size())) {
+        if (!pb_req.ParseFromArray(request.data(), request.size())) {
             LOG_ERROR("receive invalid protobuf");
             pbnavitia::Response response;
             auto* error = response.mutable_error();
