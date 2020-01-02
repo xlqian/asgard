@@ -16,6 +16,7 @@
 
 #include "context.h"
 #include "handler.h"
+#include "utils/exception.h"
 #include "utils/zmq.h"
 
 #include "asgard/asgard_conf.h"
@@ -66,9 +67,15 @@ static void worker(const asgard::Context& context) {
         socket.recv(&request);
         asgard::InFlightGuard in_flight_guard(context.metrics.start_in_flight());
         pbnavitia::Request pb_req;
-        pb_req.ParseFromArray(request.data(), request.size());
-        LOG_INFO("Request received...");
-        LOG_INFO(pb_req.DebugString());
+        if (! pb_req.ParseFromArray(request.data(), request.size())) {
+            LOG_ERROR("receive invalid protobuf");
+            pbnavitia::Response response;
+            auto* error = response.mutable_error();
+            error->set_id(pbnavitia::Error::invalid_protobuf_request);
+            error->set_message("receive invalid protobuf");
+            respond(socket, address, response);
+            continue;
+        }
 
         const auto response = handler.handle(pb_req);
 
@@ -100,6 +107,8 @@ int main() {
     while (true) {
         try {
             lb.run();
+        } catch (const navitia::recoverable_exception& e) {
+            LOG_ERROR(e.what());
         } catch (const zmq::error_t&) {} //lors d'un SIGHUP on restore la queue
     }
 
