@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(handle_matrix_test) {
     std::vector<unsigned int> expected_times = {0, 111, 444, 667, 359, 568};
     pbnavitia::Response expected_response;
     auto* row = expected_response.mutable_sn_routing_matrix()->add_rows();
-    for(auto const& time : expected_times) {
+    for (auto const& time : expected_times) {
         auto* k = row->add_routing_response();
         k->set_routing_status(pbnavitia::RoutingStatus::reached);
         k->set_duration(time);

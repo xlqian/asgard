@@ -3,9 +3,6 @@
 #include "asgard/asgard_conf.h"
 #include "asgard/conf.h"
 
-#include <boost/none.hpp>
-#include <boost/optional/detail/optional_relops.hpp>
-#include <boost/optional/optional.hpp>
 #include <prometheus/exposer.h>
 #include <prometheus/family.h>
 #include <prometheus/gauge.h>
@@ -14,6 +11,9 @@
 #include <prometheus/histogram_builder.h>
 #include <prometheus/registry.h>
 #include <valhalla/midgard/logging.h>
+#include <boost/none.hpp>
+#include <boost/optional/detail/optional_relops.hpp>
+#include <boost/optional/optional.hpp>
 
 #include <iterator>
 #include <utility>
@@ -55,7 +55,7 @@ Metrics::Metrics(const boost::optional<const AsgardConf&>& config) {
     if (config == boost::none) {
         return;
     }
-    
+
     const auto& conf = config.get();
     if (conf.metrics_binding == boost::none) {
         return;
