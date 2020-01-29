@@ -16,11 +16,11 @@ set_target_properties(projector_test PROPERTIES COMPILE_DEFINITIONS TESTS_BUILD_
 target_link_libraries(projector_test ${Boost_LIBRARIES} protobuf boost_regex libasgard ${VALHALLA_LIBRARIES} z curl)
 ADD_BOOST_TEST(projector_test)
 
-add_executable(handle_matrix_test handle_matrix_test.cpp tile_maker.cpp)
+add_executable(handler_test handler_test.cpp tile_maker.cpp)
 # Needed to create a directory containing tiles
-set_target_properties(handle_matrix_test PROPERTIES COMPILE_DEFINITIONS TESTS_BUILD_DIR="${CMAKE_CURRENT_BINARY_DIR}/")
-target_link_libraries(handle_matrix_test ${Boost_LIBRARIES} protobuf boost_regex libasgard ${VALHALLA_LIBRARIES} z curl zmq prometheus-cpp-core prometheus-cpp-pull)
-ADD_BOOST_TEST(handle_matrix_test)
+set_target_properties(handler_test PROPERTIES COMPILE_DEFINITIONS TESTS_BUILD_DIR="${CMAKE_CURRENT_BINARY_DIR}/")
+target_link_libraries(handler_test ${Boost_LIBRARIES} protobuf boost_regex libasgard ${VALHALLA_LIBRARIES} z curl zmq prometheus-cpp-core prometheus-cpp-pull)
+ADD_BOOST_TEST(handler_test)
 
 add_executable(benchmark_projector_cache benchmark_projector_cache.cpp ${CMAKE_SOURCE_DIR}/utils/timer.cpp)
 target_link_libraries(benchmark_projector_cache ${Boost_LIBRARIES} libasgard ${VALHALLA_LIBRARIES} boost_program_options protobuf boost_regex z curl)

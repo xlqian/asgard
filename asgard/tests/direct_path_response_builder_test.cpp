@@ -196,8 +196,8 @@ BOOST_AUTO_TEST_CASE(compute_path_items_test) {
 
         compute_path_items(trip_leg, &sn);
 
-        BOOST_CHECK_EQUAL(sn.path_items_size(), nb_nodes);
-        for (int i = 0; i < nb_nodes; ++i) {
+        BOOST_CHECK_EQUAL(sn.path_items_size(), nb_nodes - 1);
+        for (int i = 0; i < nb_nodes - 1; ++i) {
             BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_length(), false);
             BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_name(), false);
             BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_duration(), false);
@@ -208,13 +208,13 @@ BOOST_AUTO_TEST_CASE(compute_path_items_test) {
     {
         TripLeg trip_leg;
         auto sn = pbnavitia::StreetNetwork();
-        auto const nb_nodes = 3;
-        auto const lengths_list = std::array<double, nb_nodes>{12., 23., 38.};
+        auto const nb_nodes = 4;
+        auto const lengths_list = std::array<double, nb_nodes>{0., 12., 23., 38.};
         auto const names_list = std::array<std::string, nb_nodes>{"plop", "plip", "plouf"};
-        auto const durations_list = std::array<double, nb_nodes>{24., 46., 76.};
-        auto const expected_durations_list_in_proto = std::array<double, nb_nodes>{durations_list.at(0) - 0.,
-                                                                                   durations_list.at(1) - durations_list.at(0),
-                                                                                   durations_list.at(2) - durations_list.at(1)};
+        auto const durations_list = std::array<double, nb_nodes>{0., 24., 46., 76.};
+        auto const expected_durations_list_in_proto = std::array<double, nb_nodes - 1>{durations_list.at(1) - 0.,
+                                                                                       durations_list.at(2) - durations_list.at(1),
+                                                                                       durations_list.at(3) - durations_list.at(2)};
 
         // We add 3 nodes and set all the needed values
         for (int i = 0; i < nb_nodes; ++i) {
@@ -226,8 +226,9 @@ BOOST_AUTO_TEST_CASE(compute_path_items_test) {
 
         compute_path_items(trip_leg, &sn);
 
-        BOOST_CHECK_EQUAL(sn.path_items_size(), nb_nodes);
-        for (int i = 0; i < nb_nodes; ++i) {
+        // Since we have 4 nodes, we haved 3 edges
+        BOOST_CHECK_EQUAL(sn.path_items_size(), nb_nodes - 1);
+        for (int i = 0; i < nb_nodes - 1; ++i) {
             BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_length(), true);
             BOOST_CHECK_EQUAL(sn.path_items().Get(i).length(), lengths_list.at(i) * 1000.f);
 

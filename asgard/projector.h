@@ -52,11 +52,11 @@ private:
     }
 
 public:
-    Projector(size_t cache_size = 1000,
-              unsigned int reachability = 0,
-              unsigned int radius = 0) : cache_size(cache_size),
-                                         reachability(reachability),
-                                         radius(radius) {}
+    explicit Projector(size_t cache_size = 1000,
+                       unsigned int reachability = 0,
+                       unsigned int radius = 0) : cache_size(cache_size),
+                                                  reachability(reachability),
+                                                  radius(radius) {}
 
     template<typename T>
     std::unordered_map<std::string, valhalla::baldr::PathLocation>
@@ -64,7 +64,7 @@ public:
                const T places_end,
                valhalla::baldr::GraphReader& graph,
                const std::string& mode,
-               valhalla::sif::cost_ptr_t costing) const {
+               const valhalla::sif::cost_ptr_t& costing) const {
         std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
         std::vector<valhalla::baldr::Location> missed;
         auto& list = cache.template get<0>();

@@ -29,12 +29,12 @@ class Request;
 
 namespace asgard {
 
-class Context;
+struct Context;
 class Metrics;
 class Projector;
 
 struct Handler {
-    Handler(const Context&);
+    explicit Handler(const Context&);
     pbnavitia::Response handle(const pbnavitia::Request&);
 
 private:

@@ -161,13 +161,14 @@ void compute_metadata(pbnavitia::Journey& pb_journey) {
 
 void compute_path_items(const TripLeg& trip_leg, pbnavitia::StreetNetwork* sn) {
     uint32_t previous_node_elapsed_time = 0;
-    for (auto const& n : trip_leg.node()) {
+    for (int i = 0; i < trip_leg.node_size() - 1; ++i) {
         auto* path_item = sn->add_path_items();
-        auto const& e = n.edge();
+        auto const& e = trip_leg.node(i).edge();
         set_path_item_name(e, *path_item);
         set_path_item_length(e, *path_item);
         set_path_item_type(e, *path_item);
-        previous_node_elapsed_time = set_path_item_duration(n, previous_node_elapsed_time, *path_item);
+        previous_node_elapsed_time =
+            set_path_item_duration(trip_leg.node(i + 1), previous_node_elapsed_time, *path_item);
     }
 }
 
