@@ -40,7 +40,7 @@ protected:
     std::map<const std::string, prometheus::Histogram*> handle_matrix_histogram;
 
 public:
-    Metrics(const boost::optional<const AsgardConf&>& config);
+    explicit Metrics(const boost::optional<const AsgardConf&>& config);
     InFlightGuard start_in_flight() const;
 
     void observe_handle_direct_path(const std::string&, double duration) const;
