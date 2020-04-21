@@ -32,6 +32,7 @@ add_library(libasgard
   handler.cpp
   util.cpp
   ${CMAKE_SOURCE_DIR}/utils/zmq.cpp
+  ${CMAKE_SOURCE_DIR}/utils/exception.cpp
   ${CMAKE_SOURCE_DIR}/utils/coord_parser.cpp
   ${PROTO_SRCS})
 
