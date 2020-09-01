@@ -2,13 +2,14 @@ FROM navitia/asgard-build-deps:latest as builder
 WORKDIR /data/valhalla
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      tar
+      tar parallel curl
 
 # Download the pbf given in argument
 ARG pbf_url=http://download.geofabrik.de/europe/france-latest.osm.pbf
+ARG elevation_min_x_max_x_min_y_max_y='-5.1972 8.3483 42.2646 51.1116'
 RUN wget --progress=bar:force:noscroll $pbf_url \
   && mkdir -p valhalla_tiles \
-  && valhalla_build_config --mjolnir-tile-dir ${PWD}/valhalla_tiles --mjolnir-tile-extract ${PWD}/valhalla_tiles.tar --mjolnir-timezone ${PWD}/valhalla_tiles/timezones.sqlite --mjolnir-admin ${PWD}/valhalla_tiles/admins.sqlite > valhalla.json \
+  && valhalla_build_config --mjolnir-tile-dir ${PWD}/valhalla_tiles --mjolnir-tile-extract ${PWD}/valhalla_tiles.tar --mjolnir-timezone ${PWD}/valhalla_tiles/timezones.sqlite --mjolnir-admin ${PWD}/valhalla_tiles/admins.sqlite --additional-data-elevation ${PWD}/elevation_tiles > valhalla.json \
   # These are default values set after empirically testing asgard with distributed.
   # They seem to give the most coherent results between the time of the matrix and the direct_path
   # And fixing some projection problems in dead-ends or isolated places.
@@ -16,6 +17,7 @@ RUN wget --progress=bar:force:noscroll $pbf_url \
   && sed -i 's,\"radius\"\: [[:digit:]]*,\"radius\"\: 30,' valhalla.json \
   && sed -i 's,\"shortcuts\"\: [^,]*,\"shortcuts\"\: false,' valhalla.json \
   && sed -i 's,\"hierarchy\"\: [^,]*,\"hierarchy\"\: false,' valhalla.json \
+  && valhalla_build_elevation $elevation_min_x_max_x_min_y_max_y ${PWD}/elevation_tiles $(nproc) \
   && valhalla_build_tiles -c valhalla.json *.pbf \
   && find valhalla_tiles | sort -n | tar cf valhalla_tiles.tar --no-recursion -T - \
   # Make the graph shareable between threads in a thread-safe way
@@ -23,8 +25,8 @@ RUN wget --progress=bar:force:noscroll $pbf_url \
   && sed -i '/"hierarchy":/a \\t"global_synchronized_cache": true,' valhalla.json
 
 # Create an healthcheck script which will be run by asgard-app
-ARG from_coords=""
-ARG to_coords=""
+ARG from_coords="2.32811;48.89283"
+ARG to_coords="2.37715;48.846781"
 RUN echo "/usr/bin/asgard-query directpath \"$from_coords\" \"$to_coords\"" >> healthcheck.sh \
   && chmod +x healthcheck.sh
 
