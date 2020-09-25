@@ -104,12 +104,17 @@ Metrics::Metrics(const boost::optional<const AsgardConf&>& config) {
         this->handle_matrix_histogram[mode] = &histo_matrix;
     }
 
-    auto& nb_cache_miss = prometheus::BuildGauge()
-                              .Name("nb_cache_miss")
-                              .Help("Nbr of projector's cache miss from the start of app")
-                              .Register(*registry);
+    nb_cache_miss_gauge = &prometheus::BuildGauge()
+                               .Name("nb_cache_miss")
+                               .Help("Nb of projector's cache miss from the start of app")
+                               .Register(*registry)
+                               .Add({});
 
-    nb_cache_miss_gauge = &nb_cache_miss.Add({});
+    nb_cache_call_gauge = &prometheus::BuildGauge()
+                               .Name("nb_cache_calls")
+                               .Help("Nb of projector's cache calls from the start of app")
+                               .Register(*registry)
+                               .Add({});
 }
 
 InFlightGuard Metrics::start_in_flight() const {
@@ -143,11 +148,12 @@ void Metrics::observe_handle_matrix(const std::string& mode, double duration) co
     }
 }
 
-void Metrics::observe_nb_cache_miss(uint64_t nb_cache_miss) const {
+void Metrics::observe_nb_cache_miss(uint64_t nb_cache_miss, uint64_t nb_cache_calls) const {
     if (!registry) {
         return;
     }
     nb_cache_miss_gauge->Set(nb_cache_miss);
+    nb_cache_call_gauge->Set(nb_cache_calls);
 }
 
 } // namespace asgard

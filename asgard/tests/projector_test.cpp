@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 0);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 1);
-        BOOST_CHECK_EQUAL(p.get_nb_calls(), 1);
+        BOOST_CHECK_EQUAL(p.get_nb_cache_calls(), 1);
     }
     // cache = {}
     {
@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 2);
-        BOOST_CHECK_EQUAL(p.get_nb_calls(), 2);
+        BOOST_CHECK_EQUAL(p.get_nb_cache_calls(), 2);
     }
     // cache = { coord:.03:.01 }
     {
@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 2);
-        BOOST_CHECK_EQUAL(p.get_nb_calls(), 3);
+        BOOST_CHECK_EQUAL(p.get_nb_cache_calls(), 3);
     }
     // cache = { coord:.03:.01 }
     {
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 3);
-        BOOST_CHECK_EQUAL(p.get_nb_calls(), 4);
+        BOOST_CHECK_EQUAL(p.get_nb_cache_calls(), 4);
     }
     // cache = { coord:.09:.01; coord:.03:.01 }
     {
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 3);
-        BOOST_CHECK_EQUAL(p.get_nb_calls(), 5);
+        BOOST_CHECK_EQUAL(p.get_nb_cache_calls(), 5);
     }
     // cache = { coord:.03:.01; coord:.09:.01 }
     {
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 4);
-        BOOST_CHECK_EQUAL(p.get_nb_calls(), 6);
+        BOOST_CHECK_EQUAL(p.get_nb_cache_calls(), 6);
     }
     // cache = { coord:.13:.01; coord:.03:.01 }
     {
@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 5);
-        BOOST_CHECK_EQUAL(p.get_nb_calls(), 7);
+        BOOST_CHECK_EQUAL(p.get_nb_cache_calls(), 7);
     }
     // cache = { coord:.09:.01; coord:.13:.01 }
 }

@@ -36,7 +36,7 @@ private:
     // exterior because of the purity of f
     mutable Cache cache;
     mutable size_t nb_cache_miss = 0;
-    mutable size_t nb_calls = 0;
+    mutable size_t nb_cache_calls = 0;
     mutable std::mutex mutex;
 
     valhalla::baldr::Location build_location(const std::string& place,
@@ -73,7 +73,7 @@ public:
     }
 
     size_t get_nb_cache_miss() const { return nb_cache_miss; }
-    size_t get_nb_calls() const { return nb_calls; }
+    size_t get_nb_cache_calls() const { return nb_cache_calls; }
 
 private:
     template<typename T>
@@ -90,7 +90,7 @@ private:
         {
             std::lock_guard<std::mutex> lock(mutex);
             for (auto it = places_begin; it != places_end; ++it) {
-                ++nb_calls;
+                ++nb_cache_calls;
                 const auto search = map.find(std::make_pair(*it, mode));
                 if (search != map.end()) {
                     // put the cached value at the begining of the cache

@@ -229,7 +229,7 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
 
     const auto duration = pt::microsec_clock::universal_time() - start;
     metrics.observe_handle_matrix(mode, duration.total_milliseconds() / 1000.0);
-    metrics.observe_nb_cache_miss(projector.get_nb_cache_miss());
+    metrics.observe_nb_cache_miss(projector.get_nb_cache_miss(), projector.get_nb_cache_calls());
 
     return response;
 }
