@@ -64,7 +64,25 @@ public:
                const T places_end,
                valhalla::baldr::GraphReader& graph,
                const std::string& mode,
-               const valhalla::sif::cost_ptr_t& costing) const {
+               const valhalla::sif::cost_ptr_t& costing,
+	       const bool use_cache = true) const {
+               if(use_cache){
+                   return project_with_cache(places_begin, places_end, graph, mode, costing);
+               }
+               return project_without_cache(places_begin, places_end, graph, mode, costing);
+    }
+
+    size_t get_nb_cache_miss() const { return nb_cache_miss; }
+    size_t get_nb_calls() const { return nb_calls; }
+
+private:
+    template<typename T>
+    std::unordered_map<std::string, valhalla::baldr::PathLocation>
+    project_with_cache(const T places_begin,
+            const T places_end,
+            valhalla::baldr::GraphReader& graph,
+            const std::string& mode,
+            const valhalla::sif::cost_ptr_t& costing) const {
         std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
         std::vector<valhalla::baldr::Location> missed;
         auto& list = cache.template get<0>();
@@ -100,8 +118,25 @@ public:
         return results;
     }
 
-    size_t get_nb_cache_miss() const { return nb_cache_miss; }
-    size_t get_nb_calls() const { return nb_calls; }
+    template<typename T>
+    std::unordered_map<std::string, valhalla::baldr::PathLocation>
+    project_without_cache(const T places_begin,
+            const T places_end,
+            valhalla::baldr::GraphReader& graph,
+            const std::string& mode,
+            const valhalla::sif::cost_ptr_t& costing)const{
+            std::vector<valhalla::baldr::Location> missed;
+            std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
+
+            const auto path_locations = valhalla::loki::Search(missed,
+                                                               graph,
+                                                               costing->GetEdgeFilter(),
+                                                               costing->GetNodeFilter());
+            for (const auto& l : path_locations) {
+                results.emplace(l.first.name_, l.second);
+            }
+            return results;
+        }
 };
 
 } // namespace asgard
