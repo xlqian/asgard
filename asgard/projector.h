@@ -125,10 +125,12 @@ private:
                           valhalla::baldr::GraphReader& graph,
                           const std::string& mode,
                           const valhalla::sif::cost_ptr_t& costing) const {
-        std::vector<valhalla::baldr::Location> missed;
+        std::vector<valhalla::baldr::Location> locations;
+        for (auto it = places_begin; it != places_end; ++it) {
+            ²locations.push_back(build_location(*it, reachability, radius));
+        }
         std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
-
-        const auto path_locations = valhalla::loki::Search(missed,
+        const auto path_locations = valhalla::loki::Search(locations,
                                                            graph,
                                                            costing->GetEdgeFilter(),
                                                            costing->GetNodeFilter());
