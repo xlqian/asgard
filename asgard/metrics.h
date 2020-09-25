@@ -38,6 +38,7 @@ protected:
     prometheus::Gauge* status_family;
     std::map<const std::string, prometheus::Histogram*> handle_direct_path_histogram;
     std::map<const std::string, prometheus::Histogram*> handle_matrix_histogram;
+    prometheus::Gauge* nb_cache_miss_gauge;
 
 public:
     explicit Metrics(const boost::optional<const AsgardConf&>& config);
@@ -45,6 +46,7 @@ public:
 
     void observe_handle_direct_path(const std::string&, double duration) const;
     void observe_handle_matrix(const std::string&, double duration) const;
+    void observe_nb_cache_miss(uint64_t nb_cache_miss) const;
 };
 
 } // namespace asgard

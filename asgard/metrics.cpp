@@ -82,7 +82,7 @@ Metrics::Metrics(const boost::optional<const AsgardConf&>& config) {
 
     auto& in_flight_family = prometheus::BuildGauge()
                                  .Name("asgard_request_in_flight")
-                                 .Help("Number of requests currently beeing processed")
+                                 .Help("Number of requests currently being processed")
                                  .Register(*registry);
     this->in_flight = &in_flight_family.Add({});
 
@@ -103,6 +103,13 @@ Metrics::Metrics(const boost::optional<const AsgardConf&>& config) {
         auto& histo_matrix = matrix_family.Add({{"mode", mode}}, create_fixed_duration_buckets());
         this->handle_matrix_histogram[mode] = &histo_matrix;
     }
+
+    auto& nb_cache_miss = prometheus::BuildGauge()
+                              .Name("nb_cache_miss")
+                              .Help("Nbr of projector's cache miss from the start of app")
+                              .Register(*registry);
+
+    nb_cache_miss_gauge = &nb_cache_miss.Add({});
 }
 
 InFlightGuard Metrics::start_in_flight() const {
@@ -134,6 +141,13 @@ void Metrics::observe_handle_matrix(const std::string& mode, double duration) co
     } else {
         LOG_WARN("mode " + mode + " not found in metrics");
     }
+}
+
+void Metrics::observe_nb_cache_miss(uint64_t nb_cache_miss) const {
+    if (!registry) {
+        return;
+    }
+    nb_cache_miss_gauge->Set(nb_cache_miss);
 }
 
 } // namespace asgard
