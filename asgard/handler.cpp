@@ -152,31 +152,31 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     mode_costing.update_costing_for_mode(mode, request.sn_routing_matrix().speed());
     const auto costing = mode_costing.get_costing_for_mode(mode);
 
-    LOG_INFO("Projecting " + std::to_string(navitia_sources.size() + navitia_targets.size()) + " locations...");
-    const auto range = boost::range::join(navitia_sources, navitia_targets);
-    const auto projected_locations = projector(begin(range), end(range), graph, mode, costing);
-
-    if (projected_locations.empty()) {
-        return make_error_response(pbnavitia::Error::no_origin_nor_destination, "Cannot project the given coords!");
+    // We use the cache only when there are more than one element in the sources/targets, so the cache will keep only stop_points coord
+    bool use_cache = (navitia_sources.size() > 1);
+    const auto projected_sources_locations = projector(begin(navitia_sources), end(navitia_sources), graph, mode, costing, use_cache);
+    if (projected_sources_locations.empty()) {
+        LOG_ERROR("All sources projections failed!");
+        return make_error_response(pbnavitia::Error::no_origin, "origins projection failed!");
     }
+
+    use_cache = (navitia_targets.size() > 1);
+    const auto projected_targets_locations = projector(begin(navitia_targets), end(navitia_targets), graph, mode, costing, use_cache);
+    if (projected_targets_locations.empty()) {
+        LOG_ERROR("All targets projections failed!");
+        return make_error_response(pbnavitia::Error::no_destination, "destinations projection failed!");
+    }
+
     LOG_INFO("Projecting locations done.");
 
     ValhallaLocations valhalla_location_sources;
     ProjectionFailedMask projection_mask_sources;
-    std::tie(valhalla_location_sources, projection_mask_sources) = make_valhalla_locations_from_projected_locations(navitia_sources, projected_locations, graph);
+    std::tie(valhalla_location_sources, projection_mask_sources) = make_valhalla_locations_from_projected_locations(navitia_sources, projected_sources_locations, graph);
 
     ValhallaLocations valhalla_location_targets;
     ProjectionFailedMask projection_mask_targets;
-    std::tie(valhalla_location_targets, projection_mask_targets) = make_valhalla_locations_from_projected_locations(navitia_targets, projected_locations, graph);
+    std::tie(valhalla_location_targets, projection_mask_targets) = make_valhalla_locations_from_projected_locations(navitia_targets, projected_targets_locations, graph);
 
-    if (valhalla_location_sources.empty()) {
-        LOG_ERROR("All sources projections failed!");
-        return make_error_response(pbnavitia::Error::no_origin, "origins projection failed");
-    }
-    if (valhalla_location_targets.empty()) {
-        LOG_ERROR("All targets projections failed!");
-        return make_error_response(pbnavitia::Error::no_destination, "destinations projection failed");
-    }
     LOG_INFO(std::to_string(projection_mask_sources.count()) + " origin(s) projection failed " +
              std::to_string(projection_mask_targets.count()) + " target(s) projection failed");
 
@@ -229,6 +229,8 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
 
     const auto duration = pt::microsec_clock::universal_time() - start;
     metrics.observe_handle_matrix(mode, duration.total_milliseconds() / 1000.0);
+    metrics.observe_nb_cache_miss(projector.get_nb_cache_miss(), projector.get_nb_cache_calls());
+
     return response;
 }
 
@@ -255,7 +257,9 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
                                        request.direct_path().destination().place()};
 
     LOG_INFO("Projecting locations...");
-    auto projected_locations = projector(begin(locations), end(locations), graph, mode, costing);
+    // It's a direct path.. we don't pollute the cache with random coords...
+    const bool use_cache = false;
+    auto projected_locations = projector(begin(locations), end(locations), graph, mode, costing, use_cache);
     LOG_INFO("Projecting locations done.");
 
     if (projected_locations.size() != 2) {

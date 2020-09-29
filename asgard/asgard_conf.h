@@ -46,7 +46,7 @@ struct AsgardConf {
     AsgardConf() {
         configure_logs("ASGARD_LOGGING_FILE_PATH");
         socket_path = get_config<std::string>("ASGARD_SOCKET_PATH", "tcp://*:6000");
-        cache_size = get_config<size_t>("ASGARD_CACHE_SIZE", 100000);
+        cache_size = get_config<size_t>("ASGARD_CACHE_SIZE", 1000000);
         nb_threads = get_config<size_t>("ASGARD_NB_THREADS", 3);
         metrics_binding = get_config<std::string>("ASGARD_METRICS_BINDING", std::string("0.0.0.0:8080"));
 

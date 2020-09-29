@@ -36,7 +36,7 @@ private:
     // exterior because of the purity of f
     mutable Cache cache;
     mutable size_t nb_cache_miss = 0;
-    mutable size_t nb_calls = 0;
+    mutable size_t nb_cache_calls = 0;
     mutable std::mutex mutex;
 
     valhalla::baldr::Location build_location(const std::string& place,
@@ -64,7 +64,25 @@ public:
                const T places_end,
                valhalla::baldr::GraphReader& graph,
                const std::string& mode,
-               const valhalla::sif::cost_ptr_t& costing) const {
+               const valhalla::sif::cost_ptr_t& costing,
+               const bool use_cache = true) const {
+        if (use_cache) {
+            return project_with_cache(places_begin, places_end, graph, mode, costing);
+        }
+        return project_without_cache(places_begin, places_end, graph, mode, costing);
+    }
+
+    size_t get_nb_cache_miss() const { return nb_cache_miss; }
+    size_t get_nb_cache_calls() const { return nb_cache_calls; }
+
+private:
+    template<typename T>
+    std::unordered_map<std::string, valhalla::baldr::PathLocation>
+    project_with_cache(const T places_begin,
+                       const T places_end,
+                       valhalla::baldr::GraphReader& graph,
+                       const std::string& mode,
+                       const valhalla::sif::cost_ptr_t& costing) const {
         std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
         std::vector<valhalla::baldr::Location> missed;
         auto& list = cache.template get<0>();
@@ -72,7 +90,7 @@ public:
         {
             std::lock_guard<std::mutex> lock(mutex);
             for (auto it = places_begin; it != places_end; ++it) {
-                ++nb_calls;
+                ++nb_cache_calls;
                 const auto search = map.find(std::make_pair(*it, mode));
                 if (search != map.end()) {
                     // put the cached value at the begining of the cache
@@ -100,8 +118,29 @@ public:
         return results;
     }
 
-    size_t get_nb_cache_miss() const { return nb_cache_miss; }
-    size_t get_nb_calls() const { return nb_calls; }
+    template<typename T>
+    std::unordered_map<std::string, valhalla::baldr::PathLocation>
+    project_without_cache(const T places_begin,
+                          const T places_end,
+                          valhalla::baldr::GraphReader& graph,
+                          const std::string& mode,
+                          const valhalla::sif::cost_ptr_t& costing) const {
+        std::vector<valhalla::baldr::Location> locations;
+        std::transform(places_begin, places_end, std::back_inserter(locations),
+                       [this](const std::string& place) {
+                           return build_location(place, reachability, radius);
+                       });
+        const auto path_locations = valhalla::loki::Search(locations,
+                                                           graph,
+                                                           costing->GetEdgeFilter(),
+                                                           costing->GetNodeFilter());
+
+        std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
+        for (const auto& l : path_locations) {
+            results.emplace(l.first.name_, l.second);
+        }
+        return results;
+    }
 };
 
 } // namespace asgard
