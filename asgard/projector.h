@@ -126,13 +126,16 @@ private:
                           const std::string& mode,
                           const valhalla::sif::cost_ptr_t& costing) const {
         std::vector<valhalla::baldr::Location> locations;
-        std::transform(places_begin, places_end, std::back_inserter(locations), 
-              bind(build_location, placeholders::_1, reachability, radius));
-        std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
+        std::transform(places_begin, places_end, std::back_inserter(locations),
+                       [this](const std::string& place) {
+                           return build_location(place, reachability, radius);
+                       });
         const auto path_locations = valhalla::loki::Search(locations,
                                                            graph,
                                                            costing->GetEdgeFilter(),
                                                            costing->GetNodeFilter());
+
+        std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
         for (const auto& l : path_locations) {
             results.emplace(l.first.name_, l.second);
         }
