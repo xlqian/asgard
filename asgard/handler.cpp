@@ -153,7 +153,7 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     const auto costing = mode_costing.get_costing_for_mode(mode);
 
     // We use the cache only when there are more than one element in the sources/targets, so the cache will keep only stop_points coord
-    bool use_cache = (navitia_sources.size() != 1);
+    bool use_cache = (navitia_sources.size() > 1);
     const auto projected_sources_locations = projector(begin(navitia_sources), end(navitia_sources), graph, mode, costing, use_cache);
     if (projected_sources_locations.empty()) {
         LOG_ERROR("All sources projections failed!");
