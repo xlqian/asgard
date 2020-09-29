@@ -263,7 +263,7 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     LOG_INFO("Projecting locations done.");
 
     if (projected_locations.size() != 2) {
-        return make_error_response(pbnavitia::Error::no_origin_nor_destination, "Cannot prject the given coords!");
+        return make_error_response(pbnavitia::Error::no_origin_nor_destination, "Cannot project the given coords!");
     }
 
     Location origin;
