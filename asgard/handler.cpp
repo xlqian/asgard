@@ -160,7 +160,7 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
         return make_error_response(pbnavitia::Error::no_origin, "origins projection failed!");
     }
 
-    use_cache = (navitia_targets.size() != 1);
+    use_cache = (navitia_targets.size() > 1);
     const auto projected_targets_locations = projector(begin(navitia_targets), end(navitia_targets), graph, mode, costing, use_cache);
     if (projected_targets_locations.empty()) {
         LOG_ERROR("All targets projections failed!");
