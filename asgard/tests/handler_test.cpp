@@ -106,7 +106,7 @@ void check_journey_trivial_direct_path(const pbnavitia::Response& response,
     BOOST_CHECK_EQUAL(section.destination().uri(), destination_uri);
 
     const auto& sn = section.street_network();
-    BOOST_ASSERT(sn.path_items_size() == 3);
+    BOOST_ASSERT(sn.path_items_size() == 4);
     for (int i = 0; i < sn.path_items_size(); ++i) {
         BOOST_CHECK_CLOSE(sn.path_items(i).length(), expected_section_length[i], 0.5f);
         BOOST_CHECK_CLOSE(sn.path_items(i).duration(), expected_section_duration[i], 0.5f);
@@ -144,8 +144,9 @@ BOOST_AUTO_TEST_CASE(handle_direct_path_trivial_test) {
     sn_params->set_origin_mode("walking");
     sn_params->set_walking_speed(2);
 
-    std::vector<unsigned int> expected_section_length = {222, 667, 445};
-    std::vector<unsigned int> expected_section_duration = {111, 333, 223};
+    // Last section corresponds to the arrival so its length and duration equal 0
+    std::vector<unsigned int> expected_section_length = {222, 667, 445, 0};
+    std::vector<unsigned int> expected_section_duration = {111, 333, 223, 0};
 
     {
         const auto response = h.handle(request);
@@ -165,10 +166,12 @@ BOOST_AUTO_TEST_CASE(handle_direct_path_trivial_test) {
 
     {
         const auto response = h.handle(request);
-        std::reverse(expected_section_length.begin(), expected_section_length.end());
-        std::reverse(expected_section_duration.begin(), expected_section_duration.end());
+
+        // Last section corresponds to the arrival so its length and duration equal 0
+        std::vector<unsigned int> reverse_expected_section_length = {445, 667, 222, 0};
+        std::vector<unsigned int> reverse_expected_section_duration = {223, 333, 111, 0};
         check_journey_trivial_direct_path(response, "0.01300;0.00300", "0.00100;0.00300",
-                                          expected_section_length, expected_section_duration);
+                                          reverse_expected_section_length, reverse_expected_section_duration);
     }
 }
 

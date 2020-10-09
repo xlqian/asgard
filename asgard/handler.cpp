@@ -300,18 +300,10 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     thor::TripLegBuilder::Build(controller, graph, mode_costing.get_costing(), pathedges.begin(),
                                 pathedges.end(), origin, dest, {}, *trip_leg);
 
-    const auto response = direct_path_response_builder::build_journey_response(request, pathedges, *trip_leg);
-
-    for (auto& trip_route : *api.mutable_trip()->mutable_routes()) {
-        for (auto& trip_path : *trip_route.mutable_legs()) {
-            // Validate trip path node list
-            if (trip_path.node_size() < 1) {
-                throw valhalla_exception_t{210};
-            }
-        }
-    }
-
+    api.mutable_options()->set_language("fr-FR");
     odin::DirectionsBuilder::Build(api);
+
+    const auto response = direct_path_response_builder::build_journey_response(request, pathedges, *trip_leg, api);
 
     if (graph.OverCommitted()) { graph.Clear(); }
     algo.Clear();
