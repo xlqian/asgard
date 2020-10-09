@@ -287,26 +287,27 @@ BOOST_AUTO_TEST_CASE(set_path_item_type_test) {
     set_and_check_cycle_path_type(TripLeg_CycleLane_kSeparated, pbnavitia::SeparatedCycleWay);
 }
 
-/*
-// Create a node and set its elapsed_time with node_elapsed_time
-// Checks that the value in path_item.duration() is node_elapsed_time - previous
-// And set_path_item_duration return value is node_elapsed_time
-void exec_set_path_item_duration_test(uint32_t previous, uint32_t node_elapsed_time, uint32_t expected_path_item_duration) {
-    TripLeg_Node node;
-    node.set_elapsed_time(node_elapsed_time);
-    auto path_item = pbnavitia::PathItem();
-    auto res = set_path_item_duration(node, previous, path_item);
-    BOOST_CHECK_EQUAL(path_item.duration(), expected_path_item_duration);
-    BOOST_CHECK_EQUAL(res, node_elapsed_time);
-}
-
 BOOST_AUTO_TEST_CASE(set_path_item_duration_test) {
-    exec_set_path_item_duration_test(30, 42, 12);
-    exec_set_path_item_duration_test(0, 36, 36);
-    exec_set_path_item_duration_test(999, 1024, 25);
-    exec_set_path_item_duration_test(45, 662, 617);
+    // No value set in path_item
+    {
+        DirectionsLeg_Maneuver maneuver;
+        auto path_item = pbnavitia::PathItem();
+
+        set_path_item_duration(maneuver, path_item);
+        BOOST_CHECK_EQUAL(path_item.has_duration(), false);
+    }
+
+    // One value set in path_item
+    {
+        DirectionsLeg_Maneuver maneuver;
+        maneuver.set_time(123.f);
+        auto path_item = pbnavitia::PathItem();
+
+        set_path_item_duration(maneuver, path_item);
+        BOOST_CHECK_EQUAL(path_item.has_duration(), true);
+        BOOST_CHECK_EQUAL(path_item.duration(), 123.f);
+    }
 }
-*/
 
 } // namespace direct_path_response_builder
 } // namespace asgard
