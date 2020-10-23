@@ -300,7 +300,7 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     thor::TripLegBuilder::Build(controller, graph, mode_costing.get_costing(), pathedges.begin(),
                                 pathedges.end(), origin, dest, {}, *trip_leg);
 
-    api.mutable_options()->set_language("fr-FR");
+    api.mutable_options()->set_language(request.direct_path().streetnetwork_params().language());
     odin::DirectionsBuilder::Build(api);
 
     const auto response = direct_path_response_builder::build_journey_response(request, pathedges, *trip_leg, api);
