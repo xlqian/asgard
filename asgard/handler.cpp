@@ -22,6 +22,7 @@
 #include "asgard/request.pb.h"
 #include "asgard/util.h"
 
+#include <valhalla/odin/directionsbuilder.h>
 #include <valhalla/thor/attributes_controller.h>
 #include <valhalla/thor/triplegbuilder.h>
 
@@ -266,8 +267,8 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
         return make_error_response(pbnavitia::Error::no_origin_nor_destination, "Cannot project the given coords!");
     }
 
-    Location origin;
-    Location dest;
+    valhalla::Location origin;
+    valhalla::Location dest;
     baldr::PathLocation::toPBF(projected_locations.at(locations.front()), &origin, graph);
     baldr::PathLocation::toPBF(projected_locations.at(locations.back()), &dest, graph);
 
@@ -294,11 +295,15 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     // We just take the first and only one then
     const auto& pathedges = path_info_list.front();
     thor::AttributesController controller;
-    valhalla::TripLeg trip_leg;
+    valhalla::Api api;
+    auto* trip_leg = api.mutable_trip()->mutable_routes()->Add()->mutable_legs()->Add();
     thor::TripLegBuilder::Build(controller, graph, mode_costing.get_costing(), pathedges.begin(),
-                                pathedges.end(), origin, dest, {}, trip_leg);
+                                pathedges.end(), origin, dest, {}, *trip_leg);
 
-    const auto response = direct_path_response_builder::build_journey_response(request, pathedges, trip_leg);
+    api.mutable_options()->set_language(request.direct_path().streetnetwork_params().language());
+    odin::DirectionsBuilder::Build(api);
+
+    const auto response = direct_path_response_builder::build_journey_response(request, pathedges, *trip_leg, api);
 
     if (graph.OverCommitted()) { graph.Clear(); }
     algo.Clear();

@@ -19,7 +19,8 @@ constexpr static float KM_TO_M = 1000.f;
 
 pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
                                            const std::vector<valhalla::thor::PathInfo>& pathedges,
-                                           const TripLeg& trip_leg) {
+                                           const TripLeg& trip_leg,
+                                           valhalla::Api& api) {
     pbnavitia::Response response;
 
     if (pathedges.empty()) {
@@ -68,7 +69,7 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
     set_extremity_pt_object(list_geo_points.front(), s->mutable_origin());
     set_extremity_pt_object(list_geo_points.back(), s->mutable_destination());
     compute_geojson(list_geo_points, *s);
-    compute_path_items(trip_leg, s->mutable_street_network());
+    compute_path_items(api, s->mutable_street_network());
 
     compute_metadata(*journey);
 
@@ -159,28 +160,39 @@ void compute_metadata(pbnavitia::Journey& pb_journey) {
     pb_journey.set_duration(ts_arrival - ts_departure);
 }
 
-void compute_path_items(const TripLeg& trip_leg, pbnavitia::StreetNetwork* sn) {
-    uint32_t previous_node_elapsed_time = 0;
-    for (int i = 0; i < trip_leg.node_size() - 1; ++i) {
-        auto* path_item = sn->add_path_items();
-        auto const& e = trip_leg.node(i).edge();
-        set_path_item_name(e, *path_item);
-        set_path_item_length(e, *path_item);
-        set_path_item_type(e, *path_item);
-        previous_node_elapsed_time =
-            set_path_item_duration(trip_leg.node(i + 1), previous_node_elapsed_time, *path_item);
+void compute_path_items(valhalla::Api& api, pbnavitia::StreetNetwork* sn) {
+    if (api.mutable_trip()->routes_size() > 0 && api.has_directions() && api.mutable_directions()->mutable_routes(0)->legs_size() > 0) {
+        auto& trip_route = *api.mutable_trip()->mutable_routes(0);
+        auto& directions_leg = *api.mutable_directions()->mutable_routes(0)->mutable_legs(0);
+        for (int i = 0; i < directions_leg.maneuver_size(); ++i) {
+            const auto& maneuver = directions_leg.maneuver(i);
+            auto* path_item = sn->add_path_items();
+            auto const& edge = trip_route.mutable_legs(0)->node(i).edge();
+            set_path_item_type(edge, *path_item);
+            set_path_item_name(maneuver, *path_item);
+            set_path_item_length(maneuver, *path_item);
+            set_path_item_duration(maneuver, *path_item);
+            set_path_item_direction(maneuver, *path_item);
+            set_path_item_instruction(maneuver, *path_item);
+        }
     }
 }
 
-void set_path_item_name(const TripLeg_Edge& edge, pbnavitia::PathItem& path_item) {
-    if (!edge.name().empty() && edge.name().Get(0).has_value()) {
-        path_item.set_name(edge.name().Get(0).value());
+void set_path_item_instruction(const DirectionsLeg_Maneuver& maneuver, pbnavitia::PathItem& path_item) {
+    if (maneuver.has_text_instruction() && !maneuver.text_instruction().empty()) {
+        path_item.set_instruction(maneuver.text_instruction() + " Continuez pendant " + std::to_string((int)(maneuver.length() * KM_TO_M)) + " m.");
     }
 }
 
-void set_path_item_length(const TripLeg_Edge& edge, pbnavitia::PathItem& path_item) {
-    if (edge.has_length()) {
-        path_item.set_length(edge.length() * KM_TO_M);
+void set_path_item_name(const DirectionsLeg_Maneuver& maneuver, pbnavitia::PathItem& path_item) {
+    if (!maneuver.street_name().empty() && maneuver.street_name().Get(0).has_value()) {
+        path_item.set_name(maneuver.street_name().Get(0).value());
+    }
+}
+
+void set_path_item_length(const DirectionsLeg_Maneuver& maneuver, pbnavitia::PathItem& path_item) {
+    if (maneuver.has_length()) {
+        path_item.set_length(maneuver.length() * KM_TO_M);
     }
 }
 
@@ -191,15 +203,18 @@ void set_path_item_type(const TripLeg_Edge& edge, pbnavitia::PathItem& path_item
     }
 }
 
-// The duration of the path_item is the current node duration - previous_node_elapsed_time
-// Returns node duration if current node has one, else returns 0
-uint32_t set_path_item_duration(const TripLeg_Node& node, uint32_t previous_node_elapsed_time, pbnavitia::PathItem& path_item) {
-    if (node.has_elapsed_time()) {
-        path_item.set_duration(node.elapsed_time() - previous_node_elapsed_time);
-        return node.elapsed_time();
+void set_path_item_duration(const DirectionsLeg_Maneuver& maneuver, pbnavitia::PathItem& path_item) {
+    if (maneuver.has_time()) {
+        path_item.set_duration(maneuver.time());
     }
+}
 
-    return 0;
+void set_path_item_direction(const DirectionsLeg_Maneuver& maneuver, pbnavitia::PathItem& path_item) {
+    if (maneuver.has_turn_degree()) {
+        int turn_degree = maneuver.turn_degree() % 360;
+        if (turn_degree > 180) turn_degree -= 360;
+        path_item.set_direction(turn_degree);
+    }
 }
 
 } // namespace direct_path_response_builder
