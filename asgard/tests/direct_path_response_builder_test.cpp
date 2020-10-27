@@ -43,7 +43,8 @@ BOOST_AUTO_TEST_CASE(build_journey_response_test) {
     {
         pbnavitia::Request request;
         valhalla::TripLeg trip_leg;
-        auto response = build_journey_response(request, {}, trip_leg);
+        valhalla::Api api;
+        auto response = build_journey_response(request, {}, trip_leg, api);
         BOOST_CHECK_EQUAL(response.response_type(), pbnavitia::NO_SOLUTION);
         BOOST_CHECK_EQUAL(response.journeys_size(), 0);
     }
@@ -51,11 +52,12 @@ BOOST_AUTO_TEST_CASE(build_journey_response_test) {
     // basic path_info_list (nominal case)
     {
         pbnavitia::Request request;
+        valhalla::Api api;
         std::vector<thor::PathInfo> path_info_list = create_path_info_list();
         request.mutable_direct_path()->set_datetime(1470241573);
 
         auto trip_leg = create_trip_leg();
-        auto response = build_journey_response(request, path_info_list, trip_leg);
+        auto response = build_journey_response(request, path_info_list, trip_leg, api);
         BOOST_CHECK_EQUAL(response.response_type(), pbnavitia::ITINERARY_FOUND);
         BOOST_CHECK_EQUAL(response.journeys_size(), 1);
 
@@ -173,94 +175,35 @@ BOOST_AUTO_TEST_CASE(compute_metadata_test) {
 }
 
 BOOST_AUTO_TEST_CASE(compute_path_items_test) {
-    // No node in trip_leg
+    // Default api
     {
-        TripLeg trip_leg;
+        Api api;
         auto sn = pbnavitia::StreetNetwork();
 
-        compute_path_items(trip_leg, &sn);
+        compute_path_items(api, &sn);
 
         BOOST_CHECK_EQUAL(sn.path_items_size(), 0);
-    }
-
-    // Multiple empty nodes
-    {
-        TripLeg trip_leg;
-        auto sn = pbnavitia::StreetNetwork();
-        int nb_nodes = 3;
-
-        // We add 3 nodes but don't set anything
-        for (int i = 0; i < nb_nodes; ++i) {
-            trip_leg.add_node();
-        }
-
-        compute_path_items(trip_leg, &sn);
-
-        BOOST_CHECK_EQUAL(sn.path_items_size(), nb_nodes - 1);
-        for (int i = 0; i < nb_nodes - 1; ++i) {
-            BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_length(), false);
-            BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_name(), false);
-            BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_duration(), false);
-        }
-    }
-
-    // Multiple nodes
-    {
-        TripLeg trip_leg;
-        auto sn = pbnavitia::StreetNetwork();
-        auto const nb_nodes = 4;
-        auto const lengths_list = std::array<double, nb_nodes>{0., 12., 23., 38.};
-        auto const names_list = std::array<std::string, nb_nodes>{"plop", "plip", "plouf"};
-        auto const durations_list = std::array<double, nb_nodes>{0., 24., 46., 76.};
-        auto const expected_durations_list_in_proto = std::array<double, nb_nodes - 1>{durations_list.at(1) - 0.,
-                                                                                       durations_list.at(2) - durations_list.at(1),
-                                                                                       durations_list.at(3) - durations_list.at(2)};
-
-        // We add 3 nodes and set all the needed values
-        for (int i = 0; i < nb_nodes; ++i) {
-            auto* n = trip_leg.add_node();
-            n->mutable_edge()->set_length(lengths_list.at(i));
-            n->mutable_edge()->add_name()->set_value(names_list.at(i));
-            n->set_elapsed_time(durations_list.at(i));
-        }
-
-        compute_path_items(trip_leg, &sn);
-
-        // Since we have 4 nodes, we haved 3 edges
-        BOOST_CHECK_EQUAL(sn.path_items_size(), nb_nodes - 1);
-        for (int i = 0; i < nb_nodes - 1; ++i) {
-            BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_length(), true);
-            BOOST_CHECK_EQUAL(sn.path_items().Get(i).length(), lengths_list.at(i) * 1000.f);
-
-            BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_name(), true);
-            BOOST_CHECK_EQUAL(sn.path_items().Get(i).name(), names_list.at(i));
-
-            BOOST_CHECK_EQUAL(sn.path_items().Get(i).has_duration(), true);
-            BOOST_CHECK_EQUAL(sn.path_items().Get(i).duration(), expected_durations_list_in_proto.at(i));
-        }
     }
 }
 
 BOOST_AUTO_TEST_CASE(set_path_item_name_test) {
     // No value set in path_item
     {
-        TripLeg_Node node;
-        auto edge = node.mutable_edge();
+        DirectionsLeg_Maneuver maneuver;
         auto path_item = pbnavitia::PathItem();
 
-        set_path_item_name(*edge, path_item);
+        set_path_item_name(maneuver, path_item);
         BOOST_CHECK_EQUAL(path_item.has_name(), false);
     }
 
     // One value in edge then set in path_item
     {
-        TripLeg_Node node;
-        auto edge = node.mutable_edge();
+        DirectionsLeg_Maneuver maneuver;
         auto path_item = pbnavitia::PathItem();
         auto const value = std::string("Plop");
-        edge->mutable_name()->Add()->set_value(value);
+        maneuver.mutable_street_name()->Add()->set_value(value);
 
-        set_path_item_name(*edge, path_item);
+        set_path_item_name(maneuver, path_item);
 
         BOOST_CHECK_EQUAL(path_item.has_name(), true);
         BOOST_CHECK_EQUAL(path_item.name(), value);
@@ -268,15 +211,14 @@ BOOST_AUTO_TEST_CASE(set_path_item_name_test) {
 
     // Multiple value in edge, only the first one is set in path_item
     {
-        TripLeg_Node node;
-        auto edge = node.mutable_edge();
+        DirectionsLeg_Maneuver maneuver;
         auto path_item = pbnavitia::PathItem();
         const std::vector<std::string> values_list = {"Plip", "Plouf", "PlapPlap"};
         for (auto const& v : values_list) {
-            edge->mutable_name()->Add()->set_value(v);
+            maneuver.mutable_street_name()->Add()->set_value(v);
         }
 
-        set_path_item_name(*edge, path_item);
+        set_path_item_name(maneuver, path_item);
 
         BOOST_CHECK_EQUAL(path_item.has_name(), true);
         BOOST_CHECK_EQUAL(path_item.name(), values_list.front());
@@ -286,34 +228,31 @@ BOOST_AUTO_TEST_CASE(set_path_item_name_test) {
 BOOST_AUTO_TEST_CASE(set_path_item_length_test) {
     // No value set in path_item
     {
-        TripLeg_Node node;
-        auto edge = node.mutable_edge();
+        DirectionsLeg_Maneuver maneuver;
         auto path_item = pbnavitia::PathItem();
 
-        set_path_item_length(*edge, path_item);
+        set_path_item_length(maneuver, path_item);
         BOOST_CHECK_EQUAL(path_item.has_length(), false);
     }
 
     // One value set in path_item
     {
-        TripLeg_Node node;
-        auto edge = node.mutable_edge();
-        edge->set_length(42.f);
+        DirectionsLeg_Maneuver maneuver;
+        maneuver.set_length(42.f);
         auto path_item = pbnavitia::PathItem();
 
-        set_path_item_length(*edge, path_item);
+        set_path_item_length(maneuver, path_item);
         BOOST_CHECK_EQUAL(path_item.has_length(), true);
         BOOST_CHECK_EQUAL(path_item.length(), 42000.f);
     }
 
     // One value set in path_item
     {
-        TripLeg_Node node;
-        auto edge = node.mutable_edge();
-        edge->set_length(999.f);
+        DirectionsLeg_Maneuver maneuver;
+        maneuver.set_length(999.f);
         auto path_item = pbnavitia::PathItem();
 
-        set_path_item_length(*edge, path_item);
+        set_path_item_length(maneuver, path_item);
         BOOST_CHECK_EQUAL(path_item.has_length(), true);
         BOOST_CHECK_EQUAL(path_item.length(), 999000.f);
     }
@@ -348,23 +287,26 @@ BOOST_AUTO_TEST_CASE(set_path_item_type_test) {
     set_and_check_cycle_path_type(TripLeg_CycleLane_kSeparated, pbnavitia::SeparatedCycleWay);
 }
 
-// Create a node and set its elapsed_time with node_elapsed_time
-// Checks that the value in path_item.duration() is node_elapsed_time - previous
-// And set_path_item_duration return value is node_elapsed_time
-void exec_set_path_item_duration_test(uint32_t previous, uint32_t node_elapsed_time, uint32_t expected_path_item_duration) {
-    TripLeg_Node node;
-    node.set_elapsed_time(node_elapsed_time);
-    auto path_item = pbnavitia::PathItem();
-    auto res = set_path_item_duration(node, previous, path_item);
-    BOOST_CHECK_EQUAL(path_item.duration(), expected_path_item_duration);
-    BOOST_CHECK_EQUAL(res, node_elapsed_time);
-}
-
 BOOST_AUTO_TEST_CASE(set_path_item_duration_test) {
-    exec_set_path_item_duration_test(30, 42, 12);
-    exec_set_path_item_duration_test(0, 36, 36);
-    exec_set_path_item_duration_test(999, 1024, 25);
-    exec_set_path_item_duration_test(45, 662, 617);
+    // No value set in path_item
+    {
+        DirectionsLeg_Maneuver maneuver;
+        auto path_item = pbnavitia::PathItem();
+
+        set_path_item_duration(maneuver, path_item);
+        BOOST_CHECK_EQUAL(path_item.has_duration(), false);
+    }
+
+    // One value set in path_item
+    {
+        DirectionsLeg_Maneuver maneuver;
+        maneuver.set_time(123.f);
+        auto path_item = pbnavitia::PathItem();
+
+        set_path_item_duration(maneuver, path_item);
+        BOOST_CHECK_EQUAL(path_item.has_duration(), true);
+        BOOST_CHECK_EQUAL(path_item.duration(), 123.f);
+    }
 }
 
 } // namespace direct_path_response_builder
