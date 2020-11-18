@@ -3,6 +3,7 @@
 #include "utils/coord_parser.h"
 
 #include <valhalla/loki/search.h>
+#include <valhalla/midgard/pointll.h>
 
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
@@ -15,7 +16,7 @@ class Projector {
 private:
     friend class UnitTestProjector;
 
-    typedef std::pair<std::string, std::string> key_type;
+    typedef std::pair<valhalla::midgard::PointLL, std::string> key_type;
     typedef valhalla::baldr::PathLocation mapped_type;
     typedef std::pair<const key_type, mapped_type> value_type;
     typedef boost::multi_index_container<
@@ -39,15 +40,13 @@ private:
     mutable size_t nb_cache_calls = 0;
     mutable std::mutex mutex;
 
-    valhalla::baldr::Location build_location(const std::string& place,
+    valhalla::baldr::Location build_location(const valhalla::midgard::PointLL& place,
                                              unsigned int reachability,
                                              unsigned int radius) const {
-        const auto coord = navitia::parse_coordinate(place);
-        auto l = valhalla::baldr::Location({coord.first, coord.second},
+        auto l = valhalla::baldr::Location(place,
                                            valhalla::baldr::Location::StopType::BREAK,
                                            reachability,
                                            radius);
-        l.name_ = place;
         return l;
     }
 
@@ -59,7 +58,7 @@ public:
                                                   radius(radius) {}
 
     template<typename T>
-    std::unordered_map<std::string, valhalla::baldr::PathLocation>
+    std::unordered_map<valhalla::midgard::PointLL, valhalla::baldr::PathLocation>
     operator()(const T places_begin,
                const T places_end,
                valhalla::baldr::GraphReader& graph,
@@ -77,13 +76,13 @@ public:
 
 private:
     template<typename T>
-    std::unordered_map<std::string, valhalla::baldr::PathLocation>
+    std::unordered_map<valhalla::midgard::PointLL, valhalla::baldr::PathLocation>
     project_with_cache(const T places_begin,
                        const T places_end,
                        valhalla::baldr::GraphReader& graph,
                        const std::string& mode,
                        const valhalla::sif::cost_ptr_t& costing) const {
-        std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
+        std::unordered_map<valhalla::midgard::PointLL, valhalla::baldr::PathLocation> results;
         std::vector<valhalla::baldr::Location> missed;
         auto& list = cache.template get<0>();
         const auto& map = cache.template get<1>();
@@ -110,8 +109,8 @@ private:
 
             std::lock_guard<std::mutex> lock(mutex);
             for (const auto& l : path_locations) {
-                list.push_front(std::make_pair(std::make_pair(l.first.name_, mode), l.second));
-                results.emplace(l.first.name_, l.second);
+                list.push_front(std::make_pair(std::make_pair(l.first.latlng_, mode), l.second));
+                results.emplace(l.first.latlng_, l.second);
             }
             while (list.size() > cache_size) { list.pop_back(); }
         }
@@ -119,7 +118,7 @@ private:
     }
 
     template<typename T>
-    std::unordered_map<std::string, valhalla::baldr::PathLocation>
+    std::unordered_map<valhalla::midgard::PointLL, valhalla::baldr::PathLocation>
     project_without_cache(const T places_begin,
                           const T places_end,
                           valhalla::baldr::GraphReader& graph,
@@ -127,7 +126,7 @@ private:
                           const valhalla::sif::cost_ptr_t& costing) const {
         std::vector<valhalla::baldr::Location> locations;
         std::transform(places_begin, places_end, std::back_inserter(locations),
-                       [this](const std::string& place) {
+                       [this](const valhalla::midgard::PointLL& place) {
                            return build_location(place, reachability, radius);
                        });
         const auto path_locations = valhalla::loki::Search(locations,
@@ -135,9 +134,9 @@ private:
                                                            costing->GetEdgeFilter(),
                                                            costing->GetNodeFilter());
 
-        std::unordered_map<std::string, valhalla::baldr::PathLocation> results;
+        std::unordered_map<valhalla::midgard::PointLL, valhalla::baldr::PathLocation> results;
         for (const auto& l : path_locations) {
-            results.emplace(l.first.name_, l.second);
+            results.emplace(l.first.latlng_, l.second);
         }
         return results;
     }

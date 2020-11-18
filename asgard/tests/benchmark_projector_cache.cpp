@@ -4,20 +4,22 @@
 #include "utils/timer.h"
 
 #include <valhalla/baldr/graphreader.h>
+#include <valhalla/midgard/pointll.h>
 
 #include <boost/program_options.hpp>
 #include <boost/progress.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include <algorithm>
 #include <random>
 #include <thread>
 
 namespace po = boost::program_options;
 using namespace valhalla::baldr;
 using namespace asgard;
-using ListOfLocations = std::vector<std::vector<std::string>>;
-using ListOfResults = std::vector<std::unordered_map<std::string, PathLocation>>;
+using ListOfLocations = std::vector<std::vector<valhalla::midgard::PointLL>>;
+using ListOfResults = std::vector<std::unordered_map<valhalla::midgard::PointLL, PathLocation>>;
 
 void compute(const Projector& projector, boost::property_tree::ptree conf, boost::progress_display& show_progress, ListOfLocations list_of_locations) {
 
@@ -534,8 +536,14 @@ ListOfLocations build_list_of_locations(size_t nb_threads) {
                                           "coord:2.292557:48.825697",
                                           "coord:2.284232:48.793203",
                                           "coord:2.304749:48.811078"};
+
+    std::vector<valhalla::midgard::PointLL> pointLLs;
+    std::transform(locations.begin(), locations.end(), std::back_inserter(pointLLs), [](const auto& coord) {
+        return valhalla::midgard::PointLL{navitia::parse_coordinate(coord)};
+    });
+
     for (size_t i = 0; i < list_size; ++i) {
-        list_of_locations.push_back(locations);
+        list_of_locations.push_back(pointLLs);
     }
 
     std::cout << "nb of locations = " << (list_of_locations.size() * locations.size()) * nb_threads << std::endl;
