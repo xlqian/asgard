@@ -28,7 +28,6 @@
 #include <valhalla/thor/attributes_controller.h>
 #include <valhalla/thor/triplegbuilder.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/range/algorithm/for_each.hpp>
 #include <boost/range/join.hpp>
 
 #include <ctime>
