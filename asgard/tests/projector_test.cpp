@@ -10,6 +10,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/test/unit_test.hpp>
 
+#include <valhalla/midgard/pointll.h>
+
 using namespace valhalla;
 
 namespace asgard {
@@ -23,12 +25,22 @@ public:
     valhalla::baldr::Location build_location(const std::string& place,
                                              unsigned int reachability,
                                              unsigned int radius) const {
-        return p.build_location(place, reachability, radius);
+        auto pointll = valhalla::midgard::PointLL{navitia::parse_coordinate(place)};
+        return p.build_location(pointll, reachability, radius);
     }
 
 private:
     Projector p;
 };
+
+std::vector<valhalla::midgard::PointLL>
+make_pointLLs(const std::vector<std::string> coords) {
+    std::vector<valhalla::midgard::PointLL> pointLLs;
+    std::transform(coords.begin(), coords.end(), std::back_inserter(pointLLs), [](const auto& coord) {
+        return valhalla::midgard::PointLL{navitia::parse_coordinate(coord)};
+    });
+    return pointLLs;
+}
 
 BOOST_AUTO_TEST_CASE(simple_projector_test) {
     tile_maker::TileMaker maker;
@@ -43,7 +55,7 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
     Projector p(2);
     // cache = {}
     {
-        std::vector<std::string> locations = {"coord:2:2"};
+        auto locations = make_pointLLs({"coord:2:2"});
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 0);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 1);
@@ -51,7 +63,7 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
     }
     // cache = {}
     {
-        std::vector<std::string> locations = {"coord:.03:.01"};
+        auto locations = make_pointLLs({"coord:.03:.01"});
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 2);
@@ -59,7 +71,7 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
     }
     // cache = { coord:.03:.01 }
     {
-        std::vector<std::string> locations = {"coord:.03:.01"};
+        auto locations = make_pointLLs({"coord:.03:.01"});
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 2);
@@ -67,7 +79,7 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
     }
     // cache = { coord:.03:.01 }
     {
-        std::vector<std::string> locations = {"coord:.09:.01"};
+        auto locations = make_pointLLs({"coord:.09:.01"});
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 3);
@@ -75,7 +87,7 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
     }
     // cache = { coord:.09:.01; coord:.03:.01 }
     {
-        std::vector<std::string> locations = {"coord:.03:.01"};
+        auto locations = make_pointLLs({"coord:.03:.01"});
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 3);
@@ -83,7 +95,7 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
     }
     // cache = { coord:.03:.01; coord:.09:.01 }
     {
-        std::vector<std::string> locations = {"coord:.13:.01"};
+        auto locations = make_pointLLs({"coord:.13:.01"});
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 4);
@@ -91,7 +103,7 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
     }
     // cache = { coord:.13:.01; coord:.03:.01 }
     {
-        std::vector<std::string> locations = {"coord:.09:.01"};
+        auto locations = make_pointLLs({"coord:.09:.01"});
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 5);
@@ -120,7 +132,8 @@ BOOST_AUTO_TEST_CASE(build_location_test) {
         BOOST_CHECK_EQUAL(static_cast<bool>(l.stoptype_), false);
         BOOST_CHECK_EQUAL(l.minimum_reachability_, 12u);
         BOOST_CHECK_EQUAL(l.radius_, 42l);
-        BOOST_CHECK_EQUAL(l.name_, "coord:8:0");
+        BOOST_CHECK_EQUAL(l.latlng_.lng(), 8);
+        BOOST_CHECK_EQUAL(l.latlng_.lat(), 0);
     }
     {
         const auto l = testProjector.build_location("92;43", 29u, 15l);
@@ -129,7 +142,8 @@ BOOST_AUTO_TEST_CASE(build_location_test) {
         BOOST_CHECK_EQUAL(static_cast<bool>(l.stoptype_), false);
         BOOST_CHECK_EQUAL(l.minimum_reachability_, 29u);
         BOOST_CHECK_EQUAL(l.radius_, 15l);
-        BOOST_CHECK_EQUAL(l.name_, "92;43");
+        BOOST_CHECK_EQUAL(l.latlng_.lng(), 92);
+        BOOST_CHECK_EQUAL(l.latlng_.lat(), 43);
     }
 }
 

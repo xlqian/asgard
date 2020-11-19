@@ -69,7 +69,8 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
     set_extremity_pt_object(list_geo_points.front(), s->mutable_origin());
     set_extremity_pt_object(list_geo_points.back(), s->mutable_destination());
     compute_geojson(list_geo_points, *s);
-    compute_path_items(api, s->mutable_street_network());
+    bool enable_instructions = request.direct_path().streetnetwork_params().enable_instructions();
+    compute_path_items(api, s->mutable_street_network(), enable_instructions);
 
     compute_metadata(*journey);
 
@@ -160,7 +161,7 @@ void compute_metadata(pbnavitia::Journey& pb_journey) {
     pb_journey.set_duration(ts_arrival - ts_departure);
 }
 
-void compute_path_items(valhalla::Api& api, pbnavitia::StreetNetwork* sn) {
+void compute_path_items(valhalla::Api& api, pbnavitia::StreetNetwork* sn, const bool enable_instruction) {
     if (api.mutable_trip()->routes_size() > 0 && api.has_directions() && api.mutable_directions()->mutable_routes(0)->legs_size() > 0) {
         auto& trip_route = *api.mutable_trip()->mutable_routes(0);
         auto& directions_leg = *api.mutable_directions()->mutable_routes(0)->mutable_legs(0);
@@ -173,14 +174,20 @@ void compute_path_items(valhalla::Api& api, pbnavitia::StreetNetwork* sn) {
             set_path_item_length(maneuver, *path_item);
             set_path_item_duration(maneuver, *path_item);
             set_path_item_direction(maneuver, *path_item);
-            set_path_item_instruction(maneuver, *path_item);
+            if (enable_instruction) {
+                set_path_item_instruction(maneuver, *path_item, i, directions_leg.maneuver_size());
+            }
         }
     }
 }
 
-void set_path_item_instruction(const DirectionsLeg_Maneuver& maneuver, pbnavitia::PathItem& path_item) {
+void set_path_item_instruction(const DirectionsLeg_Maneuver& maneuver, pbnavitia::PathItem& path_item, const size_t index, const size_t size) {
     if (maneuver.has_text_instruction() && !maneuver.text_instruction().empty()) {
-        path_item.set_instruction(maneuver.text_instruction() + " Continuez pendant " + std::to_string((int)(maneuver.length() * KM_TO_M)) + " m.");
+        auto instruction = maneuver.text_instruction();
+        if (index != (size - 1)) {
+            instruction += " Keep going for " + std::to_string((int)(maneuver.length() * KM_TO_M)) + " m.";
+        }
+        path_item.set_instruction(instruction);
     }
 }
 

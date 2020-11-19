@@ -15,6 +15,7 @@
 // <http://www.gnu.org/licenses/>.
 
 #include "asgard/handler.h"
+#include "utils/coord_parser.h"
 #include "asgard/context.h"
 #include "asgard/direct_path_response_builder.h"
 #include "asgard/metrics.h"
@@ -22,10 +23,10 @@
 #include "asgard/request.pb.h"
 #include "asgard/util.h"
 
+#include <valhalla/midgard/pointll.h>
 #include <valhalla/odin/directionsbuilder.h>
 #include <valhalla/thor/attributes_controller.h>
 #include <valhalla/thor/triplegbuilder.h>
-
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/range/join.hpp>
 
@@ -38,7 +39,7 @@ using namespace valhalla;
 namespace asgard {
 
 using ValhallaLocations = google::protobuf::RepeatedPtrField<valhalla::Location>;
-using ProjectedLocations = std::unordered_map<std::string, valhalla::baldr::PathLocation>;
+using ProjectedLocations = std::unordered_map<midgard::PointLL, valhalla::baldr::PathLocation>;
 
 // The max size of matrix in jormungandr is 5000 so far...
 constexpr size_t MAX_MASK_SIZE = 10000;
@@ -84,20 +85,8 @@ double get_speed_request(const pbnavitia::Request& request, const std::string& m
     throw std::invalid_argument("Bad get_speed_request parameter");
 }
 
-using LocationContextList = google::protobuf::RepeatedPtrField<pbnavitia::LocationContext>;
-std::vector<std::string> get_locations_from_matrix_request(const LocationContextList& request_locations) {
-    std::vector<std::string> locations;
-    locations.reserve(request_locations.size());
-
-    for (const auto& l : request_locations) {
-        locations.push_back(l.place());
-    }
-
-    return locations;
-}
-
 std::pair<ValhallaLocations, ProjectionFailedMask>
-make_valhalla_locations_from_projected_locations(const std::vector<std::string>& navitia_locations,
+make_valhalla_locations_from_projected_locations(const std::vector<midgard::PointLL>& navitia_locations,
                                                  const ProjectedLocations& projected_locations,
                                                  valhalla::baldr::GraphReader& graph) {
     ValhallaLocations valhalla_locations;
@@ -111,7 +100,7 @@ make_valhalla_locations_from_projected_locations(const std::vector<std::string>&
         auto it = projected_locations.find(l);
         if (it == projected_locations.end()) {
             projection_failed_mask.set(source_idx);
-            LOG_ERROR("Cannot project coor: " + l);
+            LOG_ERROR("Cannot project coord: " + std::to_string(l.lng()) + ";" + std::to_string(l.lat()));
             continue;
         }
         baldr::PathLocation::toPBF(it->second, valhalla_locations.Add(), graph);
@@ -123,7 +112,6 @@ make_valhalla_locations_from_projected_locations(const std::vector<std::string>&
 } // namespace
 
 Handler::Handler(const Context& context) : graph(context.graph),
-
                                            metrics(context.metrics),
                                            projector(context.projector) {
 }
@@ -147,8 +135,8 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
              std::to_string(request.sn_routing_matrix().destinations_size()) +
              " with mode " + mode);
 
-    const auto navitia_sources = get_locations_from_matrix_request(request.sn_routing_matrix().origins());
-    const auto navitia_targets = get_locations_from_matrix_request(request.sn_routing_matrix().destinations());
+    const auto navitia_sources = util::convert_locations_to_pointLL(request.sn_routing_matrix().origins());
+    const auto navitia_targets = util::convert_locations_to_pointLL(request.sn_routing_matrix().destinations());
 
     mode_costing.update_costing_for_mode(mode, request.sn_routing_matrix().speed());
     const auto costing = mode_costing.get_costing_for_mode(mode);
@@ -254,8 +242,8 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     mode_costing.update_costing_for_mode(mode, speed_request);
     auto costing = mode_costing.get_costing_for_mode(mode);
 
-    std::vector<std::string> locations{request.direct_path().origin().place(),
-                                       request.direct_path().destination().place()};
+    std::vector<midgard::PointLL> locations = util::convert_locations_to_pointLL(std::vector<pbnavitia::LocationContext>{request.direct_path().origin(),
+                                                                                                                         request.direct_path().destination()});
 
     LOG_INFO("Projecting locations...");
     // It's a direct path.. we don't pollute the cache with random coords...

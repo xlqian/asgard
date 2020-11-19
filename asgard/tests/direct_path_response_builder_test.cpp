@@ -180,7 +180,7 @@ BOOST_AUTO_TEST_CASE(compute_path_items_test) {
         Api api;
         auto sn = pbnavitia::StreetNetwork();
 
-        compute_path_items(api, &sn);
+        compute_path_items(api, &sn, true);
 
         BOOST_CHECK_EQUAL(sn.path_items_size(), 0);
     }
