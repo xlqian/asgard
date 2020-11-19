@@ -73,6 +73,7 @@ public:
 
     size_t get_nb_cache_miss() const { return nb_cache_miss; }
     size_t get_nb_cache_calls() const { return nb_cache_calls; }
+    size_t get_current_cache_size() const { return cache.template get<0>().size(); }
 
 private:
     template<typename T>

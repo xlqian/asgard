@@ -68,7 +68,7 @@ Metrics::Metrics(const boost::optional<const AsgardConf&>& config) {
     const std::map<std::string, std::string> infos = {
         {"version", std::string(config::project_version)},
         {"build_type", std::string(config::asgard_build_type)},
-        {"cache_size", std::to_string(conf.cache_size)},
+        {"max_cache_size", std::to_string(conf.cache_size)},
         {"nb_threads", std::to_string(conf.nb_threads)},
         {"reachability", std::to_string(conf.reachability)},
         {"radius", std::to_string(conf.radius)}};
@@ -115,6 +115,12 @@ Metrics::Metrics(const boost::optional<const AsgardConf&>& config) {
                                .Help("Nb of projector's cache calls from the start of app")
                                .Register(*registry)
                                .Add({});
+
+    current_cache_size = &prometheus::BuildGauge()
+                              .Name("cache size")
+                              .Help("current cache size")
+                              .Register(*registry)
+                              .Add({});
 }
 
 InFlightGuard Metrics::start_in_flight() const {
@@ -154,6 +160,10 @@ void Metrics::observe_nb_cache_miss(uint64_t nb_cache_miss, uint64_t nb_cache_ca
     }
     nb_cache_miss_gauge->Set(nb_cache_miss);
     nb_cache_call_gauge->Set(nb_cache_calls);
+}
+
+void Metrics::observe_cache_size(uint64_t cache_size) const {
+    current_cache_size->Set(cache_size);
 }
 
 } // namespace asgard
