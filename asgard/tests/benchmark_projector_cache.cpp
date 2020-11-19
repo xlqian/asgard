@@ -10,6 +10,7 @@
 #include <boost/progress.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <boost/range/algorithm/transform.hpp>
 
 #include <algorithm>
 #include <random>
@@ -538,7 +539,7 @@ ListOfLocations build_list_of_locations(size_t nb_threads) {
                                           "coord:2.304749:48.811078"};
 
     std::vector<valhalla::midgard::PointLL> pointLLs;
-    std::transform(locations.begin(), locations.end(), std::back_inserter(pointLLs), [](const auto& coord) {
+    boost::transform(locations, std::back_inserter(pointLLs), [](const auto& coord) {
         return valhalla::midgard::PointLL{navitia::parse_coordinate(coord)};
     });
 

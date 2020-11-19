@@ -69,8 +69,8 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
     set_extremity_pt_object(list_geo_points.front(), s->mutable_origin());
     set_extremity_pt_object(list_geo_points.back(), s->mutable_destination());
     compute_geojson(list_geo_points, *s);
-    bool enable_instructoin = request.direct_path().streetnetwork_params().enable_instructions();
-    compute_path_items(api, s->mutable_street_network(), enable_instructoin);
+    bool enable_instructions = request.direct_path().streetnetwork_params().enable_instructions();
+    compute_path_items(api, s->mutable_street_network(), enable_instructions);
 
     compute_metadata(*journey);
 
@@ -175,16 +175,16 @@ void compute_path_items(valhalla::Api& api, pbnavitia::StreetNetwork* sn, const 
             set_path_item_duration(maneuver, *path_item);
             set_path_item_direction(maneuver, *path_item);
             if (enable_instruction) {
-                set_path_item_instruction(maneuver, *path_item, i == (directions_leg.maneuver_size() - 1));
+                set_path_item_instruction(maneuver, *path_item, i, directions_leg.maneuver_size());
             }
         }
     }
 }
 
-void set_path_item_instruction(const DirectionsLeg_Maneuver& maneuver, pbnavitia::PathItem& path_item, const bool is_last_item) {
+void set_path_item_instruction(const DirectionsLeg_Maneuver& maneuver, pbnavitia::PathItem& path_item, const size_t index, const size_t size) {
     if (maneuver.has_text_instruction() && !maneuver.text_instruction().empty()) {
         auto instruction = maneuver.text_instruction();
-        if (!is_last_item) {
+        if (index != (size - 1)) {
             instruction += " Keep going for " + std::to_string((int)(maneuver.length() * KM_TO_M)) + " m.";
         }
         path_item.set_instruction(instruction);

@@ -42,7 +42,7 @@ void set_path_item_length(const valhalla::DirectionsLeg_Maneuver& maneuver, pbna
 void set_path_item_type(const valhalla::TripLeg_Edge& edge, pbnavitia::PathItem& path_item);
 void set_path_item_duration(const valhalla::DirectionsLeg_Maneuver& maneuver, pbnavitia::PathItem& path_item);
 void set_path_item_direction(const valhalla::DirectionsLeg_Maneuver& maneuver, pbnavitia::PathItem& path_item);
-void set_path_item_instruction(const valhalla::DirectionsLeg_Maneuver& maneuver, pbnavitia::PathItem& path_item, const bool is_last_item);
+void set_path_item_instruction(const valhalla::DirectionsLeg_Maneuver& maneuver, pbnavitia::PathItem& path_item, const size_t index, const size_t size);
 
 } // namespace direct_path_response_builder
 } // namespace asgard

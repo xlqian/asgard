@@ -1,9 +1,13 @@
 #pragma once
 
+#include "utils/coord_parser.h"
 #include "asgard/response.pb.h"
 
+#include <valhalla/midgard/pointll.h>
 #include <valhalla/proto/options.pb.h>
 #include <valhalla/proto/trip.pb.h>
+
+#include <boost/range/algorithm/transform.hpp>
 
 namespace valhalla {
 namespace sif {
@@ -24,6 +28,24 @@ size_t navitia_to_valhalla_mode_index(const std::string& mode);
 valhalla::Costing convert_navitia_to_valhalla_costing(const std::string& costing);
 
 pbnavitia::CyclePathType convert_valhalla_to_navitia_cycle_lane(const valhalla::TripLeg_CycleLane& cycle_lane);
+
+template<typename SingleRange>
+std::vector<valhalla::midgard::PointLL> convert_locations_to_pointLL(const SingleRange& request_locations) {
+    std::vector<valhalla::midgard::PointLL> points;
+    points.reserve(request_locations.size());
+
+    boost::transform(request_locations, std::back_inserter(points),
+                     [](const auto& l) {
+                         if (l.has_lat() && l.has_lon()) {
+                             return valhalla::midgard::PointLL{l.lon(), l.lat()};
+                         } else {
+                             return valhalla::midgard::PointLL{navitia::parse_coordinate(l.place())};
+                         }
+                     });
+
+    return points;
+}
+
 } // namespace util
 
 } // namespace asgard

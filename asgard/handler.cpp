@@ -86,23 +86,6 @@ double get_speed_request(const pbnavitia::Request& request, const std::string& m
     throw std::invalid_argument("Bad get_speed_request parameter");
 }
 
-using LocationContextList = google::protobuf::RepeatedPtrField<pbnavitia::LocationContext>;
-
-std::vector<midgard::PointLL> get_locations_from_matrix_request(const LocationContextList& request_locations) {
-    std::vector<midgard::PointLL> locations;
-    locations.reserve(request_locations.size());
-
-    for (const auto& l : request_locations) {
-        if (l.has_lat() && l.has_lon()) {
-            locations.emplace_back(l.lon(), l.lat());
-        } else {
-            locations.push_back(navitia::parse_coordinate(l.place()));
-        }
-    }
-
-    return locations;
-}
-
 std::pair<ValhallaLocations, ProjectionFailedMask>
 make_valhalla_locations_from_projected_locations(const std::vector<midgard::PointLL>& navitia_locations,
                                                  const ProjectedLocations& projected_locations,
@@ -153,8 +136,8 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
              std::to_string(request.sn_routing_matrix().destinations_size()) +
              " with mode " + mode);
 
-    const auto navitia_sources = get_locations_from_matrix_request(request.sn_routing_matrix().origins());
-    const auto navitia_targets = get_locations_from_matrix_request(request.sn_routing_matrix().destinations());
+    const auto navitia_sources = util::convert_locations_to_pointLL(request.sn_routing_matrix().origins());
+    const auto navitia_targets = util::convert_locations_to_pointLL(request.sn_routing_matrix().destinations());
 
     mode_costing.update_costing_for_mode(mode, request.sn_routing_matrix().speed());
     const auto costing = mode_costing.get_costing_for_mode(mode);
@@ -260,14 +243,8 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     mode_costing.update_costing_for_mode(mode, speed_request);
     auto costing = mode_costing.get_costing_for_mode(mode);
 
-    std::vector<midgard::PointLL> locations;
-    boost::for_each(std::vector<pbnavitia::LocationContext>{request.direct_path().origin(), request.direct_path().destination()},
-                    [&locations](const auto l) {
-    	            	 if(l.has_lat() && l.has_lon()) {
-    	            		 locations.emplace_back(l.lon(), l.lat());
-    	            	 } else {
-    	            		 locations.emplace_back(navitia::parse_coordinate(l.place()));
-    	            	 } });
+    std::vector<midgard::PointLL> locations = util::convert_locations_to_pointLL(std::vector<pbnavitia::LocationContext>{request.direct_path().origin(),
+                                                                                                                         request.direct_path().destination()});
 
     LOG_INFO("Projecting locations...");
     // It's a direct path.. we don't pollute the cache with random coords...
