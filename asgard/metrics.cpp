@@ -163,6 +163,9 @@ void Metrics::observe_nb_cache_miss(uint64_t nb_cache_miss, uint64_t nb_cache_ca
 }
 
 void Metrics::observe_cache_size(uint64_t cache_size) const {
+    if (!registry) {
+        return;
+    }
     current_cache_size->Set(cache_size);
 }
 
