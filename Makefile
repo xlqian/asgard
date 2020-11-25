@@ -1,6 +1,13 @@
 # Configuration
-.PHONY: build-app-image 
+.PHONY: build-app-image build-data-image 
 .DEFAULT_GOAL := help
+
+BBOX = "-26 38 46 80" # France
+
+build-data-image: ## Build Asgard data image with provided pbf (PBF_URL) and bbox for elevation data
+	$(info Building Asgard data image)
+	cd docker/asgard-data && \
+	docker build --build-arg pbf_url=$(PBF_URL) --build-arg elevation_min_x_max_x_min_y_max_y=$(BBOX) -t navitia/asgard-data:$(TAG) . --no-cache
 
 build-app-image-master: ## Build Asgard app image from master
 	$(info Building Asgard app image from master)
