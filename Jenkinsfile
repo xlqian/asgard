@@ -6,12 +6,12 @@ pipeline {
                 echo "toto 1"
             }
         }
-        stage('stage 1') {
+        stage('stage 2') {
             steps {
                 echo "toto 2"
             }
         }
-        stage('stage 1') {
+        stage('stage 3') {
             steps {
                 echo "toto 4"
             }
