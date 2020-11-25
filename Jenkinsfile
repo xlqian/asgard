@@ -11,7 +11,7 @@ pipeline {
     stages {
         stage('Build Data Image') {
             when {
-                env.BRANCH_NAME == "jenkinsfile"
+                env.BRANCH_NAME == "add_jenkinsfile_create_asgard_data"
             }
             steps {
                 sh "make build-data-image TAG=${params.DATA_IMAGE_TAG} PBF_URL=${params.PBF_URL} BBOX=${params.ELEVATION_BBOX}" 
