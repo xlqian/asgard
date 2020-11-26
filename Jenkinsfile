@@ -1,7 +1,6 @@
 pipeline {
     agent any
     parameters { 
-        
         // Parameters for Data Image
         booleanParam(name: 'BUILD_IMAGE_ONLY', defaultValue: false, description: '')
         string(name: 'PBF_URL', defaultValue: 'https://download.geofabrik.de/europe/france-latest.osm.pbf', description: 'osm pbf url')
@@ -16,6 +15,7 @@ pipeline {
                 }
             }
             steps {
+                sh "ls"
                 sh "make build-data-image TAG=${params.DATA_IMAGE_TAG} PBF_URL=${params.PBF_URL} BBOX=${params.ELEVATION_BBOX}" 
             }
         }
