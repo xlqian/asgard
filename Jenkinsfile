@@ -21,7 +21,9 @@ pipeline {
         }
         stage('Log in') {
             steps {
-                echo "toto 2"
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId:'jenkins-core-dockerhub', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+                    sh "make dockerhub-login"
+                }
             }
         }
         stage('Push Image') {

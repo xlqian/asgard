@@ -31,6 +31,10 @@ push-app-image: ## Push app-image to dockerhub
 	$(info Push data-image to Dockerhub)
 	docker push navitia/asgard-app:${tag}
 
+push-data-image: ## push data-image to dockerhub, TAG must be provided 
+	$(info Push data-image to Dockerhub)
+	docker push navitia/asgard-data:${TAG}
+
 wipe-useless-images: ## Remove all useless images
 	$(info Remove useless images)
 	@dangling_images=`docker images --filter "dangling=true" -q --no-trunc`;
