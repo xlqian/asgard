@@ -5,7 +5,7 @@ pipeline {
         booleanParam(name: 'BUILD_IMAGE_ONLY', defaultValue: false, description: '')
         string(name: 'PBF_URL', defaultValue: 'https://download.geofabrik.de/europe/france-latest.osm.pbf', description: 'osm pbf url')
         string(name: 'DATA_IMAGE_TAG', defaultValue : 'france', description: 'data image tag')
-        string(name: 'ELEVATION_BBOX', defaultValue : '-26 38 46 80', description: 'elevation bounding box, default value is for france')
+        string(name: 'ELEVATION_BBOX', defaultValue : '-5.1972 8.3483 42.2646 51.1116', description: 'elevation bounding box, default value is for france')
     }
     stages {
         stage('Build Data Image') {
