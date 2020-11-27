@@ -1,5 +1,5 @@
 # Configuration
-.PHONY: build-app-image build-data-image 
+.PHONY: build-data-image 
 .DEFAULT_GOAL := help
 
 BBOX ='-5.1972 8.3483 42.2646 51.1116' # France
