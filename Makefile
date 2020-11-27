@@ -2,7 +2,7 @@
 .PHONY: build-app-image build-data-image 
 .DEFAULT_GOAL := help
 
-BBOX ="-5.1972 8.3483 42.2646 51.1116' # France
+BBOX ='-5.1972 8.3483 42.2646 51.1116' # France
 
 build-data-image: ## Build Asgard data image with provided pbf (PBF_URL) and bbox for elevation data
 	$(info Building Asgard data image)
