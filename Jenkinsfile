@@ -32,6 +32,7 @@ pipeline {
     }
     post {
         always {
+            sh "make wipe-useless-images"
             deleteDir()
         }
     }

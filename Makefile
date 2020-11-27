@@ -31,7 +31,7 @@ push-app-image: ## Push app-image to dockerhub
 	$(info Push data-image to Dockerhub)
 	docker push navitia/asgard-app:${tag}
 
-push-data-image: ## push data-image to dockerhub, TAG must be provided 
+push-data-image: ## Push data-image to dockerhub, TAG must be provided 
 	$(info Push data-image to Dockerhub)
 	docker push navitia/asgard-data:${TAG}
 
