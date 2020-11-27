@@ -20,7 +20,7 @@ RUN sed -i 's,\"minimum_reachability\"\: [[:digit:]]*,\"minimum_reachability\"\:
   && sed -i 's,\"shortcuts\"\: [^,]*,\"shortcuts\"\: false,' valhalla.json \
   && sed -i 's,\"hierarchy\"\: [^,]*,\"hierarchy\"\: false,' valhalla.json
 
-RUN valhalla_build_elevation -5.1972 8.3483 42.2646 51.1116 ${PWD}/elevation_tiles $(nproc)
+RUN valhalla_build_elevation $elevation_min_x_max_x_min_y_max_y ${PWD}/elevation_tiles $(nproc)
 
 RUN valhalla_build_tiles -c valhalla.json *.pbf
 RUN find valhalla_tiles | sort -n | tar cf valhalla_tiles.tar --no-recursion -T - \
