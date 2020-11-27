@@ -15,7 +15,7 @@ pipeline {
                 }
             }
             steps {
-                sh "make build-data-image TAG=${params.DATA_IMAGE_TAG} PBF_URL=${params.PBF_URL} BBOX=${params.ELEVATION_BBOX}" 
+                sh "make build-data-image TAG=${params.DATA_IMAGE_TAG} PBF_URL=${params.PBF_URL} BBOX='${params.ELEVATION_BBOX}'" 
             }
         }
         stage('Log in') {
