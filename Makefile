@@ -7,7 +7,7 @@ BBOX ='-5.1972 8.3483 42.2646 51.1116' # France
 build-data-image: ## Build Asgard data image with provided pbf (PBF_URL) and bbox for elevation data
 	$(info Building Asgard data image)
 	cd docker/asgard-data && \
-	docker build --build-arg pbf_url=$(PBF_URL) --build-arg elevation_min_x_max_x_min_y_max_y=$(BBOX) -t navitia/asgard-data:$(TAG) . --no-cache
+	docker build --build-arg pbf_url="$(PBF_URL)" --build-arg elevation_min_x_max_x_min_y_max_y="$(BBOX)" -t navitia/asgard-data:$(TAG) . --no-cache
 
 build-app-image-master: ## Build Asgard app image from master
 	$(info Building Asgard app image from master)
