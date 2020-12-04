@@ -3,12 +3,14 @@ pipeline {
     stages {
         stage('Build App Image From Master') {
             when {
-                expression {
-                    env.BRANCH_NAME == "jenkinsfiletest"
+		anyOf {
+		    branch 'jenkinsfiletest'
+		    branch 'master'
+		    branch 'release'
                 }
             }
             steps {
-		sh "make build-app-from-master"
+		sh "make build-app-image-${env.BRANCH_NAME}"
             }
    	}
         stage('Login') {
@@ -20,7 +22,7 @@ pipeline {
         }
         stage('Push Asgard App Image') {
             steps {
-                // sh "make push-app-image TAG=${}"
+                // sh "make push-app-image"
                 echo 'test push'
             }
         }
@@ -34,7 +36,7 @@ pipeline {
     }
     post {
         always {
-	    sh "wipe-useless-images"
+	    sh "make wipe-useless-images"
             deleteDir()
         }
     }
