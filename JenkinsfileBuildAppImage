@@ -1,32 +1,34 @@
 pipeline {
     agent any
+    parameters {
+    }
     stages {
-        stage('Build App Image') {
+        stage('Build App Image From Master') {
             when {
                 expression {
                     env.BRANCH_NAME == "jenkinsfiletest"
                 }
             }
             steps {
-                sh "docker build -f docker/asgard-app/Dockerfile -t navitia/asgard-app:master . --no-cache"
+		sh "make build-app-from-master"
             }
-        }
+   	}
         stage('Login') {
             steps {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'kisio-docker-token', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-                    sh "docker login -u=navitia -p=${PASSWORD}"
+                    sh "make dockerhub-login DOCKERHUB_USER=${USERNAME} DOCKERHUB_PWD=${PASSWORD}"
                 }
             }
         }
         stage('Push Asgard App Image') {
             steps {
-                // docker push navitia/asgard-app:master
+                // sh "make push-app-image TAG=${}"
                 echo 'test push'
             }
         }
         stage('Delete') {
             steps {
-                sh "delete all dangling and 'navitia/asgard-*' images"
+                echo "delete all dangling and 'navitia/asgard-*' images"
                 sh "docker rmi -f \$(docker images --filter 'dangling=true' -q --no-trunc) || true"
                 sh "docker rmi -f \$(docker images 'navitia/asgard-*' -q)"
             }
@@ -34,6 +36,7 @@ pipeline {
     }
     post {
         always {
+	    sh "wipe-useless-images"
             deleteDir()
         }
     }
