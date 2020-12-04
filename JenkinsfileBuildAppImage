@@ -1,7 +1,5 @@
 pipeline {
     agent any
-    parameters {
-    }
     stages {
         stage('Build App Image From Master') {
             when {
