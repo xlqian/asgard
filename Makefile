@@ -4,11 +4,11 @@
 
 build-app-image-master: ## Build Asgard app image from master
 	$(info Building Asgard app image from master)
-	docker build -f docker/asgard-app/Dockerfile -t navitia/asgard-app:master . --no-cache
+	docker build -f docker/asgard-app/Dockerfile -t navitia/asgard-app:${tag} . --no-cache
 
 build-app-image-release: ## Build Asgard app image from release
 	$(info Building Asgard app image from release)
-	docker build -f docker/asgard-app/Dockerfile -t navitia/asgard-app:${version} . --no-cache
+	docker build -f docker/asgard-app/Dockerfile -t navitia/asgard-app:${tag} . --no-cache
 
 dockerhub-login: ## Login Docker hub, DOCKERHUB_USER, DOCKERHUB_PWD, must be provided
 	$(info Login Dockerhub)
@@ -18,11 +18,11 @@ get-app-master-tag: ## Get master tag
 	@echo "master"
 
 get-app-release-tag: ## Get release version tag
-	@[ -z "${version}" ] && (git describe --tags --abbrev=0 && exit 0) || echo ${version}
+	@[ -z "${tag}" ] && (git describe --tags --abbrev=0 && exit 0) || echo ${tag}
 
 push-app-image: ## Push app-image to dockerhub
 	$(info Push data-image to Dockerhub)
-	docker push navitia/asgard-app
+	docker push navitia/asgard-app:${tag}
 
 wipe-useless-images: ## Remove all useless images
 	$(info Remove useless images)
