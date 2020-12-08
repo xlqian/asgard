@@ -14,6 +14,9 @@ dockerhub-login: ## Login Docker hub, DOCKERHUB_USER, DOCKERHUB_PWD, must be pro
 	$(info Login Dockerhub)
 	echo ${DOCKERHUB_PWD} | docker login --username ${DOCKERHUB_USER} --password-stdin
 
+get-app-jenkinsfiletest-tag:
+	@echo "master"
+
 get-app-master-tag: ## Get master tag
 	@echo "master"
 
