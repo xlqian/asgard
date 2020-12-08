@@ -6,6 +6,7 @@ pipeline {
 		anyOf {
 		    branch 'master'
 		    branch 'release'
+		    branch 'jenkinstest'
                 }
             }
             steps {
