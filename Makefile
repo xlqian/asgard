@@ -10,7 +10,7 @@ build-app-image-release: ## Build Asgard app image from release
 	$(info Building Asgard app image from release)
 	docker build -f docker/asgard-app/Dockerfile -t navitia/asgard-app:${tag} . --no-cache
 
-build-app-image-jenkinsfile:
+build-app-image-jenkinsfiletest:
 	$(info Building Asgard app image from jenkinsfiletest)
 	docker build -f docker/asgard-app/Dockerfile -t navitia/asgard-app:${tag} . --no-cache
 
