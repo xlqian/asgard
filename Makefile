@@ -10,6 +10,10 @@ build-app-image-release: ## Build Asgard app image from release
 	$(info Building Asgard app image from release)
 	docker build -f docker/asgard-app/Dockerfile -t navitia/asgard-app:${tag} . --no-cache
 
+build-app-image-jenkinsfile:
+	$(info Building Asgard app image from jenkinsfiletest)
+	docker build -f docker/asgard-app/Dockerfile -t navitia/asgard-app:${tag} . --no-cache
+
 dockerhub-login: ## Login Docker hub, DOCKERHUB_USER, DOCKERHUB_PWD, must be provided
 	$(info Login Dockerhub)
 	echo ${DOCKERHUB_PWD} | docker login --username ${DOCKERHUB_USER} --password-stdin
