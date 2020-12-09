@@ -1,0 +1,41 @@
+pipeline {
+    agent any
+    stages {
+        stage('Build App Image') {
+            when {
+		anyOf {
+		    branch 'master'
+		    branch 'release'
+                }
+            }
+            steps {
+		sh "make build-app-image-${env.BRANCH_NAME} tag=`make get-app-${env.BRANCH_NAME}-tag`"
+            }
+   	}
+        stage('Login') {
+            steps {
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'kisio-docker-token', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+                    sh "make dockerhub-login DOCKERHUB_USER=${USERNAME} DOCKERHUB_PWD=${PASSWORD}"
+                }
+            }
+        }
+        stage('Push Asgard App Image') {
+            steps {
+		sh "make push-app-image tag=`make get-app-${env.BRANCH_NAME}-tag`"
+            }
+        }
+        stage('Delete') {
+            steps {
+                echo "delete all dangling and 'navitia/asgard-*' images"
+                sh "docker rmi -f \$(docker images --filter 'dangling=true' -q --no-trunc) || true"
+                sh "docker rmi -f \$(docker images 'navitia/asgard-*' -q)"
+            }
+        }
+    }
+    post {
+        always {
+            sh "make wipe-useless-images"
+            deleteDir()
+        }
+    }
+}
