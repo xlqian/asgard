@@ -10,7 +10,7 @@ pipeline {
                 }
             }
             steps {
-		sh "tag=\$(make get-app-\${env.BRANCH_NAME}-tag)"
+		sh "tag=$(make get-app-\${env.BRANCH_NAME}-tag)"
 		sh "make build-app-image-${env.BRANCH_NAME} tag=${tag}"
             }
    	}
