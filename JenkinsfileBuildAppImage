@@ -6,7 +6,6 @@ pipeline {
 		anyOf {
 		    branch 'master'
 		    branch 'release'
-		    branch 'jenkinsfiletest'
                 }
             }
             steps {
@@ -22,8 +21,7 @@ pipeline {
         }
         stage('Push Asgard App Image') {
             steps {
-                // sh "make push-app-image"
-		echo "Step Push Asgard App Image"
+		sh "make push-app-image tag=`make get-app-${env.BRANCH_NAME}-tag`"
             }
         }
         stage('Delete') {
