@@ -3,15 +3,15 @@ pipeline {
     stages {
         stage('Build App Image') {
             when {
-		anyOf {
-		    branch 'master'
-		    branch 'release'
+                anyOf {
+                    branch 'master'
+                    branch 'release'
                 }
             }
             steps {
-		sh "make build-app-image-${env.BRANCH_NAME} tag=`make get-app-${env.BRANCH_NAME}-tag`"
+                sh "make build-app-image-${env.BRANCH_NAME} TAG=`make get-app-${env.BRANCH_NAME}-tag`"
             }
-   	}
+        }
         stage('Login') {
             steps {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'kisio-docker-token', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
@@ -21,7 +21,7 @@ pipeline {
         }
         stage('Push Asgard App Image') {
             steps {
-		sh "make push-app-image tag=`make get-app-${env.BRANCH_NAME}-tag`"
+                sh "make push-app-image TAG=`make get-app-${env.BRANCH_NAME}-tag`"
             }
         }
         stage('Delete') {
