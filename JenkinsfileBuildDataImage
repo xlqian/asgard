@@ -31,10 +31,5 @@ pipeline {
             deleteDir()
         }
     }
-    orphanedItemStrategy {
-        discardOldItems {
-            daysToKeep(10)
-        }
-    }
 }
 
