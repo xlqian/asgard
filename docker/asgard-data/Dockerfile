@@ -7,19 +7,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Download the pbf given in argument
 ARG pbf_url=http://download.geofabrik.de/europe/france-latest.osm.pbf
 ARG elevation_min_x_max_x_min_y_max_y='-5.1972 8.3483 42.2646 51.1116'
-RUN wget --progress=bar:force:noscroll $pbf_url \
-  && mkdir -p valhalla_tiles \
-  && valhalla_build_config --mjolnir-tile-dir ${PWD}/valhalla_tiles --mjolnir-tile-extract ${PWD}/valhalla_tiles.tar --mjolnir-timezone ${PWD}/valhalla_tiles/timezones.sqlite --mjolnir-admin ${PWD}/valhalla_tiles/admins.sqlite --additional-data-elevation ${PWD}/elevation_tiles > valhalla.json \
-  # These are default values set after empirically testing asgard with distributed.
-  # They seem to give the most coherent results between the time of the matrix and the direct_path
-  # And fixing some projection problems in dead-ends or isolated places.
-  && sed -i 's,\"minimum_reachability\"\: [[:digit:]]*,\"minimum_reachability\"\: 30,' valhalla.json \
+
+RUN wget --progress=bar:force:noscroll $pbf_url && mkdir -p valhalla_tiles 
+
+RUN valhalla_build_config --mjolnir-tile-dir ${PWD}/valhalla_tiles --mjolnir-tile-extract ${PWD}/valhalla_tiles.tar --mjolnir-timezone ${PWD}/valhalla_tiles/timezones.sqlite --mjolnir-admin ${PWD}/valhalla_tiles/admins.sqlite --additional-data-elevation ${PWD}/elevation_tiles > valhalla.json
+
+# These are default values set after empirically testing asgard with distributed.
+# They seem to give the most coherent results between the time of the matrix and the direct_path
+# And fixing some projection problems in dead-ends or isolated places.
+RUN sed -i 's,\"minimum_reachability\"\: [[:digit:]]*,\"minimum_reachability\"\: 30,' valhalla.json \
   && sed -i 's,\"radius\"\: [[:digit:]]*,\"radius\"\: 0,' valhalla.json \
   && sed -i 's,\"shortcuts\"\: [^,]*,\"shortcuts\"\: false,' valhalla.json \
-  && sed -i 's,\"hierarchy\"\: [^,]*,\"hierarchy\"\: false,' valhalla.json \
-  && valhalla_build_elevation $elevation_min_x_max_x_min_y_max_y ${PWD}/elevation_tiles $(nproc) \
-  && valhalla_build_tiles -c valhalla.json *.pbf \
-  && find valhalla_tiles | sort -n | tar cf valhalla_tiles.tar --no-recursion -T - \
+  && sed -i 's,\"hierarchy\"\: [^,]*,\"hierarchy\"\: false,' valhalla.json
+
+RUN valhalla_build_elevation $elevation_min_x_max_x_min_y_max_y ${PWD}/elevation_tiles $(nproc)
+
+RUN valhalla_build_tiles -c valhalla.json *.pbf
+RUN find valhalla_tiles | sort -n | tar cf valhalla_tiles.tar --no-recursion -T - \
   # Make the graph shareable between threads in a thread-safe way
   # This has to be set after the creation of the tiles to avoid seg faults
   && sed -i '/"hierarchy":/a \\t"global_synchronized_cache": true,' valhalla.json
