@@ -24,10 +24,14 @@ pipeline {
                 sh "make push-data-image TAG=${DATA_IMAGE_TAG}"
             }
         }
+        stage('Remove useless images') {
+            steps {
+                sh "make wipe-useless-images"
+            }
+        }
     }
     post {
         always {
-            sh "make wipe-useless-images"
             deleteDir()
         }
     }

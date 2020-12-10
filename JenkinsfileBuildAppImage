@@ -24,17 +24,14 @@ pipeline {
                 sh "make push-app-image TAG=`make get-app-${env.BRANCH_NAME}-tag`"
             }
         }
-        stage('Delete') {
+        stage('Remove useless images') {
             steps {
-                echo "delete all dangling and 'navitia/asgard-*' images"
-                sh "docker rmi -f \$(docker images --filter 'dangling=true' -q --no-trunc) || true"
-                sh "docker rmi -f \$(docker images 'navitia/asgard-*' -q)"
+                sh "make wipe-useless-images"
             }
         }
     }
     post {
-        always {
-            sh "make wipe-useless-images"
+        always {         
             deleteDir()
         }
     }
