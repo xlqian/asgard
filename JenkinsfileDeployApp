@@ -13,7 +13,7 @@ pipeline {
                 }
             }
         }
-        stage('Deploy Asgard app image') {
+        stage('Deploy Asgard app and data image') {
             steps {
                 dir("fabric"){
                     withEnv(["HOME=${env.WORKSPACE}"]) {
