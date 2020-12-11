@@ -1,27 +1,26 @@
 pipeline {
     agent any
+    parameters{
+        string(name: 'ENV', defaultValue : 'dev', description: 'deployement environnement')
+        string(name: 'DOCKER_APP_TAG', defaultValue : 'master', description: 'Asgard app tag')
+        string(name: 'DOCKER_IMAGE_TAG', defaultValue : 'france', description: 'Asgard image tag')
+    }
     stages {
-        stage('Build App Image') {
-            when {
-                anyOf {
-                    branch 'master'
-                    branch 'release'
-                }
-            }
+        stage('Checkout Fabric Asgard') {
             steps {
-                sh "make build-app-image-${env.BRANCH_NAME} TAG=`make get-app-${env.BRANCH_NAME}-tag`"
-            }
-        }
-        stage('Login') {
-            steps {
-                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'kisio-docker-token', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-                    sh "make dockerhub-login DOCKERHUB_USER=${USERNAME} DOCKERHUB_PWD=${PASSWORD}"
+                dir("fabric"){
+                    git branch: 'master', changelog: false, credentialsId: 'jenkins-core-github-credentials', poll: false, url: 'https://github.com/CanalTP/fabric_asgard'
                 }
             }
         }
-        stage('Push Asgard App Image') {
+        stage('Deploy Asgard app image') {
             steps {
-                sh "make push-app-image TAG=`make get-app-${env.BRANCH_NAME}-tag`"
+                dir("fabric"){
+                    withEnv(["HOME=${env.WORKSPACE}"]) {
+                        sh "pip install -r requirements.txt --exists-action w"
+                        sh "python -u -m fabric let:app_tag=$DOCKER_APP_TAG let:data_tag=$DOCKER_IMAGE_TAG --keepalive=20 $env deploy_app_and_data"
+                    }
+                }
             }
         }
         stage('Remove useless images') {
