@@ -18,7 +18,7 @@ pipeline {
                 dir("fabric"){
                     withEnv(["HOME=${env.WORKSPACE}"]) {
                         sh "pip install -r requirements.txt --exists-action w"
-                        sh "python -u -m fabric let:app_tag=${parameters.DOCKER_APP_TAG} let:data_tag=${parameters.DOCKER_DATA_TAG} --keepalive=20 ${parameters.ENV} deploy_app_and_data"
+                        sh "python -u -m fabric let:app_tag=${params.DOCKER_APP_TAG} let:data_tag=${params.DOCKER_DATA_TAG} --keepalive=20 ${params.ENV} deploy_app_and_data"
                     }
                 }
             }
