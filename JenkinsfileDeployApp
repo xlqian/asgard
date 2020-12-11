@@ -9,7 +9,7 @@ pipeline {
         stage('Checkout Fabric Asgard') {
             steps {
                 dir("fabric"){
-                    git branch: 'master', changelog: false, credentialsId: 'jenkins-core-github-credentials', poll: false, url: 'https://github.com/CanalTP/fabric_asgard'
+                    git branch: 'master', changelog: false, credentialsId: 'jenkins-core-github-credentials', poll: false, url: 'https://github.com/CanalTP/fab_asgard'
                 }
             }
         }
