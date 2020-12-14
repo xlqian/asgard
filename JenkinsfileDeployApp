@@ -7,7 +7,7 @@ pipeline {
     }
     stages {
         stage('Create Asgard App Image'){
-            build job: "create-asgard-app"
+            build "create-asgard-app"
         }
         stage('Checkout Fabric Asgard') {
             steps {
