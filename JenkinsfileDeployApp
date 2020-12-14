@@ -6,6 +6,9 @@ pipeline {
         string(name: 'DOCKER_DATA_TAG', defaultValue : 'france', description: 'Asgard data tag')
     }
     stages {
+        stage('Create Asgard App Image'){
+            build job: 'create-asgard-app'
+        }
         stage('Checkout Fabric Asgard') {
             steps {
                 dir("fabric"){
