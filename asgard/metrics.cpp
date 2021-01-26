@@ -117,7 +117,7 @@ Metrics::Metrics(const boost::optional<const AsgardConf&>& config) {
                                .Add({});
 
     current_cache_size = &prometheus::BuildGauge()
-                              .Name("cache size")
+                              .Name("cache_size")
                               .Help("current cache size")
                               .Register(*registry)
                               .Add({});
