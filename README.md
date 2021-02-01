@@ -89,9 +89,9 @@ cd build/asgard
 ctest
 ```
 
-#### Run Aasgard
+#### Run Asgard
 
-You should have now asgard compiled and a data ready to use.
+You should have now Asgard compiled and a data ready to use.
 
 ```bash
 # Export var env ASGARD_VALHALLA_CONF
