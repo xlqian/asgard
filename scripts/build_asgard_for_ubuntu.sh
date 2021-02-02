@@ -41,19 +41,18 @@ sudo apt install -y \
       libprotobuf-dev \
       libgeos-dev \
       libgeos++-dev \
-      liblua5.2-dev \
+      libluajit-5.1-dev \
+      luajit \
       libspatialite-dev \
       libsqlite3-dev \
       spatialite-bin \
       liblz4-dev \
       unzip \
-      lua5.2 \
       python-all-dev \
       vim-common \
       jq \
       gucharmap \
       libprotobuf10 \
-      liblua5.2 \
       libsqlite3-0 \
       libboost-all-dev \
       libboost-date-time1.62.0 \
@@ -79,7 +78,7 @@ pip3 install pre-commit
 # Clone Valhalla
 echo "** clone Valhalla"
 cd ${asgard_dir}
-git clone --depth=1 --recursive --branch 3.0.8 https://github.com/valhalla/valhalla.git libvalhalla
+git clone --depth=1 --recursive --branch 3.1.0 https://github.com/valhalla/valhalla.git libvalhalla
 
 
 # Build and install Valhalla
@@ -88,8 +87,8 @@ valhalla_install_dir=${asgard_dir}/valhalla_install
 mkdir -p ${valhalla_install_dir}
 mkdir -p libvalhalla/build
 cd libvalhalla/build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=Off -DENABLE_NODE_BINDINGS=Off -DCMAKE_INSTALL_PREFIX:PATH=${valhalla_install_dir}
-make -j$(nproc) install
+cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=Off -DENABLE_NODE_BINDINGS=Off -DENABLE_BENCHMARKS=Off -DCMAKE_INSTALL_PREFIX:PATH=${valhalla_install_dir}
+make -j$(nproc)
 
 
 # Build Asgard
