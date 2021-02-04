@@ -1,0 +1,31 @@
+name: CI
+
+on:
+    pull_request:
+    push:
+        branches:
+            - master
+            - release
+
+jobs:
+    checks:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v2
+        - name: checkout submodules
+          shell: bash
+          run: |
+            sed -i 's,git\@github.com:\([^/]*\)/\(.*\).git,https://github.com/\1/\2,' .gitmodules
+            git submodule update --init --recursive
+    build:
+        runs-on: ubuntu-latest
+        container:
+            image: navitia/asgard-build-deps:latest
+        steps:
+        - uses: actions/checkout@v2
+          with:
+            submodules: 'recursive'
+        - name: build
+          run: |
+            cd /src && scripts/check-formatting.sh
+            mkdir build && cd build && cmake /src && make && cd asgard && ctest
