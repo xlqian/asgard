@@ -23,8 +23,6 @@ jobs:
             image: navitia/asgard-build-deps:latest
         steps:
         - uses: actions/checkout@v2
-          with:
-            submodules: 'recursive'
         - name: build
           run: |
             cd /src && scripts/check-formatting.sh
