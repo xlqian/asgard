@@ -8,6 +8,7 @@ on:
             - release
 
 jobs:
+    
     checks:
         runs-on: ubuntu-latest
         steps:
@@ -15,6 +16,7 @@ jobs:
         - name: checkout submodules
           shell: bash
           run: |
+            docker run --rm --name asgard -d -v $(pwd):/src navitia/asgard-build-deps:latest sh -c 'while true; do sleep 10; done'
             sed -i 's,git\@github.com:\([^/]*\)/\(.*\).git,https://github.com/\1/\2,' .gitmodules
             git submodule update --init --recursive
     build:
