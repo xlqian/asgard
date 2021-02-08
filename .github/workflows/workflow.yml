@@ -29,4 +29,4 @@ jobs:
           run: |
             echo `ls`
             scripts/check-formatting.sh
-            mkdir build && cd build && cmake /src && make && cd asgard && ctest
+            mkdir build && cd build && cmake ./ && make && cd asgard && ctest
