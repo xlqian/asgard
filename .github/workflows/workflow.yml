@@ -8,19 +8,19 @@ on:
             - release
 
 jobs:
-    checks:
+    build:
         runs-on: ubuntu-latest
         container:
             image: navitia/asgard-build-deps:latest
+        
         steps:
         - uses: actions/checkout@v2
         - name: checkout submodules
-          shell: bash
           run: |
+            echo `ls`
             sed -i 's,git\@github.com:\([^/]*\)/\(.*\).git,https://github.com/\1/\2,' .gitmodules
             git submodule update --init --recursive
         - name: build
           run: |
-            echo `ls`
             scripts/check-formatting.sh
             mkdir build && cd build && cmake ../ && make && cd asgard && ctest
