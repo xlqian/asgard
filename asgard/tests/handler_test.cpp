@@ -109,7 +109,7 @@ void check_journey_trivial_direct_path(const pbnavitia::Response& response,
     BOOST_ASSERT(sn.path_items_size() == 4);
     for (int i = 0; i < sn.path_items_size(); ++i) {
         BOOST_CHECK_CLOSE(sn.path_items(i).length(), expected_section_length[i], 0.5f);
-        BOOST_CHECK_CLOSE(sn.path_items(i).length(), expected_section_length[i], 0.5f);
+        BOOST_CHECK_CLOSE(sn.path_items(i).duration(), expected_section_duration[i], 0.5f);
     }
 }
 
