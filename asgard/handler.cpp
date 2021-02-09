@@ -281,12 +281,13 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     // The path algorithms all are allowed to return more than one path now.
     // None of them do, but the api allows for it
     // We just take the first and only one then
+    valhalla::Options options;
     const auto& pathedges = path_info_list.front();
     thor::AttributesController controller;
     valhalla::Api api;
     auto* trip_leg = api.mutable_trip()->mutable_routes()->Add()->mutable_legs()->Add();
-    thor::TripLegBuilder::Build(controller, graph, mode_costing.get_costing(), pathedges.begin(),
-                                pathedges.end(), origin, dest, {}, *trip_leg);
+    thor::TripLegBuilder::Build(options, controller, graph, mode_costing.get_costing(), pathedges.begin(),
+                                pathedges.end(), origin, dest, {}, *trip_leg, {"sources_to_targets"}, nullptr, nullptr);
 
     api.mutable_options()->set_language(request.direct_path().streetnetwork_params().language());
     odin::DirectionsBuilder::Build(api);

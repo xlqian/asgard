@@ -20,6 +20,7 @@
 #include "asgard/response.pb.h"
 
 #include <valhalla/baldr/graphreader.h>
+#include <valhalla/thor/astar_bss.h>
 #include <valhalla/thor/bidirectional_astar.h>
 #include <valhalla/thor/timedistancematrix.h>
 
@@ -46,7 +47,7 @@ private:
     valhalla::baldr::GraphReader& graph;
     valhalla::thor::TimeDistanceMatrix matrix;
     valhalla::thor::BidirectionalAStar bda;
-    valhalla::thor::AStarPathAlgorithm astar;
+    valhalla::thor::AStarBSSAlgorithm astar;
     ModeCosting mode_costing;
     const Metrics& metrics;
     const Projector& projector;

@@ -48,15 +48,15 @@ ModeCosting::ModeCosting() {
     factory.Register(vc::bicycle, sif::CreateBicycleCost);
 
     const auto default_directions_options = make_default_directions_options();
-    costing[util::navitia_to_valhalla_mode_index("car")] = factory.Create(vc::auto_, default_directions_options);
-    costing[util::navitia_to_valhalla_mode_index("taxi")] = factory.Create(vc::taxi, default_directions_options);
-    costing[util::navitia_to_valhalla_mode_index("walking")] = factory.Create(vc::pedestrian, default_directions_options);
-    costing[util::navitia_to_valhalla_mode_index("bike")] = factory.Create(vc::bicycle, default_directions_options);
+    costing[util::navitia_to_valhalla_mode_index("car")] = factory.Create(vc::auto_);
+    costing[util::navitia_to_valhalla_mode_index("taxi")] = factory.Create(vc::taxi);
+    costing[util::navitia_to_valhalla_mode_index("walking")] = factory.Create(vc::pedestrian);
+    costing[util::navitia_to_valhalla_mode_index("bike")] = factory.Create(vc::bicycle);
 }
 
 void ModeCosting::update_costing_for_mode(const std::string& mode, float speed) {
     costing[util::navitia_to_valhalla_mode_index(mode)] = factory.Create(
-        util::convert_navitia_to_valhalla_costing(mode), make_costing_option(mode, speed));
+        util::convert_navitia_to_valhalla_costing(mode));
 }
 
 const valhalla::sif::cost_ptr_t ModeCosting::get_costing_for_mode(const std::string& mode) const {

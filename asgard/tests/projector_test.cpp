@@ -25,7 +25,8 @@ public:
     valhalla::baldr::Location build_location(const std::string& place,
                                              unsigned int reachability,
                                              unsigned int radius) const {
-        auto pointll = valhalla::midgard::PointLL{navitia::parse_coordinate(place)};
+        auto c = navitia::parse_coordinate(place);
+        auto pointll = valhalla::midgard::PointLL{c.first, c.second};
         return p.build_location(pointll, reachability, radius);
     }
 
@@ -37,7 +38,8 @@ std::vector<valhalla::midgard::PointLL>
 make_pointLLs(const std::vector<std::string> coords) {
     std::vector<valhalla::midgard::PointLL> pointLLs;
     std::transform(coords.begin(), coords.end(), std::back_inserter(pointLLs), [](const auto& coord) {
-        return valhalla::midgard::PointLL{navitia::parse_coordinate(coord)};
+        auto c = navitia::parse_coordinate(coord);
+        return valhalla::midgard::PointLL{c.first, c.second};
     });
     return pointLLs;
 }
@@ -122,7 +124,6 @@ BOOST_AUTO_TEST_CASE(build_location_test) {
         BOOST_CHECK_CLOSE(l.latlng_.lng(), 8.f, .0001f);
         BOOST_CHECK_CLOSE(l.latlng_.lat(), 0.f, .0001f);
         BOOST_CHECK_EQUAL(static_cast<bool>(l.stoptype_), false);
-        BOOST_CHECK_EQUAL(l.minimum_reachability_, 12u);
         BOOST_CHECK_EQUAL(l.radius_, 42l);
     }
     {
@@ -130,7 +131,6 @@ BOOST_AUTO_TEST_CASE(build_location_test) {
         BOOST_CHECK_CLOSE(l.latlng_.lng(), 8.f, .0001f);
         BOOST_CHECK_CLOSE(l.latlng_.lat(), 0.f, .0001f);
         BOOST_CHECK_EQUAL(static_cast<bool>(l.stoptype_), false);
-        BOOST_CHECK_EQUAL(l.minimum_reachability_, 12u);
         BOOST_CHECK_EQUAL(l.radius_, 42l);
         BOOST_CHECK_EQUAL(l.latlng_.lng(), 8);
         BOOST_CHECK_EQUAL(l.latlng_.lat(), 0);
@@ -140,7 +140,6 @@ BOOST_AUTO_TEST_CASE(build_location_test) {
         BOOST_CHECK_CLOSE(l.latlng_.lng(), 92.f, .0001f);
         BOOST_CHECK_CLOSE(l.latlng_.lat(), 43.f, .0001f);
         BOOST_CHECK_EQUAL(static_cast<bool>(l.stoptype_), false);
-        BOOST_CHECK_EQUAL(l.minimum_reachability_, 29u);
         BOOST_CHECK_EQUAL(l.radius_, 15l);
         BOOST_CHECK_EQUAL(l.latlng_.lng(), 92);
         BOOST_CHECK_EQUAL(l.latlng_.lat(), 43);

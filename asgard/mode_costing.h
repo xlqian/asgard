@@ -7,7 +7,7 @@ namespace asgard {
 
 static const size_t mode_costing_size = static_cast<size_t>(valhalla::sif::TravelMode::kMaxTravelMode);
 
-using Costing = valhalla::sif::cost_ptr_t[mode_costing_size];
+using Costing = valhalla::sif::mode_costing_t;
 
 class ModeCosting {
 public:
@@ -20,7 +20,7 @@ public:
     const Costing& get_costing() const { return costing; }
 
 private:
-    valhalla::sif::CostFactory<valhalla::sif::DynamicCost> factory;
+    valhalla::sif::CostFactory factory;
     Costing costing;
 };
 

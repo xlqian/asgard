@@ -22,7 +22,7 @@ const std::vector<midgard::PointLL> list_geo_points = {
 std::vector<thor::PathInfo> create_path_info_list() {
     std::vector<thor::PathInfo> path_info_list;
     for (size_t i = 0; i < 5; ++i) {
-        path_info_list.emplace_back(sif::TravelMode::kDrive, i * 5, baldr::GraphId(), 0, i * 10.);
+        path_info_list.emplace_back(sif::TravelMode::kDrive, sif::Cost(i * 5, i * 5), baldr::GraphId(), 0, i * 10.);
     }
     return path_info_list;
 }
@@ -33,7 +33,7 @@ valhalla::TripLeg create_trip_leg() {
     valhalla::TripLeg trip_leg;
     trip_leg.set_shape(s);
     for (size_t i = 0; i < list_geo_points.size(); ++i) {
-        trip_leg.add_node()->mutable_edge()->set_length((i * 5) / 1000.f);
+        trip_leg.add_node()->mutable_edge()->set_length_km((i * 5) / 1000.f);
     }
     return trip_leg;
 }

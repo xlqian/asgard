@@ -105,8 +105,7 @@ private:
         if (!missed.empty()) {
             const auto path_locations = valhalla::loki::Search(missed,
                                                                graph,
-                                                               costing->GetEdgeFilter(),
-                                                               costing->GetNodeFilter());
+                                                               costing);
 
             std::lock_guard<std::mutex> lock(mutex);
             for (const auto& l : path_locations) {
@@ -132,8 +131,7 @@ private:
                        });
         const auto path_locations = valhalla::loki::Search(locations,
                                                            graph,
-                                                           costing->GetEdgeFilter(),
-                                                           costing->GetNodeFilter());
+                                                           costing);
 
         std::unordered_map<valhalla::midgard::PointLL, valhalla::baldr::PathLocation> results;
         for (const auto& l : path_locations) {

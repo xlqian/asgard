@@ -75,11 +75,14 @@ echo "** install pre-commit (pip)"
 pip3 install pre-commit
 
 
-# Clone Valhalla
+## Clone Valhalla
 echo "** clone Valhalla"
 cd ${asgard_dir}
-git clone --depth=1 --recursive --branch 3.1.0 https://github.com/valhalla/valhalla.git libvalhalla
-
+git clone https://github.com/valhalla/valhalla.git libvalhalla
+cd libvalhalla
+git submodule update --init --recursive --depth=1
+git reset --hard f7c8a5bef64833787ffcc7640eb7b85ee624836b
+cd -
 
 # Build and install Valhalla
 echo "** build and install Valhalla"
@@ -88,7 +91,7 @@ mkdir -p ${valhalla_install_dir}
 mkdir -p libvalhalla/build
 cd libvalhalla/build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=Off -DENABLE_NODE_BINDINGS=Off -DENABLE_BENCHMARKS=Off -DCMAKE_INSTALL_PREFIX:PATH=${valhalla_install_dir}
-make -j$(nproc)
+make -j$(nproc) install
 
 
 # Build Asgard
