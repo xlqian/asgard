@@ -75,7 +75,7 @@ echo "** install pre-commit (pip)"
 pip3 install pre-commit
 
 
-## Clone Valhalla
+# Clone Valhalla
 echo "** clone Valhalla"
 cd ${asgard_dir}
 git clone https://github.com/valhalla/valhalla.git libvalhalla

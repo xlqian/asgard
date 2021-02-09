@@ -18,10 +18,6 @@ namespace thor {
 class PathInfo;
 }
 
-//namespace midgard {
-//class PointLL;
-//}
-
 } // namespace valhalla
 
 namespace asgard {
