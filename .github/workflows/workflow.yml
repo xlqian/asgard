@@ -15,11 +15,10 @@ jobs:
         
         steps:
         - uses: actions/checkout@v2
-          with:
-            submodules: 'recursive'
         - name: checkout submodules
           shell: bash
           run: |
+            echo `ls`
             sed -i 's,git\@github.com:\([^/]*\)/\(.*\).git,https://github.com/\1/\2,' .gitmodules
             git submodule update --init --recursive
         - name: build
