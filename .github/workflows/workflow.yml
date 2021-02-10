@@ -11,7 +11,7 @@ jobs:
     build:
         runs-on: ubuntu-latest
         container:
-            image: navitia/asgard-build-deps:git2.30
+            image: navitia/asgard-build-deps:latest
         
         steps:
         - uses: actions/checkout@v2
