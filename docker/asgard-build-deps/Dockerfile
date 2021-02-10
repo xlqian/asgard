@@ -1,6 +1,6 @@
 FROM debian:9
 
-RUN apt-get update && apt-get install -y --no-install-recommends git \
+RUN apt-get update && apt-get install -y --no-install-recommends \
       autoconf \
       automake \
       make \
@@ -41,7 +41,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
       libzmq3-dev \
       ca-certificates \
       clang-format-4.0 \
-      wget
+      wget \
+      xz-utils
+
+# Install the latest and Greatest of Git !
+
+# Install dependencies for git
+RUN apt-get update \
+    && apt-get install -y dh-autoreconf libcurl4-gnutls-dev libexpat1-dev gettext libz-dev libssl-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Download git from source and install
+RUN cd /tmp/ \
+    && wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.30.1.tar.xz \
+    && tar -xJ -f git-2.30.1.tar.xz \
+    && cd git-2.30.1 \
+    && make configure \
+    && ./configure --prefix=/usr \
+    && make -j$(nproc) \
+    && make install \
+    && rm -rf /tmp/* /var/tmp/* \
+    && git --version
+
 
 RUN git clone --depth=1 --recursive --branch 3.0.8 https://github.com/valhalla/valhalla.git libvalhalla
 
