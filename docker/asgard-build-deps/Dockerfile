@@ -41,14 +41,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libzmq3-dev \
       ca-certificates \
       clang-format-4.0 \
-      wget \
-      xz-utils
+      wget
+      
 
 # Install the latest and Greatest of Git !
 
 # Install dependencies for git
 RUN apt-get update \
-    && apt-get install -y dh-autoreconf libcurl4-gnutls-dev libexpat1-dev gettext libz-dev libssl-dev \
+    && apt-get install -y dh-autoreconf libcurl4-gnutls-dev libexpat1-dev gettext libz-dev libssl-dev xz-utils \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Download git from source and install
