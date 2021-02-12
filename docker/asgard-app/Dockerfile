@@ -9,7 +9,7 @@ RUN sed -i 's,git\@github.com:\([^/]*\)/\(.*\).git,https://github.com/\1/\2,' .g
   && mkdir build && cd build \
   && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j$(nproc)
 
-FROM debian:9
+FROM ubuntu:20.04
 # We have to create a group and a user with the same gid and uid than the docker-data
 RUN groupadd -g 1234 -r asgard-user && useradd --no-log-init -r -g asgard-user -u 1234 asgard-user
 COPY --from=builder /asgard-query /usr/bin/asgard-query

@@ -88,7 +88,7 @@ void TileMaker::make_tile() {
                                                      120, // speed limit in kph
                                                      shape,
                                                      {std::to_string(localedgeidx)},
-                                                     {std::to_string(localedgeidx)},
+                                                     {},
                                                      0,
                                                      added);
         // assert(added);
