@@ -30,7 +30,9 @@ private:
     // maximal cached values
     size_t cache_size;
 
-    unsigned int reachability;
+    unsigned int min_outbound_reach;
+    unsigned int min_inbound_reach;
+
     unsigned int radius;
 
     // the cache, mutable because side effect are not visible from the
@@ -41,20 +43,24 @@ private:
     mutable std::mutex mutex;
 
     valhalla::baldr::Location build_location(const valhalla::midgard::PointLL& place,
-                                             unsigned int reachability,
+                                             unsigned int min_outbound_reach,
+                                             unsigned int min_inbound_reach,
                                              unsigned int radius) const {
         auto l = valhalla::baldr::Location(place,
                                            valhalla::baldr::Location::StopType::BREAK,
-                                           reachability,
+                                           min_outbound_reach,
+                                           min_inbound_reach,
                                            radius);
         return l;
     }
 
 public:
     explicit Projector(size_t cache_size = 1000,
-                       unsigned int reachability = 0,
+                       unsigned int min_outbound_reach = 0,
+                       unsigned int min_inbound_reach = 0,
                        unsigned int radius = 0) : cache_size(cache_size),
-                                                  reachability(reachability),
+                                                  min_outbound_reach(min_outbound_reach),
+                                                  min_inbound_reach(min_inbound_reach),
                                                   radius(radius) {}
 
     template<typename T>
@@ -98,7 +104,7 @@ private:
                     results.emplace(*it, search->second);
                 } else {
                     ++nb_cache_miss;
-                    missed.push_back(build_location(*it, reachability, radius));
+                    missed.push_back(build_location(*it, min_outbound_reach, min_inbound_reach, radius));
                 }
             }
         }
@@ -127,7 +133,7 @@ private:
         std::vector<valhalla::baldr::Location> locations;
         std::transform(places_begin, places_end, std::back_inserter(locations),
                        [this](const valhalla::midgard::PointLL& place) {
-                           return build_location(place, reachability, radius);
+                           return build_location(place, min_outbound_reach, min_inbound_reach, radius);
                        });
         const auto path_locations = valhalla::loki::Search(locations,
                                                            graph,
