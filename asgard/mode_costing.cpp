@@ -50,6 +50,12 @@ Options make_costing_option(const std::string& mode, float speed) {
 } // namespace
 
 ModeCosting::ModeCosting() {
+    Options options;
+    rapidjson::Document doc;
+    sif::ParseCostingOptions(doc, "/costing_options", options);
+    for (const auto& mode : {"car", "taxi", "walking", "bike"}) {
+        costing[util::navitia_to_valhalla_mode_index(mode)] = factory.Create(options.costing_options(util::convert_navitia_to_valhalla_costing(mode)));
+    }
 }
 
 void ModeCosting::update_costing_for_mode(const std::string& mode, float speed) {
