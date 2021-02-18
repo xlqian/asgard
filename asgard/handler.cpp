@@ -224,12 +224,6 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
 }
 
 thor::PathAlgorithm& Handler::get_path_algorithm(const std::string& mode) {
-    // We use astar for walking to avoid differences between
-    // The time from the matrix and the one from the direct_path
-    if (mode == "walking") {
-        return astar;
-    }
-
     return bda;
 }
 

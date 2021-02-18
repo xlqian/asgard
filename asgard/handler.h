@@ -47,7 +47,6 @@ private:
     valhalla::baldr::GraphReader& graph;
     valhalla::thor::TimeDistanceMatrix matrix;
     valhalla::thor::BidirectionalAStar bda;
-    valhalla::thor::AStarBSSAlgorithm astar;
     ModeCosting mode_costing;
     const Metrics& metrics;
     const Projector& projector;
