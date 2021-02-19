@@ -223,7 +223,13 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     return response;
 }
 
+// TODO: Since there are more and more algorithms appearing and developped over different usages,
+//       we are supposed to enrich this function as what's done here:
+//       https://github.com/valhalla/valhalla/blob/master/src/thor/route_action.cc#L273
 thor::PathAlgorithm& Handler::get_path_algorithm(const std::string& mode) {
+    if (mode == "walking") {
+        return timedep_forward;
+    }
     return bda;
 }
 

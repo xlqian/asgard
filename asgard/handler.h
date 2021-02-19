@@ -22,6 +22,7 @@
 #include <valhalla/baldr/graphreader.h>
 #include <valhalla/thor/astar_bss.h>
 #include <valhalla/thor/bidirectional_astar.h>
+#include <valhalla/thor/timedep.h>
 #include <valhalla/thor/timedistancematrix.h>
 
 namespace pbnavitia {
@@ -47,6 +48,7 @@ private:
     valhalla::baldr::GraphReader& graph;
     valhalla::thor::TimeDistanceMatrix matrix;
     valhalla::thor::BidirectionalAStar bda;
+    valhalla::thor::TimeDepForward timedep_forward;
     ModeCosting mode_costing;
     const Metrics& metrics;
     const Projector& projector;

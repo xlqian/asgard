@@ -67,11 +67,12 @@ RUN cd /tmp/ \
 RUN git clone https://github.com/valhalla/valhalla.git libvalhalla \
   && cd libvalhalla \
   && git submodule update --init --recursive --depth=1 \
-  && git reset --hard f7c8a5bef64833787ffcc7640eb7b85ee624836b \
+  && git reset --hard 56cdb1c56165bb7f8afbd12aee64befcc76d8ce8 \
   && cd -
 
 RUN mkdir -p libvalhalla/build \
   && cd libvalhalla/build \
-  && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=Off -DENABLE_NODE_BINDINGS=Off -DENABLE_PYTHON_BINDINGS=Off -DBUILD_SHARED_LIBS=Off -DBoost_USE_STATIC_LIBS=ON \
+  && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=Off -DENABLE_NODE_BINDINGS=Off -DENABLE_PYTHON_BINDINGS=Off \
+              -DBUILD_SHARED_LIBS=Off -DBoost_USE_STATIC_LIBS=ON -DENABLE_THREAD_SAFE_TILE_REF_COUNT=On\
   && make -j$(nproc) install && ldconfig
 

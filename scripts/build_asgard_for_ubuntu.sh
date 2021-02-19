@@ -90,7 +90,7 @@ valhalla_install_dir=${asgard_dir}/valhalla_install
 mkdir -p ${valhalla_install_dir}
 mkdir -p libvalhalla/build
 cd libvalhalla/build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=Off -DENABLE_PYTHON_BINDINGS=Off -DENABLE_BENCHMARKS=Off -DCMAKE_INSTALL_PREFIX:PATH=${valhalla_install_dir}
+cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=Off -DENABLE_PYTHON_BINDINGS=Off -DENABLE_BENCHMARKS=Off -DENABLE_THREAD_SAFE_TILE_REF_COUNT=On -DCMAKE_INSTALL_PREFIX:PATH=${valhalla_install_dir}
 make -j$(nproc) install
 
 
