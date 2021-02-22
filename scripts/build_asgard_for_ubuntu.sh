@@ -81,7 +81,7 @@ cd ${asgard_dir}
 git clone https://github.com/valhalla/valhalla.git libvalhalla
 cd libvalhalla
 git submodule update --init --recursive --depth=1
-git reset --hard f7c8a5bef64833787ffcc7640eb7b85ee624836b
+git reset --hard 9c44ccdb07e808ce55b826a3d93203e27054ec0c
 cd -
 
 # Build and install Valhalla

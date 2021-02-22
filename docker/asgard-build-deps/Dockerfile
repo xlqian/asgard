@@ -67,7 +67,7 @@ RUN cd /tmp/ \
 RUN git clone https://github.com/valhalla/valhalla.git libvalhalla \
   && cd libvalhalla \
   && git submodule update --init --recursive --depth=1 \
-  && git reset --hard 56cdb1c56165bb7f8afbd12aee64befcc76d8ce8 \
+  && git reset --hard 9c44ccdb07e808ce55b826a3d93203e27054ec0c \
   && cd -
 
 RUN mkdir -p libvalhalla/build \
