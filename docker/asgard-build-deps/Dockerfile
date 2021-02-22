@@ -41,6 +41,8 @@ RUN env DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet \
     spatialite-bin \
     unzip \
     zlib1g-dev \
+    libzmq3-dev \
+    wget \
   && rm -rf /var/lib/apt/lists/*
 
 

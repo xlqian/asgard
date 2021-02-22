@@ -5,6 +5,8 @@ RUN wget --progress=bar:force:noscroll https://github.com/CanalTP/asgard-query/r
 RUN git clone --depth=1 https://github.com/canaltp/asgard asgard
 
 WORKDIR /asgard
+# copy libvalhalla in to asgard so that rapidjson is placed in the right place
+RUN cp -r ../libvalhalla libvalhalla
 RUN sed -i 's,git\@github.com:\([^/]*\)/\(.*\).git,https://github.com/\1/\2,' .gitmodules && git submodule update --init --recursive \
   && mkdir build && cd build \
   && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j$(nproc)
