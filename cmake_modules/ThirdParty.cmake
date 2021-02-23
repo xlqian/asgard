@@ -14,7 +14,7 @@ endif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 # Include third_party code in system mode, to avoid warnings
 #
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third_party/")
-include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third_party/rapidjson/include")
+include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/libvalhalla/third_party/rapidjson/include")
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/third_party/date/include")
 
 #

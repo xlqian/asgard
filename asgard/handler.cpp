@@ -223,13 +223,22 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     return response;
 }
 
-thor::PathAlgorithm& Handler::get_path_algorithm(const std::string& mode) {
-    // We use astar for walking to avoid differences between
-    // The time from the matrix and the one from the direct_path
-    if (mode == "walking") {
-        return astar;
+// TODO: Since there are more and more algorithms appearing and developped over different usages,
+//       we are supposed to enrich this function as what's done here:
+//       https://github.com/valhalla/valhalla/blob/master/src/thor/route_action.cc#L273
+thor::PathAlgorithm& Handler::get_path_algorithm(const valhalla::Location& origin, const valhalla::Location& destination) {
+    // Use A* if any origin and destination edges are the same or are connected - otherwise
+    // use bidirectional A*. Bidirectional A* does not handle trivial cases with oneways and
+    // has issues when cost of origin or destination edge is high (needs a high threshold to
+    // find the proper connection).
+    for (auto& edge1 : origin.path_edges()) {
+        for (auto& edge2 : destination.path_edges()) {
+            if (edge1.graph_id() == edge2.graph_id() ||
+                graph.AreEdgesConnected(GraphId(edge1.graph_id()), GraphId(edge2.graph_id()))) {
+                return timedep_forward;
+            }
+        }
     }
-
     return bda;
 }
 
@@ -260,7 +269,7 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     baldr::PathLocation::toPBF(projected_locations.at(locations.front()), &origin, graph);
     baldr::PathLocation::toPBF(projected_locations.at(locations.back()), &dest, graph);
 
-    auto& algo = get_path_algorithm(mode);
+    auto& algo = get_path_algorithm(origin, dest);
 
     LOG_INFO("Computing best path...");
     const auto path_info_list = algo.GetBestPath(origin,
@@ -281,12 +290,13 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     // The path algorithms all are allowed to return more than one path now.
     // None of them do, but the api allows for it
     // We just take the first and only one then
+    valhalla::Options options;
     const auto& pathedges = path_info_list.front();
     thor::AttributesController controller;
     valhalla::Api api;
     auto* trip_leg = api.mutable_trip()->mutable_routes()->Add()->mutable_legs()->Add();
-    thor::TripLegBuilder::Build(controller, graph, mode_costing.get_costing(), pathedges.begin(),
-                                pathedges.end(), origin, dest, {}, *trip_leg);
+    thor::TripLegBuilder::Build(options, controller, graph, mode_costing.get_costing(), pathedges.begin(),
+                                pathedges.end(), origin, dest, {}, *trip_leg, {"route"}, nullptr, nullptr);
 
     api.mutable_options()->set_language(request.direct_path().streetnetwork_params().language());
     odin::DirectionsBuilder::Build(api);

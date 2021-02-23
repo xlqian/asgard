@@ -35,7 +35,7 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
 
     // Journey
     auto* journey = response.mutable_journeys()->Add();
-    journey->set_duration(pathedges.back().elapsed_time);
+    journey->set_duration(pathedges.back().elapsed_cost.secs);
     journey->set_nb_transfers(0);
     journey->set_nb_sections(1);
 
@@ -61,7 +61,7 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
         trip_leg.node().begin(),
         trip_leg.node().end(),
         0.f,
-        [&](float sum, const TripLeg_Node& node) { return sum + node.edge().length() * KM_TO_M; });
+        [&](float sum, const TripLeg_Node& node) { return sum + node.edge().length_km() * KM_TO_M; });
     s->set_length(total_length);
 
     auto const list_geo_points = midgard::decode<std::vector<midgard::PointLL>>(trip_leg.shape());

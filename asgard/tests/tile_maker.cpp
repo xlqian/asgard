@@ -48,7 +48,7 @@ void TileMaker::make_tile() {
     // Set the base lat,lon of the tile
     uint32_t id = tile_id.tileid();
     const auto& tl = TileHierarchy::levels().rbegin();
-    PointLL base_ll = tl->second.tiles.Base(id);
+    PointLL base_ll = tl->tiles.Base(id);
     tile.header_builder().set_base_ll(base_ll);
 
     uint32_t edge_index = 0;
@@ -76,7 +76,7 @@ void TileMaker::make_tile() {
         edge_builder.set_reverseaccess(kAllAccess);
         edge_builder.set_free_flow_speed(100);
         edge_builder.set_constrained_flow_speed(10);
-        std::vector<PointLL> shape = {u.second, u.second.MidPoint(v.second), v.second};
+        std::vector<PointLL> shape = {u.second, u.second.PointAlongSegment(v.second), v.second};
         if (!forward) {
             std::reverse(shape.begin(), shape.end());
         }
@@ -86,7 +86,11 @@ void TileMaker::make_tile() {
         uint32_t edge_info_offset = tile.AddEdgeInfo(localedgeidx, u.first, v.first, 123, // way_id
                                                      0, 0,
                                                      120, // speed limit in kph
-                                                     shape, {std::to_string(localedgeidx)}, 0, added);
+                                                     shape,
+                                                     {std::to_string(localedgeidx)},
+                                                     {},
+                                                     0,
+                                                     added);
         // assert(added);
         edge_builder.set_edgeinfo_offset(edge_info_offset);
         tile.directededges().emplace_back(edge_builder);
@@ -120,10 +124,11 @@ void TileMaker::make_tile() {
 
     tile.StoreTileData();
 
+    // write the bin data
     GraphTileBuilder::tweeners_t tweeners;
-    GraphTile reloaded(tile_dir, tile_id);
-    auto bins = GraphTileBuilder::BinEdges(&reloaded, tweeners);
-    GraphTileBuilder::AddBins(tile_dir, &reloaded, bins);
+    auto reloaded = GraphTile::Create(tile_dir, tile_id);
+    auto bins = GraphTileBuilder::BinEdges(reloaded, tweeners);
+    GraphTileBuilder::AddBins(tile_dir, reloaded, bins);
 }
 
 } // namespace tile_maker

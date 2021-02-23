@@ -1,6 +1,7 @@
 #pragma once
 
 #include "asgard/response.pb.h"
+#include "asgard/util.h"
 #include <valhalla/odin/directionsbuilder.h>
 
 namespace pbnavitia {
@@ -15,10 +16,6 @@ class TripLeg_Node;
 
 namespace thor {
 class PathInfo;
-}
-
-namespace midgard {
-class PointLL;
 }
 
 } // namespace valhalla

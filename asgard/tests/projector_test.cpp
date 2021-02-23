@@ -19,14 +19,17 @@ namespace asgard {
 class UnitTestProjector {
 public:
     UnitTestProjector(size_t cache_size = 5,
-                      unsigned int reachability = 0,
-                      unsigned int radius = 0) : p(cache_size, reachability, radius) {}
+                      unsigned int min_outbound_reach = 0,
+                      unsigned int min_inbound_reach = 0,
+                      unsigned int radius = 0) : p(cache_size, min_outbound_reach, min_inbound_reach, radius) {}
 
     valhalla::baldr::Location build_location(const std::string& place,
-                                             unsigned int reachability,
+                                             unsigned int min_outbound_reach,
+                                             unsigned int min_inbound_reach,
                                              unsigned int radius) const {
-        auto pointll = valhalla::midgard::PointLL{navitia::parse_coordinate(place)};
-        return p.build_location(pointll, reachability, radius);
+        auto c = navitia::parse_coordinate(place);
+        auto pointll = valhalla::midgard::PointLL{c.first, c.second};
+        return p.build_location(pointll, min_outbound_reach, min_inbound_reach, radius);
     }
 
 private:
@@ -37,7 +40,8 @@ std::vector<valhalla::midgard::PointLL>
 make_pointLLs(const std::vector<std::string> coords) {
     std::vector<valhalla::midgard::PointLL> pointLLs;
     std::transform(coords.begin(), coords.end(), std::back_inserter(pointLLs), [](const auto& coord) {
-        return valhalla::midgard::PointLL{navitia::parse_coordinate(coord)};
+        auto c = navitia::parse_coordinate(coord);
+        return valhalla::midgard::PointLL{c.first, c.second};
     });
     return pointLLs;
 }
@@ -115,32 +119,29 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
 BOOST_AUTO_TEST_CASE(build_location_test) {
     UnitTestProjector testProjector(3);
     {
-        BOOST_CHECK_THROW(testProjector.build_location("plop", 0, 0), navitia::wrong_coordinate);
+        BOOST_CHECK_THROW(testProjector.build_location("plop", 0, 0, 0), navitia::wrong_coordinate);
     }
     {
-        const auto l = testProjector.build_location("coord:8:0", 12u, 42l);
+        const auto l = testProjector.build_location("coord:8:0", 12u, 12u, 42l);
         BOOST_CHECK_CLOSE(l.latlng_.lng(), 8.f, .0001f);
         BOOST_CHECK_CLOSE(l.latlng_.lat(), 0.f, .0001f);
         BOOST_CHECK_EQUAL(static_cast<bool>(l.stoptype_), false);
-        BOOST_CHECK_EQUAL(l.minimum_reachability_, 12u);
         BOOST_CHECK_EQUAL(l.radius_, 42l);
     }
     {
-        const auto l = testProjector.build_location("coord:8:0", 12u, 42l);
+        const auto l = testProjector.build_location("coord:8:0", 12u, 12u, 42l);
         BOOST_CHECK_CLOSE(l.latlng_.lng(), 8.f, .0001f);
         BOOST_CHECK_CLOSE(l.latlng_.lat(), 0.f, .0001f);
         BOOST_CHECK_EQUAL(static_cast<bool>(l.stoptype_), false);
-        BOOST_CHECK_EQUAL(l.minimum_reachability_, 12u);
         BOOST_CHECK_EQUAL(l.radius_, 42l);
         BOOST_CHECK_EQUAL(l.latlng_.lng(), 8);
         BOOST_CHECK_EQUAL(l.latlng_.lat(), 0);
     }
     {
-        const auto l = testProjector.build_location("92;43", 29u, 15l);
+        const auto l = testProjector.build_location("92;43", 29u, 29u, 15l);
         BOOST_CHECK_CLOSE(l.latlng_.lng(), 92.f, .0001f);
         BOOST_CHECK_CLOSE(l.latlng_.lat(), 43.f, .0001f);
         BOOST_CHECK_EQUAL(static_cast<bool>(l.stoptype_), false);
-        BOOST_CHECK_EQUAL(l.minimum_reachability_, 29u);
         BOOST_CHECK_EQUAL(l.radius_, 15l);
         BOOST_CHECK_EQUAL(l.latlng_.lng(), 92);
         BOOST_CHECK_EQUAL(l.latlng_.lat(), 43);

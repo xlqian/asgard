@@ -39,7 +39,8 @@ std::vector<valhalla::midgard::PointLL> convert_locations_to_pointLL(const Singl
                          if (l.has_lat() && l.has_lon()) {
                              return valhalla::midgard::PointLL{l.lon(), l.lat()};
                          } else {
-                             return valhalla::midgard::PointLL{navitia::parse_coordinate(l.place())};
+                             std::pair<double, double> coords = navitia::parse_coordinate(l.place());
+                             return valhalla::midgard::PointLL{coords.first, coords.second};
                          }
                      });
 

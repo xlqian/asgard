@@ -22,7 +22,7 @@ const std::vector<midgard::PointLL> list_geo_points = {
 std::vector<thor::PathInfo> create_path_info_list() {
     std::vector<thor::PathInfo> path_info_list;
     for (size_t i = 0; i < 5; ++i) {
-        path_info_list.emplace_back(sif::TravelMode::kDrive, i * 5, baldr::GraphId(), 0, i * 10.);
+        path_info_list.emplace_back(sif::TravelMode::kDrive, sif::Cost(i * 5, i * 5), baldr::GraphId(), 0, i * 10.);
     }
     return path_info_list;
 }
@@ -33,7 +33,7 @@ valhalla::TripLeg create_trip_leg() {
     valhalla::TripLeg trip_leg;
     trip_leg.set_shape(s);
     for (size_t i = 0; i < list_geo_points.size(); ++i) {
-        trip_leg.add_node()->mutable_edge()->set_length((i * 5) / 1000.f);
+        trip_leg.add_node()->mutable_edge()->set_length_km((i * 5) / 1000.f);
     }
     return trip_leg;
 }
@@ -79,13 +79,13 @@ BOOST_AUTO_TEST_CASE(build_journey_response_test) {
         BOOST_CHECK_EQUAL(section->length(), 30);
 
         auto const origin_coords = section->origin().address().coord();
-        BOOST_CHECK_EQUAL(section->origin().uri(), "50.12346;1.45763");
+        BOOST_CHECK_EQUAL(section->origin().uri(), "50.12345;1.45763");
         BOOST_CHECK_EQUAL(section->origin().name(), "");
         BOOST_CHECK_CLOSE(origin_coords.lon(), 50.12345678f, 0.0001f);
         BOOST_CHECK_CLOSE(origin_coords.lat(), 1.457634f, 0.0001f);
 
         auto const dest_coords = section->destination().address().coord();
-        BOOST_CHECK_EQUAL(section->destination().uri(), "42.07947;7.97481");
+        BOOST_CHECK_EQUAL(section->destination().uri(), "42.07947;7.97482");
         BOOST_CHECK_EQUAL(section->destination().name(), "");
         BOOST_CHECK_CLOSE(dest_coords.lon(), 42.0794687f, 0.0001f);
         BOOST_CHECK_CLOSE(dest_coords.lat(), 7.974815640f, 0.0001f);
