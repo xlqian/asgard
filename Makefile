@@ -1,5 +1,5 @@
 # Configuration
-.PHONY: build-data-image build-app-image-master build-app-image-release build-deps-image dockerhub-login get-app-master-tag get-app-release-tag push-app-image push-data-image wipe-useless-images help
+.PHONY: build-data-image build-app-image-master build-app-image-release build-deps-image dockerhub-login get-app-master-tag get-app-release-tag push-app-image push-deps-image push-data-image wipe-useless-images help
 .DEFAULT_GOAL := help
 
 BBOX ='-5.1972 8.3483 42.2646 51.1116' # France
