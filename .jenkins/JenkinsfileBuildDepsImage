@@ -1,0 +1,33 @@
+pipeline {
+    agent any
+    stages {
+        stage('Build Deps Image') {
+            steps {
+                sh "make build-deps-image TAG=latest"
+            }
+        }
+        stage('Log in') {
+            steps {
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId:'kisio-docker-token', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+                    sh "make dockerhub-login DOCKERHUB_USER=${USERNAME} DOCKERHUB_PWD=${PASSWORD}"
+                }
+            }
+        }
+        stage('Push Asgard Deps Image') {
+            steps {
+                sh "make push-deps-image TAG=latest"
+            }
+        }
+        stage('Remove useless images') {
+            steps {
+                sh "make wipe-useless-images"
+            }
+        }
+    }
+    post {
+        always {
+            deleteDir()
+        }
+    }
+}
+
