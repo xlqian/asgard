@@ -6,9 +6,9 @@
 # are installed, and if so, uses the installed version to format
 # the staged changes.
 
-maj_min=4
+maj_min=7
 # The format is clang-format-7 after clang-format-6.0
-maj_max=6
+maj_max=10
 
 base=clang-format
 format=""
@@ -25,11 +25,8 @@ if [ -z "$format" ]
 then
     for j in `seq $maj_min $maj_max`
     do
-        for i in `seq 0 9`
-        do
-            type "$base-$j.$i" >/dev/null 2>&1 && format="$base-$j.$i" && break
-            [ -z "$format" ] || break
-        done
+        type "$base-$j.$i" >/dev/null 2>&1 && format="$base-$j" && break
+        [ -z "$format" ] || break
     done
 fi
 
