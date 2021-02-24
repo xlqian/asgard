@@ -7,6 +7,7 @@ RUN env DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet \
     automake \
     ccache \
     clang \
+    clang-format \
     clang-tidy \
     coreutils \
     curl \
@@ -43,6 +44,7 @@ RUN env DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet \
     zlib1g-dev \
     libzmq3-dev \
     wget \
+    python \
   && rm -rf /var/lib/apt/lists/*
 
 RUN git clone https://github.com/valhalla/valhalla.git libvalhalla \
