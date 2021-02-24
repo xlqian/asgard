@@ -31,6 +31,10 @@ get-app-master-tag: ## Get master tag
 get-app-release-tag: ## Get release version tag
 	@[ -z "${TAG}" ] && (git describe --tags --abbrev=0 && exit 0) || echo ${TAG}
 
+remove-build-deps-image: ## Remove navitia/asgard-build-deps if existent
+	$(info Remove navitia/asgard-build-deps)
+	docker rmi -f navitia/asgard-build-deps:latest || true    
+
 push-app-image: ## Push app-image to dockerhub
 	$(info Push app-image to Dockerhub)
 	docker push navitia/asgard-app:${TAG}
