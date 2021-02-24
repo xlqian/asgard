@@ -3,7 +3,7 @@ pipeline {
     stages {
         stage('Build Deps Image') {
             steps {
-                sh "make build-deps-image TAG=master"
+                sh "make build-deps-image TAG=latest"
             }
         }
         stage('Log in') {
@@ -15,7 +15,7 @@ pipeline {
         }
         stage('Push Asgard Deps Image') {
             steps {
-                sh "make push-deps-image TAG=master"
+                sh "make push-deps-image TAG=latest"
             }
         }
         stage('Remove useless images') {
