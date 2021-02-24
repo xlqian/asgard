@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # https://gist.github.com/eriknyquist/d8d3c14406a76bd7d9516a3aaaa3423e
 #
@@ -6,38 +6,9 @@
 # are installed, and if so, uses the installed version to format
 # the staged changes.
 
-maj_min=7
-# The format is clang-format-7 after clang-format-6.0
-maj_max=10
+source scripts/find_clang_format.sh
+find_clang_format
 
-base=clang-format
-format=""
-
-# Redirect output to stderr.
-exec 1>&2
-
- # check if clang-format is installed
-type "$base" >/dev/null 2>&1 && format="$base"
-
-# if not, check all possible versions
-# (i.e. clang-format-<$maj_min-$maj_max>)
-if [ -z "$format" ]
-then
-    for j in `seq $maj_min $maj_max`
-    do
-        type "$base-$j.$i" >/dev/null 2>&1 && format="$base-$j" && break
-        [ -z "$format" ] || break
-    done
-fi
-
-# no versions of clang-format are installed
-if [ -z "$format" ]
-then
-    echo "$base is not installed. Pre-commit hook will not be executed."
-    exit 0
-fi
-
-echo "$format found."
 if git rev-parse --verify HEAD >/dev/null 2>&1
 then
 	against=HEAD
@@ -47,7 +18,8 @@ else
 fi
 
 # do the formatting and adding the file again
-echo "Formatting code."
+echo "Formatting code with ${format}"
+
 for file in `git diff-index --cached --name-only $against`
 do
     extension="${file##*.}"
