@@ -20,5 +20,5 @@ jobs:
         - name: build
           run: |
             scripts/check-formatting.sh
-            pwd      
+            cp -r /libvalhlla .      
             mkdir build && cd build && cmake ../ && make && cd asgard && ctest
