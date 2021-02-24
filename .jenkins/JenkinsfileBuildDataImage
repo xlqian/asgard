@@ -6,12 +6,12 @@ pipeline {
         string(name: 'DATA_IMAGE_TAG', defaultValue : 'france', description: 'data image tag')
         string(name: 'ELEVATION_BBOX', defaultValue : '-5.1972 8.3483 42.2646 51.1116', description: 'elevation bounding box, default value is for france')
     }
-    stage('Remove navitia/asgard-build-deps images') {
-        steps {
-            sh "make remove-build-deps-image"
-        }
-    } 
     stages {
+        stage('Remove navitia/asgard-build-deps images') {
+            steps {
+                sh "make remove-build-deps-image"
+            }
+        } 
         stage('Build Data Image') {
             steps {
                 sh "make build-data-image TAG=${params.DATA_IMAGE_TAG} PBF_URL=${params.PBF_URL} BBOX='${params.ELEVATION_BBOX}'" 
