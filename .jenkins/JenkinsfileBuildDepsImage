@@ -29,8 +29,10 @@ pipeline {
             }
         }
         stage ('trig data and app jobs') {
-            build job: 'build-asgard-data', wait: false
-            build job: 'build-asgard-app', parameters: [string(name: 'branch_name', value: env.BRANCH_NAME)], wait: false
+            steps {
+                build job: 'build-asgard-data', wait: false
+                build job: 'build-asgard-app', parameters: [string(name: 'branch_name', value: env.BRANCH_NAME)], wait: false
+            }
         }
     }
     post {
