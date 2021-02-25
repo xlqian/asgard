@@ -10,13 +10,8 @@ pipeline {
             }
         } 
         stage('Build App Image') {
-            when {
-                anyOf {
-                    branch 'master'
-                    branch 'release'
-                }
-            }
             steps {
+                sh 'echo "Build with branch name" ${params.branch_name}'
                 sh "git fetch --tags"
                 sh "make build-app-image-${params.branch_name} TAG=`make get-app-${params.branch_name}-tag`"
             }
@@ -39,6 +34,7 @@ pipeline {
         }
         stage('Push Asgard App Image') {
             steps {
+                sh 'echo "Push docker with tag:" ${params.branch_name}'
                 sh "make push-app-image TAG=`make get-app-${params.branch_name}-tag`"
             }
         }

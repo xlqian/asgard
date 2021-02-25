@@ -9,28 +9,33 @@ pipeline {
     stages {
         stage('Remove navitia/asgard-build-deps images') {
             steps {
+                sh 'echo "Remove old images"'
                 sh "make remove-build-deps-image"
             }
         } 
         stage('Build Data Image') {
             steps {
+                sh 'echo "Build data image"'
                 sh "make build-data-image TAG=${params.DATA_IMAGE_TAG} PBF_URL=${params.PBF_URL} BBOX='${params.ELEVATION_BBOX}'" 
             }
         }
         stage('Log in') {
             steps {
                 withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId:'kisio-docker-token', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
+                    sh 'echo "login to dockerHub"'
                     sh "make dockerhub-login DOCKERHUB_USER=${USERNAME} DOCKERHUB_PWD=${PASSWORD}"
                 }
             }
         }
         stage('Push Asgard Data Image') {
             steps {
-                sh "make push-data-image TAG=${DATA_IMAGE_TAG}"
+                sh 'echo "Push on dockerHub with tag:" ${params.DATA_IMAGE_TAG}'
+                sh "make push-data-image TAG=${params.DATA_IMAGE_TAG}"
             }
         }
         stage('Remove useless images') {
             steps {
+                sh 'echo "Clean docker images"'
                 sh "make wipe-useless-images"
             }
         }
