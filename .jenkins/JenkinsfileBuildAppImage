@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    parameters { 
+        string(name: 'branch_name', defaultValue: 'master', description: 'branch name')
+    }
     stages {
         stage('Remove navitia/asgard-build-deps images') {
             steps {
@@ -15,7 +18,7 @@ pipeline {
             }
             steps {
                 sh "git fetch --tags"
-                sh "make build-app-image-${env.BRANCH_NAME} TAG=`make get-app-${env.BRANCH_NAME}-tag`"
+                sh "make build-app-image-${params.branch_name} TAG=`make get-app-${params.branch_name}-tag`"
             }
         }
         stage('Login') {
@@ -30,13 +33,13 @@ pipeline {
                 branch 'release'
             }
             steps {
-                sh "docker tag navitia/asgard-app:`make get-app-${env.BRANCH_NAME}-tag` navitia/asgard-app:latest"
+                sh "docker tag navitia/asgard-app:`make get-app-${params.branch_name}-tag` navitia/asgard-app:latest"
                 sh "docker push navitia/asgard-app:latest"
             }
         }
         stage('Push Asgard App Image') {
             steps {
-                sh "make push-app-image TAG=`make get-app-${env.BRANCH_NAME}-tag`"
+                sh "make push-app-image TAG=`make get-app-${params.branch_name}-tag`"
             }
         }
         stage('Remove useless images') {
