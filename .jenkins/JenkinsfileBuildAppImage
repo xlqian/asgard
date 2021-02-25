@@ -25,9 +25,11 @@ pipeline {
         }
         stage('Tag release as latest and push it') {
             when {
-                branch 'release'
+                expression { params.branch_name == 'release' }
             }
             steps {
+                sh 'echo "KIKOU"'
+                sh 'exit 1'
                 sh "docker tag navitia/asgard-app:`make get-app-${branch_name}-tag` navitia/asgard-app:latest"
                 sh "docker push navitia/asgard-app:latest"
             }
