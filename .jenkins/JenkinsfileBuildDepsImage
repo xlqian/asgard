@@ -28,6 +28,13 @@ pipeline {
                 sh "make wipe-useless-images"
             }
         }
+        stage ('trig data and app jobs') {
+            steps {
+                sh 'echo "Branch Name" ${BRANCH_NAME}'
+                build job: 'build-asgard-data', wait: false
+                build job: 'build-asgard-app', parameters: [string(name: 'branch_name', value: env.BRANCH_NAME)], wait: false
+            }
+        }
     }
     post {
         always {
