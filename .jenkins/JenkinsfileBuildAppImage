@@ -11,7 +11,7 @@ pipeline {
         } 
         stage('Build App Image') {
             steps {
-                sh 'echo "Build with branch name" ${params.branch_name}'
+                sh 'echo "Build with branch name" ${branch_name}'
                 sh "git fetch --tags"
                 sh "make build-app-image-${params.branch_name} TAG=`make get-app-${params.branch_name}-tag`"
             }
