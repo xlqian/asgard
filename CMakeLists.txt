@@ -26,6 +26,14 @@ SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer")
 include(UseBoost)
 include(ThirdParty)
 
+
+# Handle sanitizers
+option(ENABLE_SANITIZERS "Use all the integrated sanitizers for Debug build" OFF)
+include(SanitizerOptions)
+IF(ENABLE_SANITIZERS)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libasan")
+ENDIF(ENABLE_SANITIZERS)
+
 #add current compilation dir to include path to handle config.h
 include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("${CMAKE_BINARY_DIR}")
