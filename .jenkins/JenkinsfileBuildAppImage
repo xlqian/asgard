@@ -28,8 +28,6 @@ pipeline {
                 expression { params.branch_name == 'release' }
             }
             steps {
-                sh 'echo "KIKOU"'
-                sh 'exit 1'
                 sh "docker tag navitia/asgard-app:`make get-app-${branch_name}-tag` navitia/asgard-app:latest"
                 sh "docker push navitia/asgard-app:latest"
             }
@@ -37,7 +35,6 @@ pipeline {
         stage('Push Asgard App Image') {
             steps {
                 sh 'echo "Push docker with tag:" ${branch_name}'
-                sh 'exit 1'
                 sh "make push-app-image TAG=`make get-app-${branch_name}-tag`"
             }
         }
