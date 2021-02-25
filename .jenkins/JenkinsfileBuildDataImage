@@ -16,7 +16,7 @@ pipeline {
         stage('Build Data Image') {
             steps {
                 sh 'echo "Build data image"'
-                sh "make build-data-image TAG=${params.DATA_IMAGE_TAG} PBF_URL=${params.PBF_URL} BBOX='${params.ELEVATION_BBOX}'" 
+                sh "make build-data-image TAG=${DATA_IMAGE_TAG} PBF_URL=${PBF_URL} BBOX='${ELEVATION_BBOX}'" 
             }
         }
         stage('Log in') {
@@ -29,8 +29,8 @@ pipeline {
         }
         stage('Push Asgard Data Image') {
             steps {
-                sh 'echo "Push on dockerHub with tag:" ${params.DATA_IMAGE_TAG}'
-                sh "make push-data-image TAG=${params.DATA_IMAGE_TAG}"
+                sh 'echo "Push on dockerHub with tag:" ${DATA_IMAGE_TAG}'
+                sh "make push-data-image TAG=${DATA_IMAGE_TAG}"
             }
         }
         stage('Remove useless images') {
