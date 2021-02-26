@@ -1,11 +1,15 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #https://stackoverflow.com/a/50264116
 
+source scripts/find_clang_format.sh
+find_clang_format
+
 files='.*\.\(cpp\|hpp\|cc\|cxx\|h\)'
 
-output="$(diff -u <(find asgard/ -regex "$files" -exec cat {} \;) <(find asgard/ -regex "$files" -exec clang-format-4.0 -style=file {} \;))"
+output="$(diff -u <(find asgard/ -regex "$files" -exec cat {} \;) <(find asgard/ -regex "$files" -exec ${format} -style=file {} \;))"
 
+echo "Checking format with ${format}"
 if [ "$output" != "" ]
 then
     echo "$output"
