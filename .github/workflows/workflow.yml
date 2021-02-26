@@ -20,4 +20,4 @@ jobs:
         - name: build
           run: |
             scripts/check-formatting.sh
-            mkdir build && cd build && cmake ../ && make && cd asgard && ctest
+            mkdir build && cd build && cmake -DENABLE_SANITIZERS=On ../ && make && cd asgard && ctest
