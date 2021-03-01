@@ -40,6 +40,13 @@ pipeline {
         always {
             deleteDir()
         }
+        failure {
+            withCredentials([string(credentialsId: 'navitia_core_team_slack_chan', variable: 'NAVITIA_CORE_TEAM_SLACK_CHAN')]) {
+                sh '''
+                    curl -X POST -H 'Content-type: application/json' --data '{"text":":warning: Asgard dependancies docker failed. See https://jenkins-core.canaltp.fr/job/create-asgard-deps-image/"}' $NAVITIA_CORE_TEAM_SLACK_CHAN
+                '''
+            }
+        }
     }
 }
 
