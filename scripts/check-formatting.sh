@@ -9,7 +9,7 @@ echo "Checking format with ${format}"
 
 files_type=".*\.\(cpp\|hpp\|cc\|cxx\|h\)"
 files=$(find asgard/ -regex ${files_type})
-output="$(clang-format --dry-run ${files} 2>&1)"
+output="$(${format} --dry-run ${files} 2>&1)"
 
 if [ "$output" != "" ]
 then
@@ -20,4 +20,3 @@ then
 else
     echo "The code is well formatted"
 fi
-
