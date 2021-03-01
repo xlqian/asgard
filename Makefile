@@ -49,10 +49,7 @@ push-data-image: ## Push data-image to dockerhub, TAG must be provided
 
 wipe-useless-images: ## Remove all useless images
 	$(info Remove useless images)
-	@dangling_images=`docker images --filter "dangling=true" -q --no-trunc`;
-	@[ "${dangling_images}" ] && docker rmi -f ${dangling_images} || ( echo "No Dangling Images")
-	@asgard_images=`docker images "navitia/asgard-*" -q`;
-	@[ "${asgard_images}" ] && docker rmi -f ${asgard_images} || (echo "No Asgard Images")
+	@./scripts/remove_asgard_and_dangling_images.sh
 
 ##
 ## Miscellaneous

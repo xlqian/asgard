@@ -5,15 +5,19 @@
 source scripts/find_clang_format.sh
 find_clang_format
 
-files='.*\.\(cpp\|hpp\|cc\|cxx\|h\)'
-
-output="$(diff -u <(find asgard/ -regex "$files" -exec cat {} \;) <(find asgard/ -regex "$files" -exec ${format} -style=file {} \;))"
-
 echo "Checking format with ${format}"
+
+files_type=".*\.\(cpp\|hpp\|cc\|cxx\|h\)"
+files=$(find asgard/ -regex ${files_type})
+output="$(clang-format --dry-run ${files} 2>&1)"
+
 if [ "$output" != "" ]
 then
     echo "$output"
     echo "The code is not correcly formatted."
     echo "Run git clang-format, then commit."
     exit 1
+else
+    echo "The code is well formatted"
 fi
+
