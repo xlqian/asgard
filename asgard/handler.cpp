@@ -67,22 +67,47 @@ float get_distance(const std::string& mode, float duration) {
     return duration * kTimeDistCostThresholdAutoDivisor;
 }
 
-double get_speed_request(const pbnavitia::Request& request, const std::string& mode) {
-    auto const& request_params = request.direct_path().streetnetwork_params();
+ModeCostingArgs
+make_modecosting_args(const pbnavitia::DirectPathRequest& request) {
+    ModeCostingArgs args;
 
-    if (mode == "walking") {
-        return request_params.walking_speed();
+    auto const& request_params = request.streetnetwork_params();
+    args.mode = request.streetnetwork_params().origin_mode();
+
+    args.speeds.reserve(Costing_ARRAYSIZE);
+    args.speeds[util::convert_navitia_to_valhalla_costing("walking")] = request_params.walking_speed();
+    args.speeds[util::convert_navitia_to_valhalla_costing("bike")] = request_params.bike_speed();
+    args.speeds[util::convert_navitia_to_valhalla_costing("car")] = request_params.car_speed();
+    args.speeds[util::convert_navitia_to_valhalla_costing("taxi")] = request_params.car_no_park_speed();
+
+    args.bss_rent_cost = request_params.bss_rent_cost();
+    args.bss_rent_penalty = request_params.bss_rent_penalty();
+    args.bss_return_cost = request_params.bss_return_cost();
+    args.bss_return_penalty = request_params.bss_return_penalty();
+    return args;
+}
+
+ModeCostingArgs
+make_modecosting_args(const pbnavitia::StreetNetworkRoutingMatrixRequest& request) {
+    ModeCostingArgs args;
+
+    args.mode = request.mode();
+    args.speeds.reserve(Costing_ARRAYSIZE);
+    auto const& request_params = request.streetnetwork_params();
+
+    if (request.has_speed()) {
+        args.speeds[util::convert_navitia_to_valhalla_costing(request.mode())] = request.speed();
+    } else {
+        args.speeds[util::convert_navitia_to_valhalla_costing("walking")] = request_params.walking_speed();
+        args.speeds[util::convert_navitia_to_valhalla_costing("bike")] = request_params.bike_speed();
+        args.speeds[util::convert_navitia_to_valhalla_costing("car")] = request_params.car_speed();
+        args.speeds[util::convert_navitia_to_valhalla_costing("taxi")] = request_params.car_no_park_speed();
     }
-    if (mode == "bike") {
-        return request_params.bike_speed();
-    }
-    if (mode == "car") {
-        return request_params.car_speed();
-    }
-    if (mode == "taxi") {
-        return request_params.car_no_park_speed();
-    }
-    throw std::invalid_argument("Bad get_speed_request parameter");
+    args.bss_rent_cost = request_params.bss_rent_cost();
+    args.bss_rent_penalty = request_params.bss_rent_penalty();
+    args.bss_return_cost = request_params.bss_return_cost();
+    args.bss_return_penalty = request_params.bss_return_penalty();
+    return args;
 }
 
 std::pair<ValhallaLocations, ProjectionFailedMask>
@@ -138,7 +163,8 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     const auto navitia_sources = util::convert_locations_to_pointLL(request.sn_routing_matrix().origins());
     const auto navitia_targets = util::convert_locations_to_pointLL(request.sn_routing_matrix().destinations());
 
-    mode_costing.update_costing_for_mode(mode, request.sn_routing_matrix().speed());
+    mode_costing.update_costing(make_modecosting_args(request.sn_routing_matrix()));
+
     const auto costing = mode_costing.get_costing_for_mode(mode);
 
     // We use the cache only when there are more than one element in the sources/targets, so the cache will keep only stop_points coord
@@ -247,8 +273,7 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     const auto mode = request.direct_path().streetnetwork_params().origin_mode();
     LOG_INFO("Processing direct_path request with mode " + mode);
 
-    const auto speed_request = get_speed_request(request, mode);
-    mode_costing.update_costing_for_mode(mode, speed_request);
+    mode_costing.update_costing(make_modecosting_args(request.direct_path()));
     auto costing = mode_costing.get_costing_for_mode(mode);
 
     std::vector<midgard::PointLL> locations = util::convert_locations_to_pointLL(std::vector<pbnavitia::LocationContext>{request.direct_path().origin(),

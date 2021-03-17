@@ -50,6 +50,7 @@ const std::map<std::string, Costing> make_navitia_to_valhalla_costing_map() {
         {"bike", Costing::bicycle},
         {"car", Costing::auto_},
         {"taxi", Costing::taxi},
+        {"bss", Costing::bikeshare},
     };
 }
 
