@@ -52,6 +52,12 @@ private:
     const std::pair<GraphId, PointLL> e = std::pair<GraphId, PointLL>({tile_id.tileid(), tile_id.level(), 4}, {.007, .001});
     const std::pair<GraphId, PointLL> f = std::pair<GraphId, PointLL>({tile_id.tileid(), tile_id.level(), 5}, {.010, .005});
 
+    // Bike Share Station
+    const std::pair<GraphId, PointLL> g = std::pair<GraphId, PointLL>({tile_id.tileid(), tile_id.level(), 6}, {.002, .003});
+    const std::pair<GraphId, PointLL> h = std::pair<GraphId, PointLL>({tile_id.tileid(), tile_id.level(), 7}, {.016, .003});
+
+    const std::pair<GraphId, PointLL> i = std::pair<GraphId, PointLL>({tile_id.tileid(), tile_id.level(), 8}, {.020, .003});
+
     const std::vector<PointLL> all_points = {a.second, b.second, c.second, d.second, e.second, f.second};
 };
 } // namespace tile_maker
