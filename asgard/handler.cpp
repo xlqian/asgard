@@ -210,7 +210,6 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
 
     std::vector<valhalla::thor::TimeDistance> res;
     if (mode == "bss") {
-        std::cout << "matrix bssss" << std::endl;
         res = bss_matrix.SourceToTarget(valhalla_location_sources,
                                         valhalla_location_targets,
                                         graph,

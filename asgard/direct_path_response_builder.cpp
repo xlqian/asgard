@@ -43,7 +43,7 @@ void make_section(pbnavitia::Journey& journey,
     auto travel_mode = begin_maneuver->travel_mode();
     sn->set_mode(util::convert_valhalla_to_navitia_mode(travel_mode));
 
-    float section_duration = 0;
+    time_t section_duration = 0;
     float section_length = 0;
     std::string bss_maneuver_instructions;
 
@@ -62,14 +62,14 @@ void make_section(pbnavitia::Journey& journey,
         section_duration = std::accumulate(
             begin_maneuver,
             end_maneuver,
-            0.f,
-            [&](float sum, const auto& m) { return sum + m.time(); });
+            static_cast<time_t>(0),
+            [&](time_t sum, const auto& m) { return sum + static_cast<time_t>(m.time()); });
 
         section_length = std::accumulate(
             begin_maneuver,
             end_maneuver,
             0.f,
-            [&](float sum, const auto& m) { return sum + m.length(); });
+            [&](float sum, const auto& m) { return sum + m.length() * 1000; });
 
         if (begin_maneuver->bss_maneuver_type() ==
             BssManeuverType::DirectionsLeg_Maneuver_BssManeuverType_kRentBikeAtBikeShare) {
@@ -250,7 +250,6 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
                      enable_instructions);
         previous_end_time += last_journey_section_duration();
     }
-
     if (bss_return_maneuver != directions_leg.maneuver().end()) {
         // if return maneuver is not the section, in other words, the destination is not projected
         // on the bike share station, we have to add another section to get to the destination on foot
@@ -268,13 +267,9 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
                      nb_sections++,
                      enable_instructions);
     }
-
     journey->set_nb_sections(nb_sections);
-
     compute_metadata(*journey);
-
     LOG_INFO("Solution built...");
-
     return response;
 }
 
@@ -356,8 +351,6 @@ void compute_metadata(pbnavitia::Journey& pb_journey) {
     distances->set_car(total_car_distance);
     distances->set_ridesharing(total_ridesharing_distance);
     distances->set_taxi(total_taxi_distance);
-
-    pb_journey.set_duration(ts_arrival - ts_departure);
 }
 
 void compute_path_items(valhalla::Api& api,
@@ -365,6 +358,10 @@ void compute_path_items(valhalla::Api& api,
                         const bool enable_instruction,
                         ConstManeuverItetator begin_maneuver,
                         ConstManeuverItetator end_maneuver) {
+
+    if (!api.has_trip() || !api.has_directions() || begin_maneuver == end_maneuver) {
+        return;
+    }
 
     auto& trip_route = *api.mutable_trip()->mutable_routes(0);
     auto& directions_leg = *api.mutable_directions()->mutable_routes(0)->mutable_legs(0);

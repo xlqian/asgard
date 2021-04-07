@@ -175,7 +175,28 @@ BOOST_AUTO_TEST_CASE(handle_direct_path_trivial_test) {
     }
 }
 
-BOOST_AUTO_TEST_CASE(handle_BSS_test) {
+void check_bss_journey_direct_path(const pbnavitia::Response& response,
+                                   const std::vector<float>& expected_section_length,
+                                   const std::vector<float>& expected_section_duration) {
+    BOOST_ASSERT(response.journeys_size() == 1);
+
+    const auto& journey = response.journeys(0);
+    BOOST_CHECK_EQUAL(journey.duration(), 918);
+    BOOST_CHECK_EQUAL(journey.departure_date_time(), 0);
+    BOOST_CHECK_EQUAL(journey.arrival_date_time(), 918);
+    BOOST_CHECK_EQUAL(journey.durations().walking(), 277);
+    BOOST_CHECK_EQUAL(journey.distances().walking(), 556);
+    BOOST_CHECK_EQUAL(journey.durations().bike(), 400);
+    BOOST_CHECK_EQUAL(journey.distances().bike(), 1556);
+
+    BOOST_ASSERT(journey.nb_sections() == 5);
+    for (int i = 0; i < journey.sections_size(); ++i) {
+        BOOST_CHECK_CLOSE(journey.sections(i).length(), expected_section_length[i], 0.5f);
+        BOOST_CHECK_CLOSE(journey.sections(i).duration(), expected_section_duration[i], 0.5f);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(handle_trivial_BSS_test) {
     tile_maker::TileMaker maker;
     maker.make_tile();
 
@@ -198,7 +219,7 @@ BOOST_AUTO_TEST_CASE(handle_BSS_test) {
     add_origin_or_dest_to_request(dp_request->mutable_origin(),
                                   make_string_from_point(maker.a.second));
 
-    // Destination is D
+    // Destination is i
     add_origin_or_dest_to_request(dp_request->mutable_destination(),
                                   make_string_from_point(maker.i.second));
 
@@ -208,33 +229,13 @@ BOOST_AUTO_TEST_CASE(handle_BSS_test) {
     sn_params->set_bike_speed(4);
 
     // Last section corresponds to the arrival so its length and duration equal 0
-    std::vector<unsigned int> expected_section_length = {1334, 0};
-    std::vector<unsigned int> expected_section_duration = {667, 0};
+    std::vector<float> expected_section_length = {111, 0, 1556, 0, 445};
+    std::vector<float> expected_section_duration = {55, 120, 400, 120, 222};
 
     {
         const auto response = h.handle(request);
-        check_journey_trivial_direct_path(response, "0.00100;0.00300", "0.01300;0.00300",
-                                          expected_section_length, expected_section_duration);
-    }
-
-    // We now do the same journey but we swap origin and destination
-
-    // Origin is D
-    add_origin_or_dest_to_request(dp_request->mutable_origin(),
-                                  make_string_from_point(maker.get_all_points().at(3)));
-
-    // Origin is A
-    add_origin_or_dest_to_request(dp_request->mutable_destination(),
-                                  make_string_from_point(maker.get_all_points().front()));
-
-    {
-        const auto response = h.handle(request);
-
-        // Last section corresponds to the arrival so its length and duration equal 0
-        std::vector<unsigned int> reverse_expected_section_length = {1334, 0};
-        std::vector<unsigned int> reverse_expected_section_duration = {667, 0};
-        check_journey_trivial_direct_path(response, "0.01300;0.00300", "0.00100;0.00300",
-                                          reverse_expected_section_length, reverse_expected_section_duration);
+        check_bss_journey_direct_path(response,
+                                      expected_section_length, expected_section_duration);
     }
 }
 } // namespace asgard
