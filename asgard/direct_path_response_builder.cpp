@@ -32,7 +32,6 @@ void make_section(pbnavitia::Journey& journey,
     using BssManeuverType = DirectionsLeg_Maneuver_BssManeuverType;
 
     auto rent_cost = request_params.bss_rent_cost();
-    ;
     auto return_cost = request_params.bss_return_cost();
 
     auto* section = journey.add_sections();
@@ -69,7 +68,7 @@ void make_section(pbnavitia::Journey& journey,
             begin_maneuver,
             end_maneuver,
             0.f,
-            [&](float sum, const auto& m) { return sum + m.length() * 1000; });
+            [&](float sum, const auto& m) { return sum + m.length() * KM_TO_M; });
 
         if (begin_maneuver->bss_maneuver_type() ==
             BssManeuverType::DirectionsLeg_Maneuver_BssManeuverType_kRentBikeAtBikeShare) {
