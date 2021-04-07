@@ -73,6 +73,8 @@ This will build [Valhalla](https://github.com/valhalla/valhalla) in <path_to_asg
 
 The executable of Asgard will be located in build/asgard.
 
+Note: Already having a Valhalla library & include directory in respectively `/usr/local/lib` & `/usr/local/include` may lead to build errors as they currently take priority over the library & include directory specified in [build_asgard_for_ubuntu.sh](https://github.com/CanalTP/asgard/blob/ba831b3fed02f54c3cc84df04db3ae8f5141ee12/scripts/build_asgard_for_ubuntu.sh#L102).
+
 #### Prepare data
 
 To create the data download the pfbs you want here http://download.geofabrik.de/. Then run:
