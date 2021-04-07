@@ -39,7 +39,6 @@ public:
     const std::string& get_tile_dir() const { return tile_dir; }
     const std::vector<PointLL>& get_all_points() const { return all_points; }
 
-private:
     const std::string tile_dir = std::string(TESTS_BUILD_DIR) + "tile_dir";
 
     const GraphId tile_id = TileHierarchy::GetGraphId({.125, .125}, 2);

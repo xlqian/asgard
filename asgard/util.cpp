@@ -25,12 +25,29 @@ pbnavitia::StreetNetworkMode convert_valhalla_to_navitia_mode(const sif::TravelM
     }
 }
 
+pbnavitia::StreetNetworkMode convert_valhalla_to_navitia_mode(const valhalla::DirectionsLeg_TravelMode& mode) {
+    switch (mode) {
+    case valhalla::DirectionsLeg_TravelMode::DirectionsLeg_TravelMode_kDrive:
+        return pbnavitia::Car;
+
+    case valhalla::DirectionsLeg_TravelMode::DirectionsLeg_TravelMode_kPedestrian:
+        return pbnavitia::Walking;
+
+    case valhalla::DirectionsLeg_TravelMode::DirectionsLeg_TravelMode_kBicycle:
+        return pbnavitia::Bike;
+
+    default:
+        throw std::invalid_argument("Bad convert_valhalla_to_navitia_mode parameter");
+    }
+}
+
 const std::map<std::string, sif::TravelMode> make_navitia_to_valhalla_mode_map() {
     return {
         {"walking", sif::TravelMode::kPedestrian},
         {"bike", sif::TravelMode::kBicycle},
         {"car", sif::TravelMode::kDrive},
         {"taxi", sif::TravelMode::kDrive},
+        {"bss", sif::TravelMode::kPedestrian},
     };
 }
 

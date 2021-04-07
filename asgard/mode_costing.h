@@ -10,12 +10,20 @@ static const size_t mode_costing_size = static_cast<size_t>(valhalla::sif::Trave
 using Costing = valhalla::sif::mode_costing_t;
 
 struct ModeCostingArgs {
-    std::string mode;
+    std::string mode = "";
     std::vector<float> speeds;
-    float bss_rent_cost;
-    float bss_rent_penalty;
-    float bss_return_cost;
-    float bss_return_penalty;
+    float bss_rent_cost = 120;
+    float bss_rent_penalty = 0;
+    float bss_return_cost = 120;
+    float bss_return_penalty = 0;
+    ModeCostingArgs() {
+        mode = "";
+        speeds = std::vector<float>(valhalla::Costing_MAX, 0);
+        bss_rent_cost = 120;
+        bss_rent_penalty = 0;
+        bss_return_cost = 120;
+        bss_return_penalty = 0;
+    }
 };
 
 class ModeCosting {

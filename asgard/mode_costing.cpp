@@ -17,6 +17,7 @@ Options make_default_directions_options(const std::string& mode) {
 
     valhalla::Costing costing = util::convert_navitia_to_valhalla_costing(mode);
     default_directions_options.set_costing(costing);
+    default_directions_options.set_search_radius(20);
 
     sif::ParseCostingOptions(rapidjson::Document{}, "", default_directions_options);
 

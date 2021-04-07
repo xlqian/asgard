@@ -93,11 +93,15 @@ private:
         std::vector<valhalla::baldr::Location> missed;
         auto& list = cache.template get<0>();
         const auto& map = cache.template get<1>();
+        auto projector_mode = mode;
+        if (projector_mode == "bss") {
+            projector_mode = "walking";
+        }
         {
             std::lock_guard<std::mutex> lock(mutex);
             for (auto it = places_begin; it != places_end; ++it) {
                 ++nb_cache_calls;
-                const auto search = map.find(std::make_pair(*it, mode));
+                const auto search = map.find(std::make_pair(*it, projector_mode));
                 if (search != map.end()) {
                     // put the cached value at the begining of the cache
                     list.relocate(list.begin(), cache.template project<0>(search));
@@ -115,7 +119,7 @@ private:
 
             std::lock_guard<std::mutex> lock(mutex);
             for (const auto& l : path_locations) {
-                list.push_front(std::make_pair(std::make_pair(l.first.latlng_, mode), l.second));
+                list.push_front(std::make_pair(std::make_pair(l.first.latlng_, projector_mode), l.second));
                 results.emplace(l.first.latlng_, l.second);
             }
             while (list.size() > cache_size) { list.pop_back(); }
@@ -130,6 +134,10 @@ private:
                           valhalla::baldr::GraphReader& graph,
                           const std::string& mode,
                           const valhalla::sif::cost_ptr_t& costing) const {
+        auto projector_mode = mode;
+        if (projector_mode == "bss") {
+            projector_mode = "walking";
+        }
         std::vector<valhalla::baldr::Location> locations;
         std::transform(places_begin, places_end, std::back_inserter(locations),
                        [this](const valhalla::midgard::PointLL& place) {

@@ -136,7 +136,7 @@ BOOST_AUTO_TEST_CASE(handle_direct_path_trivial_test) {
     add_origin_or_dest_to_request(dp_request->mutable_origin(),
                                   make_string_from_point(maker.get_all_points().front()));
 
-    // Origin is D
+    // Destination is D
     add_origin_or_dest_to_request(dp_request->mutable_destination(),
                                   make_string_from_point(maker.get_all_points().at(3)));
 
@@ -175,4 +175,66 @@ BOOST_AUTO_TEST_CASE(handle_direct_path_trivial_test) {
     }
 }
 
+BOOST_AUTO_TEST_CASE(handle_BSS_test) {
+    tile_maker::TileMaker maker;
+    maker.make_tile();
+
+    zmq::context_t context(1);
+    const Metrics metrics{boost::none};
+    const Projector projector{10, 0, 0};
+
+    boost::property_tree::ptree conf;
+    conf.put("tile_dir", maker.get_tile_dir());
+    valhalla::baldr::GraphReader graph(conf);
+    Context c{context, graph, metrics, projector};
+
+    Handler h{c};
+
+    pbnavitia::Request request;
+    request.set_requested_api(pbnavitia::direct_path);
+    auto* dp_request = request.mutable_direct_path();
+
+    // Origin is A
+    add_origin_or_dest_to_request(dp_request->mutable_origin(),
+                                  make_string_from_point(maker.a.second));
+
+    // Destination is D
+    add_origin_or_dest_to_request(dp_request->mutable_destination(),
+                                  make_string_from_point(maker.i.second));
+
+    auto* sn_params = dp_request->mutable_streetnetwork_params();
+    sn_params->set_origin_mode("bss");
+    sn_params->set_walking_speed(2);
+    sn_params->set_bike_speed(4);
+
+    // Last section corresponds to the arrival so its length and duration equal 0
+    std::vector<unsigned int> expected_section_length = {1334, 0};
+    std::vector<unsigned int> expected_section_duration = {667, 0};
+
+    {
+        const auto response = h.handle(request);
+        check_journey_trivial_direct_path(response, "0.00100;0.00300", "0.01300;0.00300",
+                                          expected_section_length, expected_section_duration);
+    }
+
+    // We now do the same journey but we swap origin and destination
+
+    // Origin is D
+    add_origin_or_dest_to_request(dp_request->mutable_origin(),
+                                  make_string_from_point(maker.get_all_points().at(3)));
+
+    // Origin is A
+    add_origin_or_dest_to_request(dp_request->mutable_destination(),
+                                  make_string_from_point(maker.get_all_points().front()));
+
+    {
+        const auto response = h.handle(request);
+
+        // Last section corresponds to the arrival so its length and duration equal 0
+        std::vector<unsigned int> reverse_expected_section_length = {1334, 0};
+        std::vector<unsigned int> reverse_expected_section_duration = {667, 0};
+        check_journey_trivial_direct_path(response, "0.01300;0.00300", "0.00100;0.00300",
+                                          reverse_expected_section_length, reverse_expected_section_duration);
+    }
+}
 } // namespace asgard
