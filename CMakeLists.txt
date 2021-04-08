@@ -34,6 +34,14 @@ IF(ENABLE_SANITIZERS)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libasan")
 ENDIF(ENABLE_SANITIZERS)
 
+# Handle ENABLE_THREAD_SAFE_TILE_REF_COUNT in Valhalla v3.1.0
+# https://github.com/valhalla/valhalla/blob/3.1.0/valhalla/baldr/graphtile.h#L45
+# Since this flag is in the header file, we must define the flag when compiling asgard too
+option(ENABLE_VAHLALLA_THREAD_SAFE_TILE_REF_COUNT "Activate thread safe tile ref counter when compiling asgard" ON)
+IF(ENABLE_VAHLALLA_THREAD_SAFE_TILE_REF_COUNT)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_THREAD_SAFE_TILE_REF_COUNT")
+ENDIF(ENABLE_VAHLALLA_THREAD_SAFE_TILE_REF_COUNT)
+
 #add current compilation dir to include path to handle config.h
 include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("${CMAKE_BINARY_DIR}")
