@@ -171,4 +171,4 @@ void TileMaker::make_tile() {
 
 } // namespace tile_maker
 
-} // namespace asgard4
+} // namespace asgard
