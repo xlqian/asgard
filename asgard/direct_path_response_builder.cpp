@@ -18,21 +18,21 @@ namespace direct_path_response_builder {
 
 constexpr static float KM_TO_M = 1000.f;
 
-void make_section(pbnavitia::Journey& journey,
-                  valhalla::Api& api,
-                  const DirectionsLeg& directions_leg,
-                  const std::vector<midgard::PointLL>& shape,
-                  ConstManeuverItetator begin_maneuver,
-                  ConstManeuverItetator end_maneuver,
-                  const time_t begin_date_time,
-                  const pbnavitia::StreetNetworkParams& request_params,
-                  const pbnavitia::SectionType section_type,
-                  const size_t nb_sections,
-                  const bool enable_instructions) {
+void make_bss_section(pbnavitia::Journey& journey,
+                      valhalla::Api& api,
+                      const DirectionsLeg& directions_leg,
+                      const std::vector<midgard::PointLL>& shape,
+                      ConstManeuverItetator begin_maneuver,
+                      ConstManeuverItetator end_maneuver,
+                      const time_t begin_date_time,
+                      const pbnavitia::StreetNetworkParams& request_params,
+                      const pbnavitia::SectionType section_type,
+                      const size_t nb_sections,
+                      const bool enable_instructions) {
     using BssManeuverType = DirectionsLeg_Maneuver_BssManeuverType;
 
-    auto rent_cost = request_params.bss_rent_cost();
-    auto return_cost = request_params.bss_return_cost();
+    auto rent_duration = request_params.bss_rent_cost();
+    auto return_duration = request_params.bss_return_cost();
 
     auto* section = journey.add_sections();
     section->set_type(section_type);
@@ -48,12 +48,12 @@ void make_section(pbnavitia::Journey& journey,
 
     switch (section_type) {
     case pbnavitia::BSS_RENT:
-        section_duration = rent_cost;
+        section_duration = rent_duration;
         section_length = 0;
         bss_maneuver_instructions = "Rent a bike from bike share station.";
         break;
     case pbnavitia::BSS_PUT_BACK:
-        section_duration = return_cost;
+        section_duration = return_duration;
         section_length = 0;
         bss_maneuver_instructions = "Return the bike back to bike share station.";
         break;
@@ -72,10 +72,10 @@ void make_section(pbnavitia::Journey& journey,
 
         if (begin_maneuver->bss_maneuver_type() ==
             BssManeuverType::DirectionsLeg_Maneuver_BssManeuverType_kRentBikeAtBikeShare) {
-            section_duration -= rent_cost;
+            section_duration -= rent_duration;
         } else if (begin_maneuver->bss_maneuver_type() ==
                    BssManeuverType::DirectionsLeg_Maneuver_BssManeuverType_kReturnBikeAtBikeShare) {
-            section_duration -= return_cost;
+            section_duration -= return_duration;
         }
 
         break;
@@ -115,6 +115,188 @@ void make_section(pbnavitia::Journey& journey,
     }
 }
 
+void build_mono_modal_journey(pbnavitia::Journey& journey,
+                              const pbnavitia::Request& request,
+                              const std::vector<valhalla::thor::PathInfo>& pathedges,
+                              const TripLeg& trip_leg,
+                              valhalla::Api& api) {
+
+    auto& directions_leg = *api.mutable_directions()->mutable_routes(0)->mutable_legs(0);
+    const auto shape = midgard::decode<std::vector<midgard::PointLL>>(trip_leg.shape());
+    const auto departure_posix_time = time_t(request.direct_path().datetime());
+    const bool enable_instructions = request.direct_path().streetnetwork_params().enable_instructions();
+
+    auto* section = journey.add_sections();
+    section->set_type(pbnavitia::STREET_NETWORK);
+    section->set_id("section_0");
+    auto* sn = section->mutable_street_network();
+
+    auto begin_maneuver = directions_leg.maneuver().begin();
+    auto end_maneuver = directions_leg.maneuver().end();
+
+    auto travel_mode = begin_maneuver->travel_mode();
+    sn->set_mode(util::convert_valhalla_to_navitia_mode(travel_mode));
+
+    auto section_duration = std::accumulate(
+        begin_maneuver,
+        end_maneuver,
+        static_cast<time_t>(0),
+        [&](time_t sum, const auto& m) { return sum + static_cast<time_t>(m.time()); });
+
+    auto section_length = std::accumulate(
+        begin_maneuver,
+        end_maneuver,
+        0.f,
+        [&](float sum, const auto& m) { return sum + m.length() * KM_TO_M; });
+
+    set_extremity_pt_object(shape.front(), section->mutable_origin());
+    set_extremity_pt_object(shape.back(), section->mutable_destination());
+
+    section->set_duration(section_duration);
+    sn->set_duration(section_duration);
+
+    section->set_length(section_length);
+    sn->set_length(section_length);
+
+    section->set_begin_date_time(departure_posix_time);
+    section->set_end_date_time(departure_posix_time + section_duration);
+
+    compute_geojson(shape, *section);
+    compute_path_items(api, section->mutable_street_network(), enable_instructions, begin_maneuver, end_maneuver);
+    journey.set_nb_sections(1);
+}
+
+void build_bss_journey(pbnavitia::Journey& journey,
+                       const pbnavitia::Request& request,
+                       const std::vector<valhalla::thor::PathInfo>& pathedges,
+                       const TripLeg& trip_leg,
+                       valhalla::Api& api) {
+    auto const& request_params = request.direct_path().streetnetwork_params();
+
+    auto const shape = midgard::decode<std::vector<midgard::PointLL>>(trip_leg.shape());
+    auto& directions_leg = *api.mutable_directions()->mutable_routes(0)->mutable_legs(0);
+
+    // this will be the departure date time
+    auto previous_end_time = time_t(request.direct_path().datetime());
+
+    size_t nb_sections = 0;
+
+    using BssManeuverType = DirectionsLeg_Maneuver_BssManeuverType;
+
+    auto bss_rent_maneuver = boost::range::find_if(
+        directions_leg.maneuver(),
+        [](const auto& m) {
+            return m.bss_maneuver_type() ==
+                   BssManeuverType::DirectionsLeg_Maneuver_BssManeuverType_kRentBikeAtBikeShare;
+        });
+
+    auto bss_return_maneuver = boost::range::find_if(
+        directions_leg.maneuver(),
+        [](const auto& m) {
+            return m.bss_maneuver_type() ==
+                   BssManeuverType::DirectionsLeg_Maneuver_BssManeuverType_kReturnBikeAtBikeShare;
+        });
+
+    bool enable_instructions = request.direct_path().streetnetwork_params().enable_instructions();
+
+    auto last_journey_section_duration = [&journey]() {
+        if (journey.sections_size()) {
+            return std::next(journey.sections().end(), -1)->duration();
+        }
+        return 0;
+    };
+
+    if (bss_rent_maneuver != directions_leg.maneuver().begin()) {
+        // Case 1: the journey is a pure walking solution, we need to create only one section.
+        // Case 2: the journey is a multi-modal solution(walking + bike), the first section is walking
+        make_bss_section(journey,
+                         api,
+                         directions_leg,
+                         shape,
+                         directions_leg.maneuver().begin(),
+                         bss_rent_maneuver,
+                         previous_end_time,
+                         request_params,
+                         pbnavitia::STREET_NETWORK,
+                         nb_sections++,
+                         enable_instructions);
+        previous_end_time += last_journey_section_duration();
+    }
+
+    if (bss_rent_maneuver != directions_leg.maneuver().end()) {
+        // Case 1: the first section is a walking section, now we will build the bike rent section
+        // Case 2: This section is actually the first section, because the start point is projected on the bike
+        //         share station
+
+        // In both cases, we have to build 3 sections as follows
+        //   *  rent section
+        //   *  the bike section
+        //   *  return section
+
+        // rent section
+        make_bss_section(journey,
+                         api,
+                         directions_leg,
+                         shape,
+                         // Note that the begin and maneuver are the same
+                         bss_rent_maneuver,
+                         bss_rent_maneuver,
+                         previous_end_time,
+                         request_params,
+                         pbnavitia::BSS_RENT,
+                         nb_sections++,
+                         enable_instructions);
+        previous_end_time += last_journey_section_duration();
+
+        // bike section
+        make_bss_section(journey,
+                         api,
+                         directions_leg,
+                         shape,
+                         bss_rent_maneuver,
+                         bss_return_maneuver,
+                         previous_end_time,
+                         request_params,
+                         pbnavitia::STREET_NETWORK,
+                         nb_sections++,
+                         enable_instructions);
+        previous_end_time += last_journey_section_duration();
+
+        // return section
+        make_bss_section(journey,
+                         api,
+                         directions_leg,
+                         shape,
+                         // Note that the begin and maneuver are the same
+                         bss_return_maneuver,
+                         bss_return_maneuver,
+                         previous_end_time,
+                         request_params,
+                         pbnavitia::BSS_PUT_BACK,
+                         nb_sections++,
+                         enable_instructions);
+        previous_end_time += last_journey_section_duration();
+    }
+    if (bss_return_maneuver != directions_leg.maneuver().end()) {
+        // if return maneuver is not the section, in other words, the destination is not projected
+        // on the bike share station, we have to add another section to get to the destination on foot
+
+        // Walking section
+        make_bss_section(journey,
+                         api,
+                         directions_leg,
+                         shape,
+                         bss_return_maneuver,
+                         directions_leg.maneuver().end(),
+                         previous_end_time,
+                         request_params,
+                         pbnavitia::STREET_NETWORK,
+                         nb_sections++,
+                         enable_instructions);
+    }
+    journey.set_nb_sections(nb_sections);
+}
+
 pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
                                            const std::vector<valhalla::thor::PathInfo>& pathedges,
                                            const TripLeg& trip_leg,
@@ -137,7 +319,6 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
     auto const& request_params = request.direct_path().streetnetwork_params();
 
     auto* journey = response.mutable_journeys()->Add();
-    size_t nb_sections = 0;
 
     journey->set_duration(pathedges.back().elapsed_cost.secs);
     journey->set_nb_transfers(0);
@@ -149,124 +330,22 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
     journey->set_departure_date_time(departure_posix_time);
     journey->set_arrival_date_time(arrival_posix_time);
 
-    auto const shape = midgard::decode<std::vector<midgard::PointLL>>(trip_leg.shape());
+    auto mode = request_params.origin_mode();
 
-    auto& directions_leg = *api.mutable_directions()->mutable_routes(0)->mutable_legs(0);
-
-    auto previous_end_time = departure_posix_time;
-
-    using BssManeuverType = DirectionsLeg_Maneuver_BssManeuverType;
-    auto current_bss_maneuver_type = boost::optional<BssManeuverType>{};
-
-    auto bss_rent_maneuver = boost::range::find_if(
-        directions_leg.maneuver(),
-        [](const auto& m) {
-            return m.bss_maneuver_type() ==
-                   BssManeuverType::DirectionsLeg_Maneuver_BssManeuverType_kRentBikeAtBikeShare;
-        });
-
-    auto bss_return_maneuver = boost::range::find_if(
-        directions_leg.maneuver(),
-        [](const auto& m) {
-            return m.bss_maneuver_type() ==
-                   BssManeuverType::DirectionsLeg_Maneuver_BssManeuverType_kReturnBikeAtBikeShare;
-        });
-
-    bool enable_instructions = request.direct_path().streetnetwork_params().enable_instructions();
-
-    auto last_journey_section_duration = [journey]() {
-        return std::next(journey->sections().end(), -1)->duration();
+    switch (util::convert_navitia_to_streetnetwork_mode(mode)) {
+    case pbnavitia::StreetNetworkMode::Walking:
+    case pbnavitia::StreetNetworkMode::Bike:
+    case pbnavitia::StreetNetworkMode::Car:
+    case pbnavitia::StreetNetworkMode::Taxi:
+        build_mono_modal_journey(*journey, request, pathedges, trip_leg, api);
+        break;
+    case pbnavitia::StreetNetworkMode::Bss:
+        build_bss_journey(*journey, request, pathedges, trip_leg, api);
+        break;
+    default:
+        throw std::runtime_error{"Error when determining mono modal, unknow mode: " + mode};
     };
 
-    if (bss_rent_maneuver != directions_leg.maneuver().begin()) {
-        // Case 1: the journey is a mono-modal solution, we need to create only one section.
-        // Case 2: the journey is a multi-modal solution(BSS so far), the first section is walking
-        make_section(*journey,
-                     api,
-                     directions_leg,
-                     shape,
-                     directions_leg.maneuver().begin(),
-                     bss_rent_maneuver,
-                     departure_posix_time,
-                     request_params,
-                     pbnavitia::STREET_NETWORK,
-                     nb_sections++,
-                     enable_instructions);
-        previous_end_time += last_journey_section_duration();
-    }
-
-    if (bss_rent_maneuver != directions_leg.maneuver().end()) {
-        // Case 1: the first section is a walking section, now we are building the bike rent section
-        // Case 2: This is actually the first section, because the start point is projected on the bike
-        //         share station
-
-        // In both cases, we must build
-        //   *  rent section
-        //   *  the bike section
-        //   *  return section
-
-        // rent section
-        make_section(*journey,
-                     api,
-                     directions_leg,
-                     shape,
-                     // Note that the begin and maneuver are the same
-                     bss_rent_maneuver,
-                     bss_rent_maneuver,
-                     previous_end_time,
-                     request_params,
-                     pbnavitia::BSS_RENT,
-                     nb_sections++,
-                     enable_instructions);
-        previous_end_time += last_journey_section_duration();
-
-        // bike section
-        make_section(*journey,
-                     api,
-                     directions_leg,
-                     shape,
-                     bss_rent_maneuver,
-                     bss_return_maneuver,
-                     previous_end_time,
-                     request_params,
-                     pbnavitia::STREET_NETWORK,
-                     nb_sections++,
-                     enable_instructions);
-        previous_end_time += last_journey_section_duration();
-
-        // return section
-        make_section(*journey,
-                     api,
-                     directions_leg,
-                     shape,
-                     // Note that the begin and maneuver are the same
-                     bss_return_maneuver,
-                     bss_return_maneuver,
-                     previous_end_time,
-                     request_params,
-                     pbnavitia::BSS_PUT_BACK,
-                     nb_sections++,
-                     enable_instructions);
-        previous_end_time += last_journey_section_duration();
-    }
-    if (bss_return_maneuver != directions_leg.maneuver().end()) {
-        // if return maneuver is not the section, in other words, the destination is not projected
-        // on the bike share station, we have to add another section to get to the destination on foot
-
-        // Walking section
-        make_section(*journey,
-                     api,
-                     directions_leg,
-                     shape,
-                     bss_return_maneuver,
-                     directions_leg.maneuver().end(),
-                     previous_end_time,
-                     request_params,
-                     pbnavitia::STREET_NETWORK,
-                     nb_sections++,
-                     enable_instructions);
-    }
-    journey->set_nb_sections(nb_sections);
     compute_metadata(*journey);
     LOG_INFO("Solution built...");
     return response;

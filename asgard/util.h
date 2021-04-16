@@ -31,6 +31,8 @@ valhalla::Costing convert_navitia_to_valhalla_costing(const std::string& costing
 
 pbnavitia::CyclePathType convert_valhalla_to_navitia_cycle_lane(const valhalla::TripLeg_CycleLane& cycle_lane);
 
+pbnavitia::StreetNetworkMode convert_navitia_to_streetnetwork_mode(const std::string& mode);
+
 template<typename SingleRange>
 std::vector<valhalla::midgard::PointLL> convert_locations_to_pointLL(const SingleRange& request_locations) {
     std::vector<valhalla::midgard::PointLL> points;

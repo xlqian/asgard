@@ -56,6 +56,21 @@ sif::TravelMode convert_navitia_to_valhalla_mode(const std::string& mode) {
     return navitia_to_valhalla_mode_map.at(mode);
 }
 
+const std::map<std::string, pbnavitia::StreetNetworkMode> make_navitia_to_streetnetwork_mode(const std::string& mode) {
+    return {
+        {"walking", pbnavitia::StreetNetworkMode::Walking},
+        {"bike", pbnavitia::StreetNetworkMode::Bike},
+        {"car", pbnavitia::StreetNetworkMode::Car},
+        {"taxi", pbnavitia::StreetNetworkMode::Taxi},
+        {"bss", pbnavitia::StreetNetworkMode::Bss},
+    };
+};
+
+pbnavitia::StreetNetworkMode convert_navitia_to_streetnetwork_mode(const std::string& mode) {
+    static const auto navitia_to_valhalla_mode_map = make_navitia_to_streetnetwork_mode(mode);
+    return navitia_to_valhalla_mode_map.at(mode);
+}
+
 size_t navitia_to_valhalla_mode_index(const std::string& mode) {
     static const auto navitia_to_valhalla_mode_map = make_navitia_to_valhalla_mode_map();
     return static_cast<size_t>(navitia_to_valhalla_mode_map.at(mode));

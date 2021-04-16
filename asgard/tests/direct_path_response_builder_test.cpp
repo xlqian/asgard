@@ -61,6 +61,10 @@ BOOST_AUTO_TEST_CASE(build_journey_response_test) {
     // basic path_info_list (nominal case)
     {
         pbnavitia::Request request;
+        auto* dp = request.mutable_direct_path();
+        auto* params = dp->mutable_streetnetwork_params();
+        params->set_origin_mode("car");
+
         valhalla::Api api;
         std::vector<thor::PathInfo> path_info_list = create_path_info_list();
         request.mutable_direct_path()->set_datetime(1470241573);
