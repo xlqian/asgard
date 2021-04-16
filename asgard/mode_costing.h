@@ -12,6 +12,7 @@ using Costing = valhalla::sif::mode_costing_t;
 struct ModeCostingArgs {
     std::string mode = "";
     std::vector<float> speeds;
+    // all costs and penalties are in seconds
     float bss_rent_cost = 120;
     float bss_rent_penalty = 0;
     float bss_return_cost = 120;

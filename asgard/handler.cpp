@@ -69,7 +69,7 @@ float get_distance(const std::string& mode, float duration) {
 
 ModeCostingArgs
 make_modecosting_args(const pbnavitia::DirectPathRequest& request) {
-    ModeCostingArgs args;
+    ModeCostingArgs args{};
 
     auto const& request_params = request.streetnetwork_params();
     args.mode = request.streetnetwork_params().origin_mode();
