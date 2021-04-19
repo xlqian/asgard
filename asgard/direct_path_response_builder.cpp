@@ -92,24 +92,25 @@ void make_bss_streetnetwork_section(pbnavitia::Journey& journey,
     compute_path_items(api, section->mutable_street_network(), enable_instructions, begin_maneuver, end_maneuver);
 }
 
-void make_bss_rent_section(pbnavitia::Journey& journey,
-                           valhalla::Api& api,
-                           const DirectionsLeg& directions_leg,
-                           const std::vector<midgard::PointLL>& shape,
-                           ConstManeuverItetator rent_maneuver,
-                           const time_t begin_date_time,
-                           const pbnavitia::StreetNetworkParams& request_params,
-                           const size_t nb_sections,
-                           const bool enable_instructions) {
-    auto section_duration = static_cast<time_t>(request_params.bss_rent_cost());
+void _make_bss_maneuver_section(pbnavitia::Journey& journey,
+                                valhalla::Api& api,
+                                const DirectionsLeg& directions_leg,
+                                const std::vector<midgard::PointLL>& shape,
+                                ConstManeuverItetator bss_maneuver,
+                                const time_t begin_date_time,
+                                const pbnavitia::StreetNetworkParams& request_params,
+                                const size_t nb_sections,
+                                const bool enable_instructions,
+                                const time_t section_duration,
+                                const std::string bss_maneuver_instructions,
+                                const pbnavitia::SectionType section_type) {
 
-    // no displacement when rent your bike from the bike statoin...
+    // no displacement when maneuvering the bike station...
     float section_length = 0;
-    std::string bss_maneuver_instructions = "Rent a bike from bike share station.";
-    auto shape_idx = rent_maneuver->begin_shape_index();
+    auto shape_idx = bss_maneuver->begin_shape_index();
 
     auto* section = journey.add_sections();
-    section->set_type(pbnavitia::BSS_RENT);
+    section->set_type(section_type);
     section->set_id("section_" + std::to_string(nb_sections));
     section->set_duration(section_duration);
     section->set_length(section_length);
@@ -125,12 +126,29 @@ void make_bss_rent_section(pbnavitia::Journey& journey,
     sn->set_duration(section_duration);
     sn->set_length(section_length);
 
-    auto travel_mode = rent_maneuver->travel_mode();
+    auto travel_mode = bss_maneuver->travel_mode();
     sn->set_mode(util::convert_valhalla_to_navitia_mode(travel_mode));
 
     auto path_item = sn->add_path_items();
     path_item->set_duration(section_duration);
-    path_item->set_instruction("Rent a bike back to the bike share station");
+    path_item->set_instruction(bss_maneuver_instructions);
+}
+
+void make_bss_rent_section(pbnavitia::Journey& journey,
+                           valhalla::Api& api,
+                           const DirectionsLeg& directions_leg,
+                           const std::vector<midgard::PointLL>& shape,
+                           ConstManeuverItetator rent_maneuver,
+                           const time_t begin_date_time,
+                           const pbnavitia::StreetNetworkParams& request_params,
+                           const size_t nb_sections,
+                           const bool enable_instructions) {
+
+    const std::string bss_maneuver_instructions = "Rent a bike from bike share station.";
+    auto section_duration = static_cast<time_t>(request_params.bss_rent_cost());
+    auto section_type = pbnavitia::BSS_RENT;
+    _make_bss_maneuver_section(journey, api, directions_leg, shape, rent_maneuver, begin_date_time,
+                               request_params, nb_sections, enable_instructions, section_duration, bss_maneuver_instructions, section_type);
 }
 
 void make_bss_return_section(pbnavitia::Journey& journey,
@@ -143,35 +161,11 @@ void make_bss_return_section(pbnavitia::Journey& journey,
                              const size_t nb_sections,
                              const bool enable_instructions) {
 
+    const std::string bss_maneuver_instructions = "Return the bike to the bike share station.";
     auto section_duration = static_cast<time_t>(request_params.bss_return_cost());
-    // no displacement when return your bike back to the bike station...
-    float section_length = 0;
-    std::string bss_maneuver_instructions = "Rent a bike from bike share station.";
-    auto shape_idx = return_maneuver->begin_shape_index();
-
-    auto* section = journey.add_sections();
-    section->set_type(pbnavitia::BSS_PUT_BACK);
-    section->set_id("section_" + std::to_string(nb_sections));
-    section->set_duration(section_duration);
-    section->set_length(section_length);
-    section->set_begin_date_time(begin_date_time);
-    section->set_end_date_time(begin_date_time + section_duration);
-
-    set_extremity_pt_object(*(shape.begin() + shape_idx), section->mutable_origin());
-    set_extremity_pt_object(*(shape.begin() + shape_idx), section->mutable_destination());
-
-    compute_geojson({*(shape.begin() + shape_idx)}, *section);
-
-    auto* sn = section->mutable_street_network();
-    sn->set_duration(section_duration);
-    sn->set_length(section_length);
-
-    auto travel_mode = return_maneuver->travel_mode();
-    sn->set_mode(util::convert_valhalla_to_navitia_mode(travel_mode));
-
-    auto path_item = sn->add_path_items();
-    path_item->set_duration(section_duration);
-    path_item->set_instruction("Put the bike back to the bike share station");
+    auto section_type = pbnavitia::BSS_PUT_BACK;
+    _make_bss_maneuver_section(journey, api, directions_leg, shape, return_maneuver, begin_date_time,
+                               request_params, nb_sections, enable_instructions, section_duration, bss_maneuver_instructions, section_type);
 }
 
 void build_mono_modal_journey(pbnavitia::Journey& journey,
