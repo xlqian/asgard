@@ -32,8 +32,8 @@ void make_bss_streetnetwork_section(pbnavitia::Journey& journey,
                                     const bool enable_instructions) {
 
     using BssManeuverType = DirectionsLeg_Maneuver_BssManeuverType;
-    auto rent_duration = request_params.bss_rent_cost();
-    auto return_duration = request_params.bss_return_cost();
+    auto rent_duration = static_cast<time_t>(request_params.bss_rent_cost());
+    auto return_duration = static_cast<time_t>(request_params.bss_return_cost());
 
     auto* section = journey.add_sections();
     section->set_type(pbnavitia::STREET_NETWORK);
@@ -82,7 +82,7 @@ void make_bss_streetnetwork_section(pbnavitia::Journey& journey,
         set_extremity_pt_object(shape.back(), section->mutable_destination());
     } else {
         shape_end_idx = end_maneuver->begin_shape_index() + 1;
-        set_extremity_pt_object(*(shape.begin() + shape_end_idx), section->mutable_destination());
+        set_extremity_pt_object(*(shape.begin() + shape_end_idx - 1), section->mutable_destination());
     }
 
     compute_geojson({shape.begin() + shape_begin_idx,
@@ -101,7 +101,7 @@ void make_bss_rent_section(pbnavitia::Journey& journey,
                            const pbnavitia::StreetNetworkParams& request_params,
                            const size_t nb_sections,
                            const bool enable_instructions) {
-    auto section_duration = request_params.bss_rent_cost();
+    auto section_duration = static_cast<time_t>(request_params.bss_rent_cost());
 
     // no displacement when rent your bike from the bike statoin...
     float section_length = 0;
@@ -143,7 +143,7 @@ void make_bss_return_section(pbnavitia::Journey& journey,
                              const size_t nb_sections,
                              const bool enable_instructions) {
 
-    auto section_duration = request_params.bss_return_cost();
+    auto section_duration = static_cast<time_t>(request_params.bss_return_cost());
     // no displacement when return your bike back to the bike station...
     float section_length = 0;
     std::string bss_maneuver_instructions = "Rent a bike from bike share station.";
@@ -409,6 +409,7 @@ void set_extremity_pt_object(const valhalla::midgard::PointLL& geo_point, pbnavi
     auto* coords = o->mutable_address()->mutable_coord();
     coords->set_lat(geo_point.lat());
     coords->set_lon(geo_point.lng());
+    o->set_embedded_type(pbnavitia::ADDRESS);
 }
 
 void compute_geojson(const std::vector<midgard::PointLL>& list_geo_points, pbnavitia::Section& s) {
