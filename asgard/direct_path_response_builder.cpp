@@ -230,7 +230,7 @@ void build_bss_journey(pbnavitia::Journey& journey,
     auto& directions_leg = *api.mutable_directions()->mutable_routes(0)->mutable_legs(0);
 
     // this will be the departure date time
-    auto previous_end_time = time_t(request.direct_path().datetime());
+    auto begin_datetime = time_t(request.direct_path().datetime());
 
     size_t nb_sections = 0;
 
@@ -269,7 +269,7 @@ void build_bss_journey(pbnavitia::Journey& journey,
     assert(bss_rent_maneuver != directions_leg.maneuver().end() &&
            bss_return_maneuver != directions_leg.maneuver().end());
 
-    auto last_journey_section_duration = [&journey]() {
+    auto last_journey_section_duration = [](const pbnavitia::Journey& journey) {
         if (journey.sections_size()) {
             return std::next(journey.sections().end(), -1)->duration();
         }
@@ -294,11 +294,11 @@ void build_bss_journey(pbnavitia::Journey& journey,
                                        shape,
                                        directions_leg.maneuver().begin(),
                                        bss_rent_maneuver,
-                                       previous_end_time,
+                                       begin_datetime,
                                        request_params,
                                        nb_sections++,
                                        enable_instructions);
-        previous_end_time += last_journey_section_duration();
+        begin_datetime += last_journey_section_duration(journey);
     }
 
     // rent section
@@ -307,11 +307,11 @@ void build_bss_journey(pbnavitia::Journey& journey,
                           directions_leg,
                           shape,
                           bss_rent_maneuver,
-                          previous_end_time,
+                          begin_datetime,
                           request_params,
                           nb_sections++,
                           enable_instructions);
-    previous_end_time += last_journey_section_duration();
+    begin_datetime += last_journey_section_duration(journey);
 
     // bike section
     make_bss_streetnetwork_section(journey,
@@ -320,11 +320,11 @@ void build_bss_journey(pbnavitia::Journey& journey,
                                    shape,
                                    bss_rent_maneuver,
                                    bss_return_maneuver,
-                                   previous_end_time,
+                                   begin_datetime,
                                    request_params,
                                    nb_sections++,
                                    enable_instructions);
-    previous_end_time += last_journey_section_duration();
+    begin_datetime += last_journey_section_duration(journey);
 
     // return section
     make_bss_return_section(journey,
@@ -332,11 +332,11 @@ void build_bss_journey(pbnavitia::Journey& journey,
                             directions_leg,
                             shape,
                             bss_return_maneuver,
-                            previous_end_time,
+                            begin_datetime,
                             request_params,
                             nb_sections++,
                             enable_instructions);
-    previous_end_time += last_journey_section_duration();
+    begin_datetime += last_journey_section_duration(journey);
 
     bool end_with_walking = bss_return_maneuver != (directions_leg.maneuver().end() - 1);
     if (end_with_walking) {
@@ -348,7 +348,7 @@ void build_bss_journey(pbnavitia::Journey& journey,
                                        shape,
                                        bss_return_maneuver,
                                        directions_leg.maneuver().end(),
-                                       previous_end_time,
+                                       begin_datetime,
                                        request_params,
                                        nb_sections++,
                                        enable_instructions);
