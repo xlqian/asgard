@@ -32,8 +32,8 @@ void make_bss_streetnetwork_section(pbnavitia::Journey& journey,
                                     const bool enable_instructions) {
 
     using BssManeuverType = DirectionsLeg_Maneuver_BssManeuverType;
-    auto rent_duration = static_cast<time_t>(request_params.bss_rent_cost());
-    auto return_duration = static_cast<time_t>(request_params.bss_return_cost());
+    auto rent_duration = static_cast<time_t>(request_params.bss_rent_duration());
+    auto return_duration = static_cast<time_t>(request_params.bss_return_duration());
 
     auto* section = journey.add_sections();
     section->set_type(pbnavitia::STREET_NETWORK);
@@ -145,7 +145,7 @@ void make_bss_rent_section(pbnavitia::Journey& journey,
                            const bool enable_instructions) {
 
     const std::string bss_maneuver_instructions = "Rent a bike from bike share station.";
-    auto section_duration = static_cast<time_t>(request_params.bss_rent_cost());
+    auto section_duration = static_cast<time_t>(request_params.bss_rent_duration());
     auto section_type = pbnavitia::BSS_RENT;
     _make_bss_maneuver_section(journey, api, directions_leg, shape, rent_maneuver, begin_date_time,
                                request_params, nb_sections, enable_instructions, section_duration, bss_maneuver_instructions, section_type);
@@ -162,7 +162,7 @@ void make_bss_return_section(pbnavitia::Journey& journey,
                              const bool enable_instructions) {
 
     const std::string bss_maneuver_instructions = "Return the bike to the bike share station.";
-    auto section_duration = static_cast<time_t>(request_params.bss_return_cost());
+    auto section_duration = static_cast<time_t>(request_params.bss_return_duration());
     auto section_type = pbnavitia::BSS_PUT_BACK;
     _make_bss_maneuver_section(journey, api, directions_leg, shape, return_maneuver, begin_date_time,
                                request_params, nb_sections, enable_instructions, section_duration, bss_maneuver_instructions, section_type);

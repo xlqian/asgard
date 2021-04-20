@@ -33,11 +33,11 @@ Options make_costing_option(const ModeCostingArgs& args) {
     options.mutable_costing_options(vc::pedestrian)->set_walking_speed(args.speeds[vc::pedestrian] * 3.6);
 
     // rent cost
-    options.mutable_costing_options(vc::pedestrian)->set_bike_share_cost(args.bss_rent_cost);
+    options.mutable_costing_options(vc::pedestrian)->set_bike_share_cost(args.bss_rent_duration);
     options.mutable_costing_options(vc::pedestrian)->set_bike_share_penalty(args.bss_rent_penalty);
 
     // return cost
-    options.mutable_costing_options(vc::bicycle)->set_bike_share_cost(args.bss_return_cost);
+    options.mutable_costing_options(vc::bicycle)->set_bike_share_cost(args.bss_return_duration);
     options.mutable_costing_options(vc::bicycle)->set_bike_share_penalty(args.bss_return_penalty);
 
     return options;
