@@ -74,15 +74,14 @@ make_modecosting_args(const pbnavitia::DirectPathRequest& request) {
     auto const& request_params = request.streetnetwork_params();
     args.mode = request.streetnetwork_params().origin_mode();
 
-    args.speeds.reserve(Costing_ARRAYSIZE);
     args.speeds[util::convert_navitia_to_valhalla_costing("walking")] = request_params.walking_speed();
     args.speeds[util::convert_navitia_to_valhalla_costing("bike")] = request_params.bike_speed();
     args.speeds[util::convert_navitia_to_valhalla_costing("car")] = request_params.car_speed();
     args.speeds[util::convert_navitia_to_valhalla_costing("taxi")] = request_params.car_no_park_speed();
 
-    args.bss_rent_cost = request_params.bss_rent_cost();
+    args.bss_rent_duration = request_params.bss_rent_duration();
     args.bss_rent_penalty = request_params.bss_rent_penalty();
-    args.bss_return_cost = request_params.bss_return_cost();
+    args.bss_return_duration = request_params.bss_return_duration();
     args.bss_return_penalty = request_params.bss_return_penalty();
     return args;
 }
@@ -101,9 +100,9 @@ make_modecosting_args(const pbnavitia::StreetNetworkRoutingMatrixRequest& reques
         args.speeds[util::convert_navitia_to_valhalla_costing("car")] = request_params.car_speed();
         args.speeds[util::convert_navitia_to_valhalla_costing("taxi")] = request_params.car_no_park_speed();
 
-        args.bss_rent_cost = request_params.bss_rent_cost();
+        args.bss_rent_duration = request_params.bss_rent_duration();
         args.bss_rent_penalty = request_params.bss_rent_penalty();
-        args.bss_return_cost = request_params.bss_return_cost();
+        args.bss_return_duration = request_params.bss_return_duration();
         args.bss_return_penalty = request_params.bss_return_penalty();
 
     } else if (request.has_speed()) {
