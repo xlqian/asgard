@@ -1,5 +1,5 @@
-
 #include "asgard/mode_costing.h"
+#include "asgard/request.pb.h"
 #include "asgard/util.h"
 
 #include <valhalla/proto/options.pb.h>
@@ -18,32 +18,27 @@ Options make_default_directions_options(const std::string& mode) {
     valhalla::Costing costing = util::convert_navitia_to_valhalla_costing(mode);
     default_directions_options.set_costing(costing);
 
-    rapidjson::Document doc;
-    sif::ParseCostingOptions(doc, "/costing_options", default_directions_options);
+    sif::ParseCostingOptions(rapidjson::Document{}, "", default_directions_options);
 
     return default_directions_options;
 }
 
-// TODO: for BSS mode, multimodal speed must be correctly handled
-Options make_costing_option(const std::string& mode, float speed) {
-    Options options = make_default_directions_options(mode);
+Options make_costing_option(const ModeCostingArgs& args) {
 
-    speed *= 3.6;
+    Options options = make_default_directions_options(args.mode);
+    options.mutable_costing_options(vc::auto_)->set_top_speed(args.speeds[vc::auto_] * 3.6);
+    options.mutable_costing_options(vc::taxi)->set_top_speed(args.speeds[vc::taxi] * 3.6);
 
-    rapidjson::Document doc;
-    if (mode == "car") {
-        sif::ParseAutoCostOptions(doc, "", options.mutable_costing_options(vc::auto_));
-        options.mutable_costing_options(vc::auto_)->set_top_speed(speed);
-    } else if (mode == "taxi") {
-        sif::ParseTaxiCostOptions(doc, "", options.mutable_costing_options(vc::taxi));
-        options.mutable_costing_options(vc::auto_)->set_top_speed(speed);
-    } else if (mode == "bike") {
-        sif::ParseBicycleCostOptions(doc, "", options.mutable_costing_options(vc::bicycle));
-        options.mutable_costing_options(vc::bicycle)->set_cycling_speed(speed);
-    } else {
-        sif::ParsePedestrianCostOptions(doc, "", options.mutable_costing_options(vc::pedestrian));
-        options.mutable_costing_options(vc::pedestrian)->set_walking_speed(speed);
-    }
+    options.mutable_costing_options(vc::bicycle)->set_cycling_speed(args.speeds[vc::bicycle] * 3.6);
+    options.mutable_costing_options(vc::pedestrian)->set_walking_speed(args.speeds[vc::pedestrian] * 3.6);
+
+    // rent cost
+    options.mutable_costing_options(vc::pedestrian)->set_bike_share_cost(args.bss_rent_cost);
+    options.mutable_costing_options(vc::pedestrian)->set_bike_share_penalty(args.bss_rent_penalty);
+
+    // return cost
+    options.mutable_costing_options(vc::bicycle)->set_bike_share_cost(args.bss_return_cost);
+    options.mutable_costing_options(vc::bicycle)->set_bike_share_penalty(args.bss_return_penalty);
 
     return options;
 }
@@ -58,10 +53,9 @@ ModeCosting::ModeCosting() {
     }
 }
 
-void ModeCosting::update_costing_for_mode(const std::string& mode, float speed) {
-    auto new_options = make_costing_option(mode, speed);
-    auto travel_mode = util::convert_navitia_to_valhalla_mode(mode);
-
+void ModeCosting::update_costing(const ModeCostingArgs& args) {
+    auto new_options = make_costing_option(args);
+    auto travel_mode = util::convert_navitia_to_valhalla_mode(args.mode);
     costing = factory.CreateModeCosting(new_options, travel_mode);
 }
 

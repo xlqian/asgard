@@ -67,53 +67,53 @@ BOOST_AUTO_TEST_CASE(simple_projector_test) {
     }
     // cache = {}
     {
-        auto locations = make_pointLLs({"coord:.03:.01"});
+        auto locations = make_pointLLs({"coord:.003:.001"});
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 2);
         BOOST_CHECK_EQUAL(p.get_nb_cache_calls(), 2);
     }
-    // cache = { coord:.03:.01 }
+    // cache = { coord:.003:.001 }
     {
-        auto locations = make_pointLLs({"coord:.03:.01"});
+        auto locations = make_pointLLs({"coord:.003:.001"});
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 2);
         BOOST_CHECK_EQUAL(p.get_nb_cache_calls(), 3);
     }
-    // cache = { coord:.03:.01 }
+    // cache = { coord:.003:.001 }
     {
-        auto locations = make_pointLLs({"coord:.09:.01"});
+        auto locations = make_pointLLs({"coord:.009:.001"});
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 3);
         BOOST_CHECK_EQUAL(p.get_nb_cache_calls(), 4);
     }
-    // cache = { coord:.09:.01; coord:.03:.01 }
+    // cache = { coord:.009:.001; coord:.003:.001 }
     {
-        auto locations = make_pointLLs({"coord:.03:.01"});
+        auto locations = make_pointLLs({"coord:.003:.001"});
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 3);
         BOOST_CHECK_EQUAL(p.get_nb_cache_calls(), 5);
     }
-    // cache = { coord:.03:.01; coord:.09:.01 }
+    // cache = { coord:.003:.001; coord:.009:.001 }
     {
-        auto locations = make_pointLLs({"coord:.13:.01"});
+        auto locations = make_pointLLs({"coord:.013:.001"});
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 4);
         BOOST_CHECK_EQUAL(p.get_nb_cache_calls(), 6);
     }
-    // cache = { coord:.13:.01; coord:.03:.01 }
+    // cache = { coord:.013:.001; coord:.003:.001 }
     {
-        auto locations = make_pointLLs({"coord:.09:.01"});
+        auto locations = make_pointLLs({"coord:.009:.001"});
         auto result = p(begin(locations), end(locations), graph, "car", costing);
         BOOST_CHECK_EQUAL(result.size(), 1);
         BOOST_CHECK_EQUAL(p.get_nb_cache_miss(), 5);
         BOOST_CHECK_EQUAL(p.get_nb_cache_calls(), 7);
     }
-    // cache = { coord:.09:.01; coord:.13:.01 }
+    // cache = { coord:.009:.001; coord:.013:.001 }
 }
 
 BOOST_AUTO_TEST_CASE(build_location_test) {

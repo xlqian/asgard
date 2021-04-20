@@ -39,7 +39,6 @@ public:
     const std::string& get_tile_dir() const { return tile_dir; }
     const std::vector<PointLL>& get_all_points() const { return all_points; }
 
-private:
     const std::string tile_dir = std::string(TESTS_BUILD_DIR) + "tile_dir";
 
     const GraphId tile_id = TileHierarchy::GetGraphId({.125, .125}, 2);
@@ -51,6 +50,12 @@ private:
     const std::pair<GraphId, PointLL> d = std::pair<GraphId, PointLL>({tile_id.tileid(), tile_id.level(), 3}, {.013, .003});
     const std::pair<GraphId, PointLL> e = std::pair<GraphId, PointLL>({tile_id.tileid(), tile_id.level(), 4}, {.007, .001});
     const std::pair<GraphId, PointLL> f = std::pair<GraphId, PointLL>({tile_id.tileid(), tile_id.level(), 5}, {.010, .005});
+
+    // Bike Share Station
+    const std::pair<GraphId, PointLL> g = std::pair<GraphId, PointLL>({tile_id.tileid(), tile_id.level(), 6}, {.002, .003});
+    const std::pair<GraphId, PointLL> h = std::pair<GraphId, PointLL>({tile_id.tileid(), tile_id.level(), 7}, {.016, .003});
+
+    const std::pair<GraphId, PointLL> i = std::pair<GraphId, PointLL>({tile_id.tileid(), tile_id.level(), 8}, {.020, .003});
 
     const std::vector<PointLL> all_points = {a.second, b.second, c.second, d.second, e.second, f.second};
 };

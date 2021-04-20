@@ -61,28 +61,62 @@ float get_distance(const std::string& mode, float duration) {
     if (mode == "walking") {
         return duration * kTimeDistCostThresholdPedestrianDivisor;
     }
-    if (mode == "bike") {
+    if (mode == "bike" || mode == "bss") {
         return duration * kTimeDistCostThresholdBicycleDivisor;
     }
     return duration * kTimeDistCostThresholdAutoDivisor;
 }
 
-double get_speed_request(const pbnavitia::Request& request, const std::string& mode) {
-    auto const& request_params = request.direct_path().streetnetwork_params();
+ModeCostingArgs
+make_modecosting_args(const pbnavitia::DirectPathRequest& request) {
+    ModeCostingArgs args{};
 
-    if (mode == "walking") {
-        return request_params.walking_speed();
+    auto const& request_params = request.streetnetwork_params();
+    args.mode = request.streetnetwork_params().origin_mode();
+
+    args.speeds.reserve(Costing_ARRAYSIZE);
+    args.speeds[util::convert_navitia_to_valhalla_costing("walking")] = request_params.walking_speed();
+    args.speeds[util::convert_navitia_to_valhalla_costing("bike")] = request_params.bike_speed();
+    args.speeds[util::convert_navitia_to_valhalla_costing("car")] = request_params.car_speed();
+    args.speeds[util::convert_navitia_to_valhalla_costing("taxi")] = request_params.car_no_park_speed();
+
+    args.bss_rent_cost = request_params.bss_rent_cost();
+    args.bss_rent_penalty = request_params.bss_rent_penalty();
+    args.bss_return_cost = request_params.bss_return_cost();
+    args.bss_return_penalty = request_params.bss_return_penalty();
+    return args;
+}
+
+ModeCostingArgs
+make_modecosting_args(const pbnavitia::StreetNetworkRoutingMatrixRequest& request) {
+    ModeCostingArgs args;
+
+    args.mode = request.mode();
+
+    if (request.has_streetnetwork_params()) {
+        auto const& request_params = request.streetnetwork_params();
+
+        args.speeds[util::convert_navitia_to_valhalla_costing("walking")] = request_params.walking_speed();
+        args.speeds[util::convert_navitia_to_valhalla_costing("bike")] = request_params.bike_speed();
+        args.speeds[util::convert_navitia_to_valhalla_costing("car")] = request_params.car_speed();
+        args.speeds[util::convert_navitia_to_valhalla_costing("taxi")] = request_params.car_no_park_speed();
+
+        args.bss_rent_cost = request_params.bss_rent_cost();
+        args.bss_rent_penalty = request_params.bss_rent_penalty();
+        args.bss_return_cost = request_params.bss_return_cost();
+        args.bss_return_penalty = request_params.bss_return_penalty();
+
+    } else if (request.has_speed()) {
+        // We still need this for Backward compatibility
+        // TODO: remove this when jormun is updated
+        if (request.mode() == "bss") {
+            args.speeds[util::convert_navitia_to_valhalla_costing("bike")] = request.speed();
+            args.speeds[util::convert_navitia_to_valhalla_costing("walking")] = request.speed() / 3.66;
+        } else {
+            args.speeds[util::convert_navitia_to_valhalla_costing(request.mode())] = request.speed();
+        }
     }
-    if (mode == "bike") {
-        return request_params.bike_speed();
-    }
-    if (mode == "car") {
-        return request_params.car_speed();
-    }
-    if (mode == "taxi") {
-        return request_params.car_no_park_speed();
-    }
-    throw std::invalid_argument("Bad get_speed_request parameter");
+    return args;
 }
 
 std::pair<ValhallaLocations, ProjectionFailedMask>
@@ -138,11 +172,13 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     const auto navitia_sources = util::convert_locations_to_pointLL(request.sn_routing_matrix().origins());
     const auto navitia_targets = util::convert_locations_to_pointLL(request.sn_routing_matrix().destinations());
 
-    mode_costing.update_costing_for_mode(mode, request.sn_routing_matrix().speed());
+    mode_costing.update_costing(make_modecosting_args(request.sn_routing_matrix()));
+
     const auto costing = mode_costing.get_costing_for_mode(mode);
 
     // We use the cache only when there are more than one element in the sources/targets, so the cache will keep only stop_points coord
     bool use_cache = (navitia_sources.size() > 1);
+
     const auto projected_sources_locations = projector(begin(navitia_sources), end(navitia_sources), graph, mode, costing, use_cache);
     if (projected_sources_locations.empty()) {
         LOG_ERROR("All sources projections failed!");
@@ -171,12 +207,25 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
 
     LOG_INFO("Projection Done");
     LOG_INFO("Computing matrix...");
-    const auto res = matrix.SourceToTarget(valhalla_location_sources,
-                                           valhalla_location_targets,
-                                           graph,
-                                           mode_costing.get_costing(),
-                                           util::convert_navitia_to_valhalla_mode(mode),
-                                           get_distance(mode, request.sn_routing_matrix().max_duration()));
+
+    std::vector<valhalla::thor::TimeDistance> res;
+    if (mode == "bss") {
+        res = bss_matrix.SourceToTarget(valhalla_location_sources,
+                                        valhalla_location_targets,
+                                        graph,
+                                        mode_costing.get_costing(),
+                                        util::convert_navitia_to_valhalla_mode(mode),
+                                        get_distance(mode, request.sn_routing_matrix().max_duration()));
+
+    } else {
+        res = matrix.SourceToTarget(valhalla_location_sources,
+                                    valhalla_location_targets,
+                                    graph,
+                                    mode_costing.get_costing(),
+                                    util::convert_navitia_to_valhalla_mode(mode),
+                                    get_distance(mode, request.sn_routing_matrix().max_duration()));
+    }
+
     LOG_INFO("Computing matrix done.");
 
     pbnavitia::Response response;
@@ -226,7 +275,13 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
 // TODO: Since there are more and more algorithms appearing and developped over different usages,
 //       we are supposed to enrich this function as what's done here:
 //       https://github.com/valhalla/valhalla/blob/master/src/thor/route_action.cc#L273
-thor::PathAlgorithm& Handler::get_path_algorithm(const valhalla::Location& origin, const valhalla::Location& destination) {
+thor::PathAlgorithm& Handler::get_path_algorithm(const valhalla::Location& origin,
+                                                 const valhalla::Location& destination,
+                                                 const std::string& mode) {
+    if (mode == "bss") {
+        return bss_astar;
+    }
+
     // Use A* if any origin and destination edges are the same or are connected - otherwise
     // use bidirectional A*. Bidirectional A* does not handle trivial cases with oneways and
     // has issues when cost of origin or destination edge is high (needs a high threshold to
@@ -247,8 +302,7 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     const auto mode = request.direct_path().streetnetwork_params().origin_mode();
     LOG_INFO("Processing direct_path request with mode " + mode);
 
-    const auto speed_request = get_speed_request(request, mode);
-    mode_costing.update_costing_for_mode(mode, speed_request);
+    mode_costing.update_costing(make_modecosting_args(request.direct_path()));
     auto costing = mode_costing.get_costing_for_mode(mode);
 
     std::vector<midgard::PointLL> locations = util::convert_locations_to_pointLL(std::vector<pbnavitia::LocationContext>{request.direct_path().origin(),
@@ -269,7 +323,7 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     baldr::PathLocation::toPBF(projected_locations.at(locations.front()), &origin, graph);
     baldr::PathLocation::toPBF(projected_locations.at(locations.back()), &dest, graph);
 
-    auto& algo = get_path_algorithm(origin, dest);
+    auto& algo = get_path_algorithm(origin, dest, mode);
 
     LOG_INFO("Computing best path...");
     const auto path_info_list = algo.GetBestPath(origin,

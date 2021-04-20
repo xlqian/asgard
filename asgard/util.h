@@ -4,6 +4,7 @@
 #include "asgard/response.pb.h"
 
 #include <valhalla/midgard/pointll.h>
+#include <valhalla/proto/directions.pb.h>
 #include <valhalla/proto/options.pb.h>
 #include <valhalla/proto/trip.pb.h>
 
@@ -20,6 +21,7 @@ namespace asgard {
 namespace util {
 
 pbnavitia::StreetNetworkMode convert_valhalla_to_navitia_mode(const valhalla::sif::TravelMode& mode);
+pbnavitia::StreetNetworkMode convert_valhalla_to_navitia_mode(const valhalla::DirectionsLeg_TravelMode& mode);
 
 valhalla::sif::TravelMode convert_navitia_to_valhalla_mode(const std::string& mode);
 
@@ -28,6 +30,8 @@ size_t navitia_to_valhalla_mode_index(const std::string& mode);
 valhalla::Costing convert_navitia_to_valhalla_costing(const std::string& costing);
 
 pbnavitia::CyclePathType convert_valhalla_to_navitia_cycle_lane(const valhalla::TripLeg_CycleLane& cycle_lane);
+
+pbnavitia::StreetNetworkMode convert_navitia_to_streetnetwork_mode(const std::string& mode);
 
 template<typename SingleRange>
 std::vector<valhalla::midgard::PointLL> convert_locations_to_pointLL(const SingleRange& request_locations) {
