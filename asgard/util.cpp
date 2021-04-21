@@ -64,7 +64,7 @@ const std::map<std::string, pbnavitia::StreetNetworkMode> make_navitia_to_street
         {"taxi", pbnavitia::StreetNetworkMode::Taxi},
         {"bss", pbnavitia::StreetNetworkMode::Bss},
     };
-};
+}
 
 pbnavitia::StreetNetworkMode convert_navitia_to_streetnetwork_mode(const std::string& mode) {
     static const auto navitia_to_valhalla_mode_map = make_navitia_to_streetnetwork_mode(mode);

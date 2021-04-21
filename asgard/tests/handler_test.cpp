@@ -181,9 +181,10 @@ void check_bss_journey_direct_path(const pbnavitia::Response& response,
     BOOST_ASSERT(response.journeys_size() == 1);
 
     const auto& journey = response.journeys(0);
-    BOOST_CHECK_EQUAL(journey.duration(), 918);
+    auto total_duration = 1 + std::accumulate(expected_section_duration.begin(), expected_section_duration.end(), 0);
+    BOOST_CHECK_EQUAL(journey.duration(), total_duration);
     BOOST_CHECK_EQUAL(journey.departure_date_time(), 0);
-    BOOST_CHECK_EQUAL(journey.arrival_date_time(), 918);
+    BOOST_CHECK_EQUAL(journey.arrival_date_time(), total_duration);
     BOOST_CHECK_EQUAL(journey.durations().walking(), 277);
     BOOST_CHECK_EQUAL(journey.distances().walking(), 556);
     BOOST_CHECK_EQUAL(journey.durations().bike(), 400);
@@ -231,6 +232,54 @@ BOOST_AUTO_TEST_CASE(handle_trivial_BSS_test) {
     // Last section corresponds to the arrival so its length and duration equal 0
     std::vector<float> expected_section_length = {111, 0, 1556, 0, 445};
     std::vector<float> expected_section_duration = {55, 120, 400, 120, 222};
+
+    {
+        const auto response = h.handle(request);
+        check_bss_journey_direct_path(response,
+                                      expected_section_length, expected_section_duration);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(handle_trivial_BSS_with_maneuver_duration_test) {
+    tile_maker::TileMaker maker;
+    maker.make_tile();
+
+    zmq::context_t context(1);
+    const Metrics metrics{boost::none};
+    const Projector projector{10, 0, 0};
+
+    boost::property_tree::ptree conf;
+    conf.put("tile_dir", maker.get_tile_dir());
+    valhalla::baldr::GraphReader graph(conf);
+    Context c{context, graph, metrics, projector};
+
+    Handler h{c};
+
+    pbnavitia::Request request;
+    request.set_requested_api(pbnavitia::direct_path);
+    auto* dp_request = request.mutable_direct_path();
+
+    // Origin is A
+    add_origin_or_dest_to_request(dp_request->mutable_origin(),
+                                  make_string_from_point(maker.a.second));
+
+    // Destination is i
+    add_origin_or_dest_to_request(dp_request->mutable_destination(),
+                                  make_string_from_point(maker.i.second));
+
+    auto* sn_params = dp_request->mutable_streetnetwork_params();
+    sn_params->set_origin_mode("bss");
+    sn_params->set_walking_speed(2);
+    sn_params->set_bike_speed(4);
+    float rent_duration = 42;
+    float return_duration = 24;
+
+    sn_params->set_bss_rent_duration(rent_duration);
+    sn_params->set_bss_return_duration(return_duration);
+
+    // Last section corresponds to the arrival so its length and duration equal 0
+    std::vector<float> expected_section_length = {111, 0, 1556, 0, 445};
+    std::vector<float> expected_section_duration = {55, rent_duration, 400, return_duration, 222};
 
     {
         const auto response = h.handle(request);
