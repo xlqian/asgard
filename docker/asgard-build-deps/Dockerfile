@@ -50,7 +50,7 @@ RUN env DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet \
 RUN git clone https://github.com/valhalla/valhalla.git libvalhalla \
   && cd libvalhalla \
   && git submodule update --init --recursive --depth=1 \
-  && git reset --hard 9c44ccdb07e808ce55b826a3d93203e27054ec0c \
+  && git checkout 3.1.1 \
   && cd -
 
 RUN mkdir -p libvalhalla/build \
