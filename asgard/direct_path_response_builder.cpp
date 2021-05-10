@@ -87,6 +87,7 @@ void set_extremity_pt_object(const valhalla::midgard::PointLL& geo_point, pbnavi
     auto* coords = o->mutable_address()->mutable_coord();
     coords->set_lat(geo_point.lat());
     coords->set_lon(geo_point.lng());
+    o->set_embedded_type(pbnavitia::ADDRESS);
 }
 
 void compute_geojson(const std::vector<midgard::PointLL>& list_geo_points, pbnavitia::Section& s) {
