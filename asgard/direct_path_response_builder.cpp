@@ -370,7 +370,6 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
         return response;
     }
 
-    LOG_INFO("Building solution...");
     // General
     response.set_response_type(pbnavitia::ITINERARY_FOUND);
 
@@ -404,9 +403,8 @@ pbnavitia::Response build_journey_response(const pbnavitia::Request& request,
     default:
         throw std::runtime_error{"Error when determining mono modal, unknow mode: " + mode};
     };
-
     compute_metadata(*journey);
-    LOG_INFO("Solution built...");
+    LOG_INFO("Direct path response done with mode: " + mode);
     return response;
 }
 

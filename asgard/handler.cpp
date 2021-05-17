@@ -191,8 +191,6 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
         return make_error_response(pbnavitia::Error::no_destination, "destinations projection failed!");
     }
 
-    LOG_INFO("Projecting locations done.");
-
     ValhallaLocations valhalla_location_sources;
     ProjectionFailedMask projection_mask_sources;
     std::tie(valhalla_location_sources, projection_mask_sources) = make_valhalla_locations_from_projected_locations(navitia_sources, projected_sources_locations, graph);
@@ -204,8 +202,6 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     LOG_INFO(std::to_string(projection_mask_sources.count()) + " origin(s) projection failed " +
              std::to_string(projection_mask_targets.count()) + " target(s) projection failed");
 
-    LOG_INFO("Projection Done");
-    LOG_INFO("Computing matrix...");
 
     std::vector<valhalla::thor::TimeDistance> res;
     if (mode == "bss") {
@@ -224,8 +220,6 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
                                     util::convert_navitia_to_valhalla_mode(mode),
                                     get_distance(mode, request.sn_routing_matrix().max_duration()));
     }
-
-    LOG_INFO("Computing matrix done.");
 
     pbnavitia::Response response;
     int nb_unreached = 0;
@@ -258,11 +252,10 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
         }
     }
 
-    LOG_INFO("Request done with " + std::to_string(nb_unreached) + " unreached");
+    LOG_INFO("Matrix Request done with " + std::to_string(nb_unreached) + " unreached");
 
     if (graph.OverCommitted()) { graph.Clear(); }
     matrix.Clear();
-    LOG_INFO("Everything is clear.");
 
     const auto duration = pt::microsec_clock::universal_time() - start;
     metrics.observe_handle_matrix(mode, duration.total_milliseconds() / 1000.0);
@@ -299,7 +292,6 @@ thor::PathAlgorithm& Handler::get_path_algorithm(const valhalla::Location& origi
 pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& request) {
     pt::ptime start = pt::microsec_clock::universal_time();
     const auto mode = request.direct_path().streetnetwork_params().origin_mode();
-    LOG_INFO("Processing direct_path request with mode " + mode);
 
     mode_costing.update_costing(make_modecosting_args(request.direct_path()));
     auto costing = mode_costing.get_costing_for_mode(mode);
@@ -307,14 +299,17 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     std::vector<midgard::PointLL> locations = util::convert_locations_to_pointLL(std::vector<pbnavitia::LocationContext>{request.direct_path().origin(),
                                                                                                                          request.direct_path().destination()});
 
-    LOG_INFO("Projecting locations...");
     // It's a direct path.. we don't pollute the cache with random coords...
     const bool use_cache = false;
     auto projected_locations = projector(begin(locations), end(locations), graph, mode, costing, use_cache);
-    LOG_INFO("Projecting locations done.");
+
+    auto coord_to_str = [](const auto point)-> std::string{
+    	return std::to_string(point.lon()) + ";" +  std::to_string(point.lat());
+    };
 
     if (projected_locations.size() != 2) {
-        return make_error_response(pbnavitia::Error::no_origin_nor_destination, "Cannot project the given coords!");
+    	auto err_message = "Cannot project the given coords: " + coord_to_str(request.direct_path().origin()) + "  " + coord_to_str(request.direct_path().destination());
+        return make_error_response(pbnavitia::Error::no_origin_nor_destination, "Cannot project the given coords: " + err_message);
     }
 
     valhalla::Location origin;
@@ -324,13 +319,11 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
 
     auto& algo = get_path_algorithm(origin, dest, mode);
 
-    LOG_INFO("Computing best path...");
     const auto path_info_list = algo.GetBestPath(origin,
                                                  dest,
                                                  graph,
                                                  mode_costing.get_costing(),
                                                  util::convert_navitia_to_valhalla_mode(mode));
-    LOG_INFO("Computing best path done.");
 
     // If no solution was found
     if (path_info_list.empty()) {
@@ -358,7 +351,6 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
 
     if (graph.OverCommitted()) { graph.Clear(); }
     algo.Clear();
-    LOG_INFO("Everything is clear.");
 
     auto duration = pt::microsec_clock::universal_time() - start;
     metrics.observe_handle_direct_path(mode, duration.total_milliseconds() / 1000.0);
