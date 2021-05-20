@@ -21,7 +21,7 @@ COPY --from=builder /asgard/build/asgard/asgard /usr/bin/asgard
 COPY --from=builder /usr/lib/ /usr/lib/
 COPY --from=builder /lib/ /lib/
 EXPOSE 6000 8080
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+HEALTHCHECK --interval=60s --timeout=5s --retries=3 \
 CMD /data/valhalla/healthcheck.sh || exit 1
 
 ENTRYPOINT ["/usr/bin/asgard"]
