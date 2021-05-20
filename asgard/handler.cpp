@@ -150,12 +150,16 @@ Handler::Handler(const Context& context) : graph(context.graph),
 }
 
 pbnavitia::Response Handler::handle(const pbnavitia::Request& request) {
-    switch (request.requested_api()) {
-    case pbnavitia::street_network_routing_matrix: return handle_matrix(request);
-    case pbnavitia::direct_path: return handle_direct_path(request);
-    default:
-        LOG_ERROR("wrong request: aborting");
-        return pbnavitia::Response();
+    try {
+        switch (request.requested_api()) {
+        case pbnavitia::street_network_routing_matrix: return handle_matrix(request);
+        case pbnavitia::direct_path: return handle_direct_path(request);
+        default:
+            LOG_ERROR("wrong request: aborting");
+            return pbnavitia::Response();
+        }
+    } catch (const std::exception& e) {
+        return make_error_response(pbnavitia::Error::internal_error, e.what());
     }
 }
 
@@ -302,7 +306,7 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     const bool use_cache = false;
     auto projected_locations = projector(begin(locations), end(locations), graph, mode, costing, use_cache);
 
-    auto coord_to_str = [](const auto point) -> std::string {
+    auto coord_to_str = [](const auto& point) -> std::string {
         return std::to_string(point.lon()) + ";" + std::to_string(point.lat());
     };
 
