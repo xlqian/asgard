@@ -202,7 +202,6 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
     LOG_INFO(std::to_string(projection_mask_sources.count()) + " origin(s) projection failed " +
              std::to_string(projection_mask_targets.count()) + " target(s) projection failed");
 
-
     std::vector<valhalla::thor::TimeDistance> res;
     if (mode == "bss") {
         res = bss_matrix.SourceToTarget(valhalla_location_sources,
@@ -303,13 +302,13 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     const bool use_cache = false;
     auto projected_locations = projector(begin(locations), end(locations), graph, mode, costing, use_cache);
 
-    auto coord_to_str = [](const auto point)-> std::string{
-    	return std::to_string(point.lon()) + ";" +  std::to_string(point.lat());
+    auto coord_to_str = [](const auto point) -> std::string {
+        return std::to_string(point.lon()) + ";" + std::to_string(point.lat());
     };
 
     if (projected_locations.size() != 2) {
-    	auto err_message = "Cannot project the given coords: " + coord_to_str(request.direct_path().origin()) + "  " + coord_to_str(request.direct_path().destination());
-        return make_error_response(pbnavitia::Error::no_origin_nor_destination, "Cannot project the given coords: " + err_message);
+        auto err_message = "Cannot project the given coords: " + coord_to_str(request.direct_path().origin()) + ", " + coord_to_str(request.direct_path().destination());
+        return make_error_response(pbnavitia::Error::no_origin_nor_destination, err_message);
     }
 
     valhalla::Location origin;
