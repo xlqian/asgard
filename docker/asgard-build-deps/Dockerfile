@@ -1,66 +1,61 @@
-FROM debian:9
+FROM ubuntu:20.04
 
-RUN apt-get update && apt-get install -y --no-install-recommends git \
-      autoconf \
-      automake \
-      make \
-      libtool \
-      pkg-config \
-      g++ \
-      gcc \
-      locales \
-      protobuf-compiler \
-      libboost-all-dev \
-      libcurl4-openssl-dev \
-      libprotobuf-dev \
-      libgeos-dev \
-      libgeos++-dev \
-      liblua5.2-dev \
-      libspatialite-dev \
-      libsqlite3-dev \
-      spatialite-bin \
-      liblz4-dev \
-      unzip \
-      lua5.2 \
-      python-all-dev \
-      vim-common \
-      jq \
-      gucharmap \
-      libprotobuf10 \
-      liblua5.2 \
-      libsqlite3-0 \
-      libboost-all-dev \
-      libboost-date-time1.62.0 \
-      libboost-filesystem1.62.0 \
-      libboost-program-options1.62.0 \
-      libboost-regex1.62.0 \
-      libboost-system1.62.0 \
-      libboost-thread1.62.0 \
-      libboost-iostreams1.62.0 \
-      cmake \
-      libzmq3-dev \
-      ca-certificates \
-      clang-format-4.0 \
-      wget
+# Now, go through and install the build dependencies
+RUN apt-get update --assume-yes
+RUN env DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet \
+    autoconf \
+    automake \
+    ccache \
+    clang \
+    clang-format \
+    clang-tidy \
+    coreutils \
+    curl \
+    cmake \
+    g++ \
+    gcc \
+    git \
+    jq \
+    lcov \
+    libboost${boost_version}-all-dev \
+    libcurl4-openssl-dev \
+    libgeos++-dev \
+    libgeos-dev \
+    libluajit-5.1-dev \
+    liblz4-dev \
+    libprotobuf-dev \
+    libspatialite-dev \
+    libsqlite3-dev \
+    libsqlite3-mod-spatialite \
+    libtool \
+    lld \
+    locales \
+    luajit \
+    make \
+    osmium-tool \
+    parallel \
+    pkg-config \
+    protobuf-compiler \
+    python-all-dev \
+    python3-all-dev \
+    python3-minimal \
+    spatialite-bin \
+    unzip \
+    zlib1g-dev \
+    libzmq3-dev \
+    wget \
+    python \
+  && rm -rf /var/lib/apt/lists/*
 
-RUN git clone --depth=1 --recursive --branch 3.0.8 https://github.com/valhalla/valhalla.git libvalhalla
+RUN git clone https://github.com/valhalla/valhalla.git libvalhalla \
+  && cd libvalhalla \
+  && git submodule update --init --recursive --depth=1 \
+  && git checkout 3.1.1 \
+  && cd -
 
 RUN mkdir -p libvalhalla/build \
   && cd libvalhalla/build \
-  && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=Off -DENABLE_NODE_BINDINGS=Off -DENABLE_PYTHON_BINDINGS=Off -DBUILD_SHARED_LIBS=Off -DBoost_USE_STATIC_LIBS=ON \
+  && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_SERVICES=Off -DENABLE_NODE_BINDINGS=Off -DENABLE_PYTHON_BINDINGS=Off \
+              -DBUILD_SHARED_LIBS=Off -DBoost_USE_STATIC_LIBS=ON -DENABLE_THREAD_SAFE_TILE_REF_COUNT=On\
   && make -j$(nproc) install && ldconfig
-
-RUN apt-get -y purge \
-      autoconf \
-      automake \
-      libtool \
-      libgeos-dev \
-      libgeos++-dev \
-      liblua5.2-dev \
-      unzip \
-      python-all-dev \
-      vim-common \
-      jq \
-      gucharmap \
- && apt-get autoremove -y && apt-get clean
 

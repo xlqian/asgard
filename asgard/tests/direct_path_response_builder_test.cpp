@@ -22,19 +22,28 @@ const std::vector<midgard::PointLL> list_geo_points = {
 std::vector<thor::PathInfo> create_path_info_list() {
     std::vector<thor::PathInfo> path_info_list;
     for (size_t i = 0; i < 5; ++i) {
-        path_info_list.emplace_back(sif::TravelMode::kDrive, i * 5, baldr::GraphId(), 0, i * 10.);
+        path_info_list.emplace_back(sif::TravelMode::kDrive, sif::Cost(i * 5, i * 5), baldr::GraphId(), 0, i * 10.);
     }
     return path_info_list;
 }
 
-valhalla::TripLeg create_trip_leg() {
+valhalla::TripLeg* create_trip_leg(valhalla::Api& api) {
+    auto* trip_leg = api.mutable_trip()->mutable_routes()->Add()->mutable_legs()->Add();
     auto const s = midgard::encode(list_geo_points);
 
-    valhalla::TripLeg trip_leg;
-    trip_leg.set_shape(s);
+    trip_leg->mutable_location()->Add();
+    trip_leg->mutable_location()->Add();
+    trip_leg->mutable_admin()->Add();
+
+    trip_leg->set_shape(s);
     for (size_t i = 0; i < list_geo_points.size(); ++i) {
-        trip_leg.add_node()->mutable_edge()->set_length((i * 5) / 1000.f);
+        trip_leg->add_node()->mutable_edge()->set_length_km((i * 5) / 1000.f);
     }
+
+    odin::DirectionsBuilder::Build(api);
+    auto m = api.mutable_directions()->mutable_routes(0)->mutable_legs(0)->mutable_maneuver(0);
+    m->set_time(20);
+    m->set_length(0.03);
     return trip_leg;
 }
 
@@ -52,41 +61,46 @@ BOOST_AUTO_TEST_CASE(build_journey_response_test) {
     // basic path_info_list (nominal case)
     {
         pbnavitia::Request request;
+        auto* dp = request.mutable_direct_path();
+        auto* params = dp->mutable_streetnetwork_params();
+        params->set_origin_mode("car");
+
         valhalla::Api api;
         std::vector<thor::PathInfo> path_info_list = create_path_info_list();
         request.mutable_direct_path()->set_datetime(1470241573);
 
-        auto trip_leg = create_trip_leg();
-        auto response = build_journey_response(request, path_info_list, trip_leg, api);
+        auto trip_leg = create_trip_leg(api);
+
+        auto response = build_journey_response(request, path_info_list, *trip_leg, api);
         BOOST_CHECK_EQUAL(response.response_type(), pbnavitia::ITINERARY_FOUND);
         BOOST_CHECK_EQUAL(response.journeys_size(), 1);
 
-        auto const journey = response.journeys().begin();
-        BOOST_CHECK_EQUAL(journey->nb_sections(), 1);
-        BOOST_CHECK_EQUAL(journey->nb_transfers(), 0);
-        BOOST_CHECK_EQUAL(journey->duration(), 20);
-        BOOST_CHECK_EQUAL(journey->requested_date_time(), 1470241573);
-        BOOST_CHECK_EQUAL(journey->departure_date_time(), 1470241573);
-        BOOST_CHECK_EQUAL(journey->arrival_date_time(), 1470241593);
+        auto const journey = response.journeys(0);
+        BOOST_CHECK_EQUAL(journey.nb_sections(), 1);
+        BOOST_CHECK_EQUAL(journey.nb_transfers(), 0);
+        BOOST_CHECK_EQUAL(journey.duration(), 20);
+        BOOST_CHECK_EQUAL(journey.requested_date_time(), 1470241573);
+        BOOST_CHECK_EQUAL(journey.departure_date_time(), 1470241573);
+        BOOST_CHECK_EQUAL(journey.arrival_date_time(), 1470241593);
 
-        auto const section = journey->sections().begin();
-        BOOST_CHECK_EQUAL(section->type(), pbnavitia::STREET_NETWORK);
-        BOOST_CHECK_EQUAL(section->id(), "section_0");
-        BOOST_CHECK_EQUAL(section->duration(), 20);
-        BOOST_CHECK_EQUAL(section->street_network().mode(), pbnavitia::Car);
-        BOOST_CHECK_EQUAL(section->begin_date_time(), 1470241573);
-        BOOST_CHECK_EQUAL(section->end_date_time(), 1470241593);
-        BOOST_CHECK_EQUAL(section->length(), 30);
+        auto const section = journey.sections(0);
+        BOOST_CHECK_EQUAL(section.type(), pbnavitia::STREET_NETWORK);
+        BOOST_CHECK_EQUAL(section.id(), "section_0");
+        BOOST_CHECK_EQUAL(section.duration(), 20);
+        BOOST_CHECK_EQUAL(section.street_network().mode(), pbnavitia::Car);
+        BOOST_CHECK_EQUAL(section.begin_date_time(), 1470241573);
+        BOOST_CHECK_EQUAL(section.end_date_time(), 1470241593);
+        BOOST_CHECK_EQUAL(section.length(), 30);
 
-        auto const origin_coords = section->origin().address().coord();
-        BOOST_CHECK_EQUAL(section->origin().uri(), "50.12346;1.45763");
-        BOOST_CHECK_EQUAL(section->origin().name(), "");
+        auto const origin_coords = section.origin().address().coord();
+        BOOST_CHECK_EQUAL(section.origin().uri(), "50.12345;1.45763");
+        BOOST_CHECK_EQUAL(section.origin().name(), "");
         BOOST_CHECK_CLOSE(origin_coords.lon(), 50.12345678f, 0.0001f);
         BOOST_CHECK_CLOSE(origin_coords.lat(), 1.457634f, 0.0001f);
 
-        auto const dest_coords = section->destination().address().coord();
-        BOOST_CHECK_EQUAL(section->destination().uri(), "42.07947;7.97481");
-        BOOST_CHECK_EQUAL(section->destination().name(), "");
+        auto const dest_coords = section.destination().address().coord();
+        BOOST_CHECK_EQUAL(section.destination().uri(), "42.07947;7.97482");
+        BOOST_CHECK_EQUAL(section.destination().name(), "");
         BOOST_CHECK_CLOSE(dest_coords.lon(), 42.0794687f, 0.0001f);
         BOOST_CHECK_CLOSE(dest_coords.lat(), 7.974815640f, 0.0001f);
     }
@@ -180,7 +194,9 @@ BOOST_AUTO_TEST_CASE(compute_path_items_test) {
         Api api;
         auto sn = pbnavitia::StreetNetwork();
 
-        compute_path_items(api, &sn, true);
+        compute_path_items(api, &sn, true,
+                           static_cast<ConstManeuverItetator>(nullptr),
+                           static_cast<ConstManeuverItetator>(nullptr));
 
         BOOST_CHECK_EQUAL(sn.path_items_size(), 0);
     }

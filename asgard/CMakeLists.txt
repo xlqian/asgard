@@ -25,6 +25,8 @@ add_custom_command(OUTPUT ${PROTO_HDRS} ${PROTO_SRCS}
 
 set_source_files_properties(${PROTO_HDRS} ${PROTO_SRCS} PROPERTIES GENERATED TRUE)
 
+add_definitions(-DRAPIDJSON_HAS_STDSTRING)
+
 add_library(libasgard
   metrics.cpp
   mode_costing.cpp

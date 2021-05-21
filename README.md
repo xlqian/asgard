@@ -20,7 +20,7 @@ To use Asgard with Navitia, you will need to give Jormungandr a configuration fi
       "class": "jormungandr.street_network.asgard.Asgard",
       "args": {
         "service_url": "http://localhost",
-        "asgard_socket": "ipc:///tmp/asgard",
+        "asgard_socket": "tcp://localhost:6000",
         "timeout": 2000
       }
     },
@@ -29,7 +29,7 @@ To use Asgard with Navitia, you will need to give Jormungandr a configuration fi
         "street_network": {
           "args": {
             "service_url": "http://localhost",
-            "asgard_socket": "ipc:///tmp/asgard",
+            "asgard_socket": "tcp://localhost:6000",
             "timeout": 2000
           },
           "class": "jormungandr.street_network.asgard.Asgard",
@@ -73,6 +73,8 @@ This will build [Valhalla](https://github.com/valhalla/valhalla) in <path_to_asg
 
 The executable of Asgard will be located in build/asgard.
 
+Note: Already having a Valhalla library & include directory in respectively `/usr/local/lib` & `/usr/local/include` may lead to build errors as they currently take priority over the library & include directory specified in [build_asgard_for_ubuntu.sh](https://github.com/CanalTP/asgard/blob/ba831b3fed02f54c3cc84df04db3ae8f5141ee12/scripts/build_asgard_for_ubuntu.sh#L102).
+
 #### Prepare data
 
 To create the data download the pfbs you want here http://download.geofabrik.de/. Then run:
@@ -87,6 +89,33 @@ To run the unit tests :
 ```bash
 cd build/asgard
 ctest
+```
+
+#### Run Asgard
+
+You should have now Asgard compiled and a data ready to use.
+
+```bash
+# Export var env ASGARD_VALHALLA_CONF
+export ASGARD_VALHALLA_CONF=/created_data_folder/valhalla.json
+
+# Run Asgard
+cd root_project/build/asgard
+./asgard
+```
+
+The term ouput looks like that :
+
+```bash
+~/asgard/build/asgard » ./asgard
+2021/02/01 12:41:32.110373 [INFO] Using default log configuration. Logs are going to std_out
+2021/02/01 12:41:32.110428 [INFO] Config: ASGARD_SOCKET_PATH=tcp://*:6000
+2021/02/01 12:41:32.110432 [INFO] Config: ASGARD_CACHE_SIZE=1000000
+2021/02/01 12:41:32.110434 [INFO] Config: ASGARD_NB_THREADS=3
+2021/02/01 12:41:32.110436 [INFO] Config: ASGARD_METRICS_BINDING=0.0.0.0:8080
+2021/02/01 12:41:32.110440 [INFO] Config: ASGARD_VALHALLA_CONF=/created_data_folder/valhalla.json
+2021/02/01 12:41:32.111061 [INFO] metrics available at http://0.0.0.0:8080/metrics
+2021/02/01 12:41:32.111648 [INFO] Tile extract successfully loaded with tile count: 40
 ```
 
 #### Install linters/formatter

@@ -540,7 +540,8 @@ ListOfLocations build_list_of_locations(size_t nb_threads) {
 
     std::vector<valhalla::midgard::PointLL> pointLLs;
     boost::transform(locations, std::back_inserter(pointLLs), [](const auto& coord) {
-        return valhalla::midgard::PointLL{navitia::parse_coordinate(coord)};
+        auto c = navitia::parse_coordinate(coord);
+        return valhalla::midgard::PointLL{c.first, c.second};
     });
 
     for (size_t i = 0; i < list_size; ++i) {

@@ -20,7 +20,10 @@
 #include "asgard/response.pb.h"
 
 #include <valhalla/baldr/graphreader.h>
+#include <valhalla/thor/astar_bss.h>
 #include <valhalla/thor/bidirectional_astar.h>
+#include <valhalla/thor/timedep.h>
+#include <valhalla/thor/timedistancebssmatrix.h>
 #include <valhalla/thor/timedistancematrix.h>
 
 namespace pbnavitia {
@@ -41,12 +44,17 @@ private:
     pbnavitia::Response handle_matrix(const pbnavitia::Request&);
     pbnavitia::Response handle_direct_path(const pbnavitia::Request&);
 
-    valhalla::thor::PathAlgorithm& get_path_algorithm(const std::string& mode);
+    valhalla::thor::PathAlgorithm& get_path_algorithm(const valhalla::Location& origin,
+                                                      const valhalla::Location& destination,
+                                                      const std::string& mode);
 
     valhalla::baldr::GraphReader& graph;
     valhalla::thor::TimeDistanceMatrix matrix;
+    valhalla::thor::TimeDistanceBSSMatrix bss_matrix;
+
+    valhalla::thor::AStarBSSAlgorithm bss_astar;
     valhalla::thor::BidirectionalAStar bda;
-    valhalla::thor::AStarPathAlgorithm astar;
+    valhalla::thor::TimeDepForward timedep_forward;
     ModeCosting mode_costing;
     const Metrics& metrics;
     const Projector& projector;

@@ -25,17 +25,49 @@ pbnavitia::StreetNetworkMode convert_valhalla_to_navitia_mode(const sif::TravelM
     }
 }
 
+pbnavitia::StreetNetworkMode convert_valhalla_to_navitia_mode(const valhalla::DirectionsLeg_TravelMode& mode) {
+    switch (mode) {
+    case valhalla::DirectionsLeg_TravelMode::DirectionsLeg_TravelMode_kDrive:
+        return pbnavitia::Car;
+
+    case valhalla::DirectionsLeg_TravelMode::DirectionsLeg_TravelMode_kPedestrian:
+        return pbnavitia::Walking;
+
+    case valhalla::DirectionsLeg_TravelMode::DirectionsLeg_TravelMode_kBicycle:
+        return pbnavitia::Bike;
+
+    default:
+        throw std::invalid_argument("Bad convert_valhalla_to_navitia_mode parameter");
+    }
+}
+
 const std::map<std::string, sif::TravelMode> make_navitia_to_valhalla_mode_map() {
     return {
         {"walking", sif::TravelMode::kPedestrian},
         {"bike", sif::TravelMode::kBicycle},
         {"car", sif::TravelMode::kDrive},
         {"taxi", sif::TravelMode::kDrive},
+        {"bss", sif::TravelMode::kPedestrian},
     };
 }
 
 sif::TravelMode convert_navitia_to_valhalla_mode(const std::string& mode) {
     static const auto navitia_to_valhalla_mode_map = make_navitia_to_valhalla_mode_map();
+    return navitia_to_valhalla_mode_map.at(mode);
+}
+
+const std::map<std::string, pbnavitia::StreetNetworkMode> make_navitia_to_streetnetwork_mode(const std::string& mode) {
+    return {
+        {"walking", pbnavitia::StreetNetworkMode::Walking},
+        {"bike", pbnavitia::StreetNetworkMode::Bike},
+        {"car", pbnavitia::StreetNetworkMode::Car},
+        {"taxi", pbnavitia::StreetNetworkMode::Taxi},
+        {"bss", pbnavitia::StreetNetworkMode::Bss},
+    };
+}
+
+pbnavitia::StreetNetworkMode convert_navitia_to_streetnetwork_mode(const std::string& mode) {
+    static const auto navitia_to_valhalla_mode_map = make_navitia_to_streetnetwork_mode(mode);
     return navitia_to_valhalla_mode_map.at(mode);
 }
 
@@ -50,6 +82,7 @@ const std::map<std::string, Costing> make_navitia_to_valhalla_costing_map() {
         {"bike", Costing::bicycle},
         {"car", Costing::auto_},
         {"taxi", Costing::taxi},
+        {"bss", Costing::bikeshare},
     };
 }
 

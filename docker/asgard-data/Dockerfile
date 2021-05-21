@@ -16,9 +16,10 @@ RUN valhalla_build_config --mjolnir-tile-dir ${PWD}/valhalla_tiles --mjolnir-til
 # They seem to give the most coherent results between the time of the matrix and the direct_path
 # And fixing some projection problems in dead-ends or isolated places.
 RUN sed -i 's,\"minimum_reachability\"\: [[:digit:]]*,\"minimum_reachability\"\: 30,' valhalla.json \
-  && sed -i 's,\"radius\"\: [[:digit:]]*,\"radius\"\: 0,' valhalla.json \
+  && sed -i 's,\"radius\"\: [[:digit:]]*,\"radius\"\: 20,' valhalla.json \
   && sed -i 's,\"shortcuts\"\: [^,]*,\"shortcuts\"\: false,' valhalla.json \
-  && sed -i 's,\"hierarchy\"\: [^,]*,\"hierarchy\"\: false,' valhalla.json
+  && sed -i 's,\"hierarchy\"\: [^,]*,\"hierarchy\"\: false,' valhalla.json \
+  && sed -i 's,\"import_bike_share_stations\"\: [^,]*,\"import_bike_share_stations\"\: true,' valhalla.json
 
 RUN valhalla_build_elevation $elevation_min_x_max_x_min_y_max_y ${PWD}/elevation_tiles $(nproc)
 

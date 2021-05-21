@@ -1,0 +1,24 @@
+name: CI
+
+on:
+    pull_request:
+    push:
+        branches:
+            - master
+            - release
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        container:
+            image: navitia/asgard-build-deps:latest
+        
+        steps:
+        - uses: actions/checkout@v2
+          with:
+            submodules: 'recursive'
+        - name: build
+          run: |
+            scripts/check-formatting.sh
+            cp -r /libvalhalla .    
+            mkdir build && cd build && cmake -DENABLE_SANITIZERS=On ../ && make && cd asgard && ctest
