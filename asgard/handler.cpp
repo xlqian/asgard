@@ -46,7 +46,7 @@ constexpr size_t MAX_MASK_SIZE = 10000;
 using ProjectionFailedMask = std::bitset<MAX_MASK_SIZE>;
 
 constexpr float WALKING_MAX_MATRIX_COST_FACTOR = 1.;
-constexpr float BIKE_MAX_MATRIX_COST_FACTOR = 1.8;
+constexpr float BIKE_MAX_MATRIX_COST_FACTOR = 2;
 constexpr float CAR_MAX_MATRIX_COST_FACTOR = 2;
 
 namespace {
