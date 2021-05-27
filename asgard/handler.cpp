@@ -152,13 +152,17 @@ struct Finally {
     Finally& operator=(const Finally&) = delete;
     Finally& operator=(Finally&&) = delete;
     ~Finally() {
-        t();
+        try {
+            t();
+        } catch (...) {
+            LOG_ERROR("Error occurred when exectuing Finally");
+        }
     };
 };
 
 template<typename T>
-Finally<T> make_finally(T t) {
-    return Finally<T>{t};
+Finally<T> make_finally(T&& t) {
+    return Finally<T>{std::forward<T>(t)};
 }
 
 } // namespace
