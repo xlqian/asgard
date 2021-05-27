@@ -159,6 +159,12 @@ pbnavitia::Response Handler::handle(const pbnavitia::Request& request) {
             return pbnavitia::Response();
         }
     } catch (const std::exception& e) {
+        if (graph.OverCommitted()) { graph.Clear(); }
+        bss_matrix.Clear();
+        matrix.Clear();
+        bss_astar.Clear();
+        bda.Clear();
+        timedep_forward.Clear();
         return make_error_response(pbnavitia::Error::internal_error, e.what());
     }
 }
