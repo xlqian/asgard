@@ -22,9 +22,9 @@
 #include <valhalla/baldr/graphreader.h>
 #include <valhalla/thor/astar_bss.h>
 #include <valhalla/thor/bidirectional_astar.h>
-#include <valhalla/thor/timedep.h>
 #include <valhalla/thor/timedistancebssmatrix.h>
 #include <valhalla/thor/timedistancematrix.h>
+#include <valhalla/thor/unidirectional_astar.h>
 
 namespace pbnavitia {
 class Request;
