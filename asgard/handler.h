@@ -48,6 +48,15 @@ private:
                                                       const valhalla::Location& destination,
                                                       const std::string& mode);
 
+    void clear() {
+        if (graph.OverCommitted()) { graph.Clear(); }
+        matrix.Clear();
+        bss_matrix.Clear();
+        bss_astar.Clear();
+        bda.Clear();
+        timedep_forward.Clear();
+    };
+
     valhalla::baldr::GraphReader& graph;
     valhalla::thor::TimeDistanceMatrix matrix;
     valhalla::thor::TimeDistanceBSSMatrix bss_matrix;

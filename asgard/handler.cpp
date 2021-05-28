@@ -142,6 +142,29 @@ make_valhalla_locations_from_projected_locations(const std::vector<midgard::Poin
     return std::make_pair(std::move(valhalla_locations), projection_failed_mask);
 }
 
+template<typename T>
+struct Finally {
+    T t;
+    explicit Finally(T t) : t(t){};
+    Finally() = delete;
+    Finally(Finally&& f) = default;
+    Finally(const Finally&) = delete;
+    Finally& operator=(const Finally&) = delete;
+    Finally& operator=(Finally&&) = delete;
+    ~Finally() {
+        try {
+            t();
+        } catch (...) {
+            LOG_ERROR("Error occurred when exectuing Finally");
+        }
+    };
+};
+
+template<typename T>
+Finally<T> make_finally(T&& t) {
+    return Finally<T>{std::forward<T>(t)};
+}
+
 } // namespace
 
 Handler::Handler(const Context& context) : graph(context.graph),
@@ -150,6 +173,9 @@ Handler::Handler(const Context& context) : graph(context.graph),
 }
 
 pbnavitia::Response Handler::handle(const pbnavitia::Request& request) {
+    // RAII to clear all
+    auto f = make_finally([this]() { clear(); });
+
     try {
         switch (request.requested_api()) {
         case pbnavitia::street_network_routing_matrix: return handle_matrix(request);
@@ -257,9 +283,6 @@ pbnavitia::Response Handler::handle_matrix(const pbnavitia::Request& request) {
 
     LOG_INFO("Matrix Request done with " + std::to_string(nb_unreached) + " unreached");
 
-    if (graph.OverCommitted()) { graph.Clear(); }
-    matrix.Clear();
-
     const auto duration = pt::microsec_clock::universal_time() - start;
     metrics.observe_handle_matrix(mode, duration.total_milliseconds() / 1000.0);
     metrics.observe_nb_cache_miss(projector.get_nb_cache_miss(), projector.get_nb_cache_calls());
@@ -351,9 +374,6 @@ pbnavitia::Response Handler::handle_direct_path(const pbnavitia::Request& reques
     odin::DirectionsBuilder::Build(api);
 
     const auto response = direct_path_response_builder::build_journey_response(request, pathedges, *trip_leg, api);
-
-    if (graph.OverCommitted()) { graph.Clear(); }
-    algo.Clear();
 
     auto duration = pt::microsec_clock::universal_time() - start;
     metrics.observe_handle_direct_path(mode, duration.total_milliseconds() / 1000.0);
