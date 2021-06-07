@@ -429,12 +429,6 @@ void set_extremity_pt_object(const valhalla::midgard::PointLL& geo_point, const 
     }
 }
 
-void set_extremity_pt_object_name(const DirectionsLeg_Maneuver& maneuver, pbnavitia::PtObject& o) {
-    if (!maneuver.street_name().empty() && maneuver.street_name().Get(0).has_value()) {
-        o.set_name(maneuver.street_name().Get(0).value());
-    }
-}
-
 void compute_geojson(const std::vector<midgard::PointLL>& list_geo_points, pbnavitia::Section& s) {
     for (const auto& point : list_geo_points) {
         auto* geo = s.mutable_street_network()->add_coordinates();
